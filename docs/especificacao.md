@@ -239,14 +239,14 @@ Regras de "A Evolução do Personagem" (Jogador, Progressão) e "Sistema de Pres
 
 **Consagração (depois do nível 10)**
 
-- O XP acima do nível 10 vira Pontos de Prestígio.
+- O XP acima do nível 10 vira Pontos de Prestígio: 1 ponto a cada nível da tabela de XP alcançado entre 11 e 20.
 - O jogador gasta os pontos numa loja de prestígio que só libera o que ele pode pagar e o que cumpre os requisitos:
 
 | Opção | Custo | Trava no app |
 |---|---|---|
 | Técnica Avançada | 1 | — |
 | Técnica Lendária | 2 | Exige pelo menos uma Técnica Avançada já comprada |
-| Talento ou proficiência | 1 | — |
+| Talento ou proficiência | 1 | Inclui Treinamento Pesado (+1 atributo, máximo 5; em Fibra, +1 PV máx. por nível de classe) |
 | Vitalidade Aprimorada (+5 PV máx.) | 1 | Pode repetir |
 | Nível em classe secundária (Polivalência) | 2 | Só com o módulo Polivalência ativo (seção abaixo) |
 
@@ -452,11 +452,12 @@ Antes de abandonar o ODM-App, exportar da campanha de playtest o que não existe
 - **Dados do app antigo:** exportar antes de abandonar o ODM-App (seção 12).
 - **Progressão:** seção 6.2.1.
 
+- **Mestre no celular:** só PC na 1.0. O Escudo do Mestre é desenhado para desktop.
+- **Sons:** entram (dados rolando, sino de "seu turno", tiro em ataque com arma de fogo), curtos, com volume próprio e opção de desligar. Ligados por padrão.
+
 ### Suas decisões
 
-1. **Mestre no celular:** precisa de uma versão do Escudo para celular, ou o mestre usa sempre o PC? Proposta: só PC na 1.0.
-2. **Cor e identidade do tema de A Arte da Guerra.**
-3. **Sons:** entram (dados, tiro, sino de turno) ou o app fica mudo?
+1. **Cor e identidade do tema de A Arte da Guerra:** decidir junto com a capa do complemento (antes da fase 8).
 
 ### Lacunas de regra (para resolver ao escrever a camada mecânica)
 
@@ -465,8 +466,8 @@ Vou levantar cada caso com a citação do livro durante a fase 3. Já encontrei:
 - **Termo "recarga":** o livro não usa. O app mostra "uma vez por descanso curto/longo/cena", conforme cada habilidade.
 - **Alucinado e Enfeitiçado:** dependem do mestre; ficam só como texto.
 - **Bêbado:** a regra de doses vale "para personagens comuns". Falta definir quem não é comum (raça, habilidade).
-- **XP → Prestígio:** o livro diz que o XP depois do nível 10 "passa a ser convertido em Pontos de Prestígio", mas não diz a taxa. A tabela de XP vai até o nível 20 e as tabelas de classe trazem "Ponto de prestígio" nos níveis 11 a 20. Leitura provável: 1 ponto a cada nível da tabela de XP alcançado entre 11 e 20 (10 pontos no total), o que bate com o exemplo da Polivalência (Brutamonte 10 / Bélico 5 = 10 pontos). **Confirmar.**
-- **Comprar atributo com Prestígio:** a "Nota Especial sobre a Fibra" fala em "gastar Prestígio para comprar pontos de Fibra", mas a lista de opções não traz compra de atributo nem o custo. **Existe essa opção? Quanto custa e vale para todos os atributos?**
+- **XP → Prestígio (decidido em 05/11/2026):** 1 Ponto de Prestígio a cada nível da tabela de XP alcançado entre 11 e 20 (10 pontos no total). É o que indicam as tabelas de classe ("Ponto de prestígio" nos níveis 11 a 20) e o exemplo da Polivalência (Brutamonte 10 / Bélico 5).
+- **Comprar atributo com Prestígio (decidido em 05/11/2026):** é o talento **Treinamento Pesado** (Jogador, Talentos): 1 ponto de atributo à escolha, repetível, mínimo −1 e máximo 5. Comprado como "Talento" (1 Ponto de Prestígio). Se o ponto for em Fibra depois do nível 10, o app aplica a "Nota Especial sobre a Fibra": +1 PV máximo por nível de classe (até 10). Sugestão para a 1.1 do livro, sem aplicar agora: citar o Treinamento Pesado na própria nota da Fibra.
 
 ### Do app antigo
 
