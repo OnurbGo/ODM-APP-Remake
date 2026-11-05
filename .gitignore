@@ -1,0 +1,27 @@
+# Dependências e builds
+node_modules/
+dist/
+dist-installer/
+out/
+*.tsbuildinfo
+.vite/
+
+# Ambiente
+.env
+.env.*
+!.env.example
+
+# Dados locais do app
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+
+# Conteúdo dos livros (repositório privado) — nunca versionar aqui
+odm-*.json
+conteudo-gerado/
+exportacao-odm-app-antigo.*
+
+# Sistema
+.DS_Store
+Thumbs.db
+*.log
