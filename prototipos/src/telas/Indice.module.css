@@ -1,0 +1,32 @@
+.indice {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: var(--esp-8) var(--esp-4);
+}
+
+.titulo {
+  font-family: var(--fonte-gotica);
+  font-size: var(--texto-3xl);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--cor-destaque);
+}
+
+.sub {
+  margin: var(--esp-2) 0 var(--esp-6);
+  color: var(--cor-texto-suave);
+}
+
+.lista li {
+  padding: var(--esp-3) 0;
+  border-top: 1px solid var(--cor-borda);
+  font-size: var(--texto-l);
+}
+
+.lista a {
+  color: var(--cor-destaque);
+}
+
+.lista span {
+  color: var(--cor-texto-fraco);
+}

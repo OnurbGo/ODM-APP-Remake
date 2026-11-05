@@ -1,0 +1,24 @@
+.trilho {
+  position: relative;
+  height: 10px;
+  overflow: hidden;
+  background: var(--cor-fundo-inset);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-s);
+}
+
+.vida,
+.temporario {
+  position: absolute;
+  inset: 0;
+  transform-origin: left center;
+  transition: transform var(--dur-lenta) var(--curva-saida);
+}
+
+.vida {
+  background: var(--cor-perigo);
+}
+
+.temporario {
+  background: var(--cor-destaque);
+}

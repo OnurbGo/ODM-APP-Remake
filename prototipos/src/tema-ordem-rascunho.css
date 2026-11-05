@@ -1,0 +1,61 @@
+/* Rascunho do tema de A Ordem no Caos, só para ver e testar a troca de tema.
+   O tema real vem no pacote do complemento, na fase 8.
+   Cores da introdução do livro: roxo muito escuro (#22093d a #12041f) e roxo forte (#b05cff). */
+:root[data-tema="ordem-no-caos"][data-superficie] {
+  color-scheme: dark;
+
+  --cor-fundo: #12041f;
+  --cor-fundo-faixa: #1a0730;
+  --cor-superficie: #22093d;
+  --cor-superficie-alta: #2a0d4a;
+  --cor-fundo-inset: #0b0214;
+  --cor-borda: #4b2480;
+  --cor-borda-forte: #8a45d6;
+
+  --cor-texto: #e6dcef;
+  --cor-texto-suave: #c9b8dc;
+  --cor-texto-fraco: #ac98c4;
+
+  --cor-destaque: #b05cff;
+  --cor-destaque-forte: #d4a8ff;
+  --cor-sobre-destaque: #12041f;
+  --cor-perigo: #ff7a68;
+  --cor-sobre-perigo: #fff2ea;
+  --cor-sucesso: #a8dc8a;
+  --cor-tecnica: #d4a8ff;
+  --cor-prestigio: #e0b0ff;
+
+  --cor-metal: #b05cff;
+  --cor-metal-claro: #e0b0ff;
+  --cor-metal-escuro: #5a2a9c;
+  --cor-chumbo: #9d8bb8;
+  --cor-vazio: #2a0d4a;
+
+  --veu: rgb(8 2 16 / 0.78);
+
+  --dado-corpo: #4e2672;
+  --dado-numero: #e6dcef;
+  --dado-aresta: #b05cff;
+
+  --abertura-fundo: #12041f;
+  --abertura-borda: #22093d;
+  --abertura-tinta: #22093d;
+  --abertura-traco: #b05cff;
+  --abertura-esclera: #e6dcef;
+  --abertura-iris: #4e2672;
+  --abertura-metal: #b05cff;
+  --abertura-titulo: #b05cff;
+  --abertura-apoio: #c9b8dc;
+
+  --carta-papel: #e6dcef;
+  --carta-preto: #22093d;
+  --carta-vermelho: #8a1fd6;
+  --carta-verso: #4e2672;
+  --carta-verso-trama: #5f2f8a;
+
+  --transicao-madeira: #3a1766;
+  --transicao-madeira-escura: #22093d;
+  --transicao-parede: #12041f;
+  --transicao-papel: #e6dcef;
+  --transicao-tinta: #22093d;
+}

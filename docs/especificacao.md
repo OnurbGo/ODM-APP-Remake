@@ -284,7 +284,8 @@ Regras de "A Evolução do Personagem" (Jogador, Progressão) e "Sistema de Pres
 
 ### 7.1 Escudo do Mestre — combate
 
-- Iniciativa e turnos (jogadores, criaturas, NPCs), com avanço de turno disparando os gatilhos dos efeitos.
+- Iniciativa por baralho, seguindo "Iniciativa" (Jogador, Combate): cada criatura engajada compra uma carta, e o app ordena, desempata e registra quem usou o efeito de uma carta especial.
+- Turnos (jogadores, criaturas, NPCs), com avanço de turno disparando os gatilhos dos efeitos.
 - Criaturas do bestiário com PV, efeitos e ações clicáveis (rola acerto e dano; pede teste de resistência).
 - **Horda** (regra do Zumbi): formar, somar PV, remover integrante a cada 10 de dano, recalcular o bônus.
 - Pedido de teste para vários jogadores (seção 8).
@@ -340,6 +341,7 @@ Cada missão tem texto para os jogadores, notas do mestre, dificuldade e criatur
 - **Automático ligado:** o app rola, aplica e registra. Se houver uma habilidade disponível marcada para aquela situação, ele **pausa e pergunta** antes de rolar.
 - **Automático desligado:** abre um pop-up com o teste, a DT (se visível), um campo de bônus ou penalidade, vantagem ou desvantagem, as habilidades que servem para a situação (disponíveis e usadas) e o botão **Rolar**.
 - **Nos dois modos**, o app aplica o que o livro manda e mostra a conta: Envenenado (desvantagem), Exaustão (−2 a −6), Impedido (desvantagem em Agilidade), Atordoado e Inconsciente (falha automática em Brutalidade e Agilidade).
+- **Modelo de vantagem:** o mestre escolhe na campanha entre Dados Extras e Cartas, como em "Vantagem e Desvantagem" (Jogador, Progressão). O app segue o modelo escolhido na rolagem e no pop-up.
 
 ### 8.4 Animação da rolagem
 
@@ -372,7 +374,7 @@ Os componentes base (botão, cartão, aba, marcador de PA, ficha de classe, pop-
 | Tema | Base |
 |---|---|
 | Olho da Morte (padrão) | Paleta dos livros: tinta, pergaminho, sangue, ferrugem, ouro velho; fontes EB Garamond, IM Fell English e Grenze Gotisch |
-| A Ordem no Caos | Violeta da capa, moldura lunar, círculo arcano |
+| A Ordem no Caos | Fundo roxo muito escuro, quase preto, com roxo forte como cor predominante (as cores da introdução do livro); moldura lunar, círculo arcano |
 | A Arte da Guerra | A definir junto com a capa do complemento |
 
 - Cada tema vem no pacote do complemento, com tokens, ornamentos e as próprias animações de abertura e transição.
@@ -433,7 +435,7 @@ Antes de abandonar o ODM-App, exportar da campanha de playtest o que não existe
 | Fase | Entrega | Pronto quando |
 |---|---|---|
 | 0. Dados antigos ✔ | Exportação da seção 12 | Feito em 05/11/2026 |
-| 1. Protótipos | Combate do jogador (celular e desktop), Escudo do Mestre, Ficha, abertura, transições, rolagem | Você aprova o visual e o fluxo |
+| 1. Protótipos ✔ | Combate do jogador (celular e desktop), Escudo do Mestre, Ficha, abertura, transições, rolagem, cartas | Feito em 05/11/2026; o aprovado está em `docs/decisoes-visuais.md` |
 | 2. Fundação | Monorepo, `estilo` com o tema padrão, Electron + servidor + WebSocket, entrada na mesa | Dois dispositivos na mesma mesa vendo uma rolagem ao vivo |
 | 3. Conteúdo base | Exportador no repositório dos livros + camada mecânica dos efeitos e dos ataques de criatura (para sua revisão) | `odm-base-1.0.json` validado |
 | 4. Ficha | Criação, ficha, motor de regras com a conta de cada valor | Personagem completo de qualquer classe da base |
@@ -458,6 +460,9 @@ Antes de abandonar o ODM-App, exportar da campanha de playtest o que não existe
 ### Suas decisões
 
 1. **Cor e identidade do tema de A Arte da Guerra:** decidir junto com a capa do complemento (antes da fase 8).
+2. **Cartas do Destino:** regra opcional (Jogador, "Cartas do Destino"). Viram opção da campanha? O protótipo tem só um aviso na Redenção (antes da fase 4).
+3. **Pop-up de teste do jogador:** hoje dá para fechar sem responder. A recomendação é só fechar respondendo, porque o mestre fica esperando (antes da fase 5).
+4. **Abertura:** a recomendação é tocar uma vez por abertura do app, não a cada troca de tela (antes da fase 7).
 
 ### Lacunas de regra (para resolver ao escrever a camada mecânica)
 
@@ -466,6 +471,11 @@ Vou levantar cada caso com a citação do livro durante a fase 3. Já encontrei:
 - **Termo "recarga":** o livro não usa. O app mostra "uma vez por descanso curto/longo/cena", conforme cada habilidade.
 - **Alucinado e Enfeitiçado:** dependem do mestre; ficam só como texto.
 - **Bêbado:** a regra de doses vale "para personagens comuns". Falta definir quem não é comum (raça, habilidade).
+- **Empate final na iniciativa:** depois da Agilidade, o livro aceita naipe ou nova compra, "o método que sua mesa preferir". Falta decidir se vira opção da campanha; o protótipo usa naipe.
+- **Dois Coringas com a mesma Agilidade:** Coringa não tem naipe, então esse desempate não se aplica.
+- **Troca do Coringa:** o livro diz que a troca é imediata, mas quem usa o efeito vai para o fim. Falta confirmar a ordem; o protótipo move primeiro e troca depois.
+- **`22-carga.md`, linha 14:** cita "modificador de Força" para montaria, e Força não é atributo do sistema. Perguntar antes de corrigir.
+- **Críticos (decidido em 05/11/2026):** 20 natural no d20 de ataque acerta automaticamente e o dano rola o dobro dos dados; "falha crítica" é 1 natural. Em teste de resistência, 20 e 1 têm só destaque visual, e o resultado é sempre o total contra a DT.
 - **XP → Prestígio (decidido em 05/11/2026):** 1 Ponto de Prestígio a cada nível da tabela de XP alcançado entre 11 e 20 (10 pontos no total). É o que indicam as tabelas de classe ("Ponto de prestígio" nos níveis 11 a 20) e o exemplo da Polivalência (Brutamonte 10 / Bélico 5).
 - **Comprar atributo com Prestígio (decidido em 05/11/2026):** é o talento **Treinamento Pesado** (Jogador, Talentos): 1 ponto de atributo à escolha, repetível, mínimo −1 e máximo 5. Comprado como "Talento" (1 Ponto de Prestígio). Se o ponto for em Fibra depois do nível 10, o app aplica a "Nota Especial sobre a Fibra": +1 PV máximo por nível de classe (até 10). Sugestão para a 1.1 do livro, sem aplicar agora: citar o Treinamento Pesado na própria nota da Fibra.
 

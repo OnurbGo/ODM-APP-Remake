@@ -1,0 +1,141 @@
+.carta {
+  display: inline-block;
+  flex: none;
+  width: 5em;
+  height: 7em;
+  perspective: 40em;
+}
+
+.p {
+  font-size: 11px;
+}
+
+.m {
+  font-size: 15px;
+}
+
+.g {
+  font-size: 26px;
+}
+
+.apagada {
+  opacity: 0.45;
+}
+
+.miolo {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform calc(520ms * var(--fator-animacao)) var(--curva-padrao);
+}
+
+.virada .miolo {
+  transform: rotateY(180deg);
+}
+
+.verso,
+.face {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 0.4em;
+  backface-visibility: hidden;
+  box-shadow: var(--sombra-s);
+}
+
+.verso {
+  display: grid;
+  place-items: center;
+  background: repeating-linear-gradient(45deg, var(--carta-verso) 0 0.3em, var(--carta-verso-trama) 0.3em 0.42em);
+  border: 0.14em solid var(--carta-papel);
+}
+
+.versoFrisos {
+  width: 60%;
+  height: 72%;
+  border: 0.1em solid var(--carta-papel);
+  border-radius: 0.2em;
+}
+
+.face {
+  background: var(--carta-papel);
+  border: 1px solid var(--cor-borda-forte);
+  color: var(--carta-preto);
+  transform: rotateY(180deg);
+}
+
+.vermelha {
+  color: var(--carta-vermelho);
+}
+
+.indice {
+  position: absolute;
+  top: 0.3em;
+  left: 0.35em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: var(--fonte-numero);
+  font-size: 1em;
+  line-height: 1;
+}
+
+.indice .simbolo {
+  width: 0.72em;
+  height: 0.72em;
+}
+
+.indiceFim {
+  position: absolute;
+  inset: 0;
+  transform: rotate(180deg);
+}
+
+.centro {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+.centro .simbolo {
+  width: 2.4em;
+  height: 2.4em;
+}
+
+.coringa {
+  font-family: var(--fonte-gotica);
+  font-size: 0.95em;
+  font-weight: 700;
+  transform: rotate(-60deg);
+}
+
+.simbolo {
+  display: block;
+  fill: currentColor;
+}
+
+.mini {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 1px;
+  padding: 1px 4px;
+  background: var(--carta-papel);
+  border-radius: var(--raio-s);
+  color: var(--carta-preto);
+  font-family: var(--fonte-numero);
+  font-size: var(--texto-s);
+  line-height: 1.1;
+}
+
+.mini.vermelha {
+  color: var(--carta-vermelho);
+}
+
+.mini .simbolo {
+  width: 0.72em;
+  height: 0.72em;
+}

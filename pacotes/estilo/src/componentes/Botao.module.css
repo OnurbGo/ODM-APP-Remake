@@ -1,0 +1,79 @@
+.botao {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--esp-2);
+  min-height: var(--alvo-toque);
+  padding: var(--esp-2) var(--esp-4);
+  border: 1px solid var(--cor-borda-forte);
+  border-radius: var(--raio-m);
+  font-family: var(--fonte-rotulo);
+  font-size: calc(var(--texto-m) * var(--rotulo-escala));
+  letter-spacing: var(--rotulo-espaco);
+  text-transform: var(--rotulo-caixa);
+  line-height: 1;
+  transition: transform var(--dur-rapida) var(--curva-carimbo), opacity var(--dur-rapida) var(--curva-padrao);
+}
+
+/* Brilho de ouro velho no foco: a sombra fica pronta e só a opacidade anima. */
+.botao::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: inherit;
+  box-shadow: 0 0 0 2px var(--cor-destaque), 0 0 14px 2px var(--cor-destaque);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-media) var(--curva-saida);
+}
+
+.botao:focus-visible {
+  box-shadow: none;
+}
+
+.botao:focus-visible::after {
+  opacity: 1;
+}
+
+/* Carimbo: bate e entorta um pouco. */
+.botao:active:not(:disabled) {
+  transform: scale(0.96) rotate(-0.5deg);
+}
+
+.botao:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.primario {
+  background: var(--cor-destaque);
+  border-color: var(--cor-destaque-forte);
+  color: var(--cor-sobre-destaque);
+}
+
+.secundario {
+  background: var(--cor-superficie-alta);
+  color: var(--cor-texto);
+}
+
+.perigo {
+  background: var(--cor-perigo-fundo);
+  border-color: var(--cor-perigo);
+  color: var(--cor-sobre-perigo);
+}
+
+.fantasma {
+  background: transparent;
+  border-color: transparent;
+  color: var(--cor-destaque);
+}
+
+.grande {
+  min-height: 52px;
+  font-size: calc(var(--texto-l) * var(--rotulo-escala));
+}
+
+.largo {
+  width: 100%;
+}

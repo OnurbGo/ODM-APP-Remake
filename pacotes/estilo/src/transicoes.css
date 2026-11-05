@@ -1,0 +1,41 @@
+/* Página de jornal: a imagem da tela antiga vira sobre a nova, presa na margem esquerda.
+   Os pseudo-elementos da View Transitions API não aceitam CSS Modules, por isso este arquivo. */
+html[data-transicao="jornal"]::view-transition-group(root) {
+  animation-duration: 680ms;
+}
+
+html[data-transicao="jornal"]::view-transition-old(root) {
+  z-index: 2;
+  transform-origin: left center;
+  mix-blend-mode: normal;
+  animation: 680ms cubic-bezier(0.45, 0, 0.55, 1) both odm-virar-pagina;
+}
+
+html[data-transicao="jornal"]::view-transition-new(root) {
+  z-index: 1;
+  mix-blend-mode: normal;
+  animation: 680ms linear both odm-surgir-pagina;
+}
+
+@keyframes odm-virar-pagina {
+  from {
+    transform: perspective(1600px) rotateY(0);
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  to {
+    transform: perspective(1600px) rotateY(-105deg);
+    opacity: 0;
+  }
+}
+
+@keyframes odm-surgir-pagina {
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 1;
+  }
+}

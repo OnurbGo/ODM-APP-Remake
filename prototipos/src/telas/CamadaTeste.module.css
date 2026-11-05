@@ -1,0 +1,89 @@
+.formulario {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-3);
+}
+
+.resumo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-3);
+}
+
+.atributo {
+  font-family: var(--fonte-gotica);
+  font-size: var(--texto-2xl);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--cor-destaque);
+}
+
+.bonus {
+  margin-top: var(--esp-1);
+  font-size: var(--texto-xl);
+}
+
+.dt {
+  display: grid;
+  flex: none;
+  justify-items: center;
+  gap: 2px;
+  min-width: 72px;
+  padding: var(--esp-2);
+  border: 1px solid var(--cor-borda-forte);
+  border-radius: var(--raio-m);
+  color: var(--cor-texto-suave);
+}
+
+.dtValor {
+  font-size: var(--texto-2xl);
+  color: var(--cor-texto);
+}
+
+.condicoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-1);
+}
+
+.nota {
+  font-size: var(--texto-s);
+  color: var(--cor-texto-suave);
+}
+
+.habilidades {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-1);
+  padding-top: var(--esp-2);
+  border-top: 1px solid var(--cor-borda);
+}
+
+.subtitulo {
+  color: var(--cor-texto-suave);
+}
+
+.indisponivel {
+  display: flex;
+  flex-direction: column;
+  min-height: var(--alvo-toque);
+  justify-content: center;
+  color: var(--cor-texto-fraco);
+}
+
+.detalhe {
+  font-size: var(--texto-s);
+  font-style: italic;
+}
+
+.pergunta {
+  font-size: var(--texto-l);
+  line-height: 1.2;
+}
+
+.botoes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-2);
+}

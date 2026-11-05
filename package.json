@@ -1,0 +1,15 @@
+{
+  "name": "odm-app-remake",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "workspaces": [
+    "pacotes/*",
+    "prototipos"
+  ],
+  "scripts": {
+    "prototipos": "npm run dev --workspace prototipos",
+    "prototipos:rede": "npm run dev --workspace prototipos -- --host",
+    "tipos": "tsc --noEmit -p prototipos/tsconfig.json"
+  }
+}

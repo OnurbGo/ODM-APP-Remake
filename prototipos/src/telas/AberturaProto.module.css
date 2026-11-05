@@ -1,0 +1,19 @@
+.fim {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--esp-3);
+  height: 100%;
+}
+
+.texto {
+  color: var(--cor-texto-suave);
+}
+
+.tempo {
+  font-size: var(--texto-s);
+  color: var(--cor-texto-fraco);
+}

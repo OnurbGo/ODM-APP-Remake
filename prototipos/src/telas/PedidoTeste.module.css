@@ -1,0 +1,88 @@
+.formulario {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-4);
+}
+
+.geral {
+  display: grid;
+  gap: var(--esp-3);
+}
+
+.campo {
+  display: grid;
+  gap: var(--esp-1);
+}
+
+.rotulo {
+  color: var(--cor-texto-suave);
+}
+
+.linhaGeral {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--esp-6);
+}
+
+.tabelaTopo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.jogadores {
+  border-bottom: 1px solid var(--cor-borda);
+}
+
+.jogador {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--esp-3);
+  min-height: 60px;
+  padding: var(--esp-1) 0;
+  border-top: 1px solid var(--cor-borda);
+}
+
+.desmarcado {
+  color: var(--cor-texto-suave);
+}
+
+.marcar {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  min-height: var(--alvo-toque);
+  cursor: pointer;
+}
+
+.marcar input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--cor-destaque);
+}
+
+.nome {
+  display: block;
+  line-height: 1.15;
+}
+
+.condicoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-1);
+  margin-top: 2px;
+}
+
+.condicoes:empty {
+  display: none;
+}
+
+.ajustes {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--esp-3);
+}

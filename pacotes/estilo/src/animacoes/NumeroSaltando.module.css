@@ -1,0 +1,35 @@
+.numero {
+  position: absolute;
+  pointer-events: none;
+  font-size: var(--texto-2xl);
+  text-shadow: var(--sombra-s);
+  /* +1ms: com animação reduzida o evento de fim ainda dispara e o número sai da tela */
+  animation: saltar calc(900ms * var(--fator-animacao) + 1ms) var(--curva-saida) both;
+}
+
+.dano {
+  color: var(--cor-perigo);
+}
+
+.cura {
+  color: var(--cor-sucesso);
+}
+
+@keyframes saltar {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.6);
+  }
+  25% {
+    opacity: 1;
+    transform: translateY(-10px) scale(1.25);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(-18px) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-34px) scale(1);
+  }
+}

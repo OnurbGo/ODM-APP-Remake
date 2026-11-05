@@ -1,0 +1,119 @@
+.fundo {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+}
+
+.veu {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  background: var(--veu);
+  animation: aparecer var(--dur-media) var(--curva-saida);
+}
+
+.painel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-height: 85%;
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda-forte);
+  box-shadow: var(--sombra-m);
+  outline: none;
+}
+
+.folha {
+  align-items: flex-end;
+}
+
+.folha .painel {
+  border-width: 1px 0 0;
+  border-radius: var(--raio-l) var(--raio-l) 0 0;
+  padding-bottom: env(safe-area-inset-bottom);
+  animation: subir var(--dur-media) var(--curva-saida);
+}
+
+.central {
+  align-items: center;
+  justify-content: center;
+  padding: var(--esp-4);
+}
+
+.central .painel {
+  max-width: 520px;
+  border-radius: var(--raio-l);
+  animation: carimbar var(--dur-media) var(--curva-carimbo);
+}
+
+/* Telas do mestre: formulários com colunas, que não cabem no pop-up central. */
+.larga {
+  align-items: center;
+  justify-content: center;
+  padding: var(--esp-4);
+}
+
+.larga .painel {
+  max-width: 980px;
+  max-height: 100%;
+  border-radius: var(--raio-l);
+  animation: carimbar var(--dur-media) var(--curva-carimbo);
+}
+
+.topo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--esp-3);
+  padding: var(--esp-4) var(--esp-4) var(--esp-2);
+}
+
+.titulo {
+  font-family: var(--fonte-titulo);
+  font-size: var(--texto-xl);
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.subtitulo {
+  margin-top: var(--esp-1);
+  font-size: var(--texto-s);
+  color: var(--cor-texto-suave);
+}
+
+.fechar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--alvo-toque);
+  height: var(--alvo-toque);
+  margin: -8px -8px 0 0;
+  border-radius: var(--raio-m);
+  color: var(--cor-texto-suave);
+}
+
+.corpo {
+  overflow-y: auto;
+  padding: var(--esp-2) var(--esp-4) var(--esp-4);
+}
+
+@keyframes aparecer {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes subir {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes carimbar {
+  from {
+    opacity: 0;
+    transform: scale(1.06);
+  }
+}

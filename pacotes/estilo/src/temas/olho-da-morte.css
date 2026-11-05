@@ -1,0 +1,142 @@
+/* Tema padrão "Olho da Morte". Duas superfícies: tinta (escura) e pergaminho (clara).
+   Cores marcadas com "tela:" são ajustes da paleta dos livros para atingir AA em tela. */
+:root,
+:root[data-tema="olho-da-morte"] {
+  --fonte-gotica: var(--p-f-gotica);
+  --fonte-titulo: var(--p-f-titulo);
+  --fonte-epigrafe: var(--p-f-epigrafe);
+  --fonte-texto: var(--p-f-texto);
+  --fonte-rotulo: var(--p-f-cartaz);
+  --fonte-numero: var(--p-f-cartaz);
+  --rotulo-caixa: uppercase;
+  --rotulo-espaco: 0.06em;
+  --rotulo-escala: 1.08;
+
+  /* O d20 lê estes tokens ao montar: cada tema tem o próprio dado. */
+  --dado-corpo: #7a1610;
+  --dado-numero: #f0d9a0;
+  --dado-aresta: #c9973f;
+
+  /* Abertura: sempre sobre o pergaminho, qualquer que seja a superfície escolhida. */
+  --abertura-fundo: var(--p-pergaminho);
+  --abertura-borda: var(--p-pergaminho-escuro);
+  --abertura-tinta: var(--p-tinta);
+  --abertura-traco: var(--p-tinta);
+  --abertura-esclera: var(--p-osso);
+  --abertura-iris: var(--p-sangue);
+  --abertura-metal: var(--p-ouro);
+  --abertura-titulo: var(--p-tinta);
+  --abertura-apoio: var(--p-texto-suave);
+
+  --carta-papel: var(--p-osso);
+  --carta-preto: var(--p-texto);
+  --carta-vermelho: var(--p-sangue);
+  --carta-verso: var(--p-sangue);
+  --carta-verso-trama: #8f2a22;
+
+  --transicao-madeira: #6b4423;
+  --transicao-madeira-escura: #3f2612;
+  --transicao-parede: #2a1d12;
+  --transicao-papel: var(--p-pergaminho);
+  --transicao-tinta: var(--p-texto);
+}
+
+/* A variante de comparação da parada 1: rótulos em IM Fell SC, números em EB Garamond. */
+:root[data-rotulos="fell"] {
+  --fonte-rotulo: var(--p-f-titulo);
+  --fonte-numero: var(--p-f-texto);
+  --rotulo-caixa: none;
+  --rotulo-espaco: 0.02em;
+  --rotulo-escala: 1;
+}
+
+:root,
+:root[data-superficie="tinta"] {
+  color-scheme: dark;
+
+  --cor-fundo: var(--p-tinta);
+  --cor-fundo-faixa: #171210;
+  --cor-superficie: var(--p-tinta-2);
+  --cor-superficie-alta: #2a221b;
+  --cor-fundo-inset: #0a0806;
+  --cor-borda: #4a3a2a;
+  --cor-borda-forte: #7d6647;
+
+  --cor-texto: var(--p-osso);
+  --cor-texto-suave: #b5a78f;
+  --cor-texto-fraco: #a09178;
+
+  --cor-destaque: #d9a640; /* tela: ouro das páginas escuras dos livros */
+  --cor-destaque-forte: #f0c668;
+  --cor-sobre-destaque: var(--p-tinta);
+  --cor-perigo: #e8604c; /* tela: sangue clareado */
+  --cor-perigo-fundo: var(--p-sangue);
+  --cor-sobre-perigo: #fff2ea;
+  --cor-sucesso: #8fbf72; /* tela: incomum clareado */
+  --cor-sucesso-fundo: #2c4a22;
+  --cor-tecnica: #d98a45; /* tela: ferrugem clareada */
+  --cor-prestigio: #ec8f3a; /* tela: prestígio clareado */
+
+  --cor-metal: #c9973f;
+  --cor-metal-claro: #efcf8a;
+  --cor-metal-escuro: #7a5a22;
+  --cor-chumbo: #6e675c;
+  --cor-vazio: #2a221b;
+
+  --rar-comum: #a8a296;
+  --rar-incomum: #8fbf72;
+  --rar-raro: #7fb0ea;
+  --rar-extraordinario: #c195dc;
+  --rar-unico: #e0a053;
+
+  --sombra-s: 0 1px 2px rgb(0 0 0 / 0.5);
+  --sombra-m: 0 6px 18px rgb(0 0 0 / 0.55);
+  --sombra-foco: 0 0 0 2px var(--cor-fundo), 0 0 0 4px var(--cor-destaque);
+  --veu: rgb(5 4 2 / 0.72);
+  --grao-opacidade: 0.07;
+}
+
+:root[data-superficie="pergaminho"] {
+  color-scheme: light;
+
+  --cor-fundo: var(--p-pergaminho);
+  --cor-fundo-faixa: #d8ceb9;
+  --cor-superficie: var(--p-osso);
+  --cor-superficie-alta: #f7f1e4;
+  --cor-fundo-inset: var(--p-pergaminho-escuro);
+  --cor-borda: #b3a488;
+  --cor-borda-forte: var(--p-filete-titulo);
+
+  --cor-texto: var(--p-texto);
+  --cor-texto-suave: #4a3f33; /* tela: texto suave escurecido */
+  --cor-texto-fraco: #5f5244;
+
+  --cor-destaque: #6f4f12; /* tela: ouro escurecido */
+  --cor-destaque-forte: #5a3f0c;
+  --cor-sobre-destaque: var(--p-osso);
+  --cor-perigo: var(--p-sangue);
+  --cor-perigo-fundo: var(--p-sangue);
+  --cor-sobre-perigo: #fff2ea;
+  --cor-sucesso: #285c26; /* tela: incomum escurecido */
+  --cor-sucesso-fundo: #c9d8b9;
+  --cor-tecnica: #7a3f0f;
+  --cor-prestigio: #8a3f06;
+
+  --cor-metal: #a57c2c;
+  --cor-metal-claro: #dcb565;
+  --cor-metal-escuro: #5e4516;
+  --cor-chumbo: #5b544a;
+  --cor-vazio: #d8ceb9;
+
+  --rar-comum: var(--p-rar-comum);
+  --rar-incomum: var(--p-rar-incomum);
+  --rar-raro: var(--p-rar-raro);
+  --rar-extraordinario: var(--p-rar-extraordinario);
+  --rar-unico: #8a4f12;
+
+  --sombra-s: 0 1px 2px rgb(58 46 34 / 0.25);
+  --sombra-m: 0 6px 18px rgb(58 46 34 / 0.3);
+  --sombra-foco: 0 0 0 2px var(--cor-fundo), 0 0 0 4px var(--cor-destaque);
+  --veu: rgb(26 21 16 / 0.6);
+  --grao-opacidade: 0.1;
+}

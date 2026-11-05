@@ -1,0 +1,69 @@
+.marcador {
+  display: grid;
+  place-items: center;
+  width: var(--alvo-toque);
+  height: 64px;
+  border-radius: var(--raio-m);
+  transition: transform var(--dur-rapida) var(--curva-carimbo);
+}
+
+.marcador:active:not(:disabled) {
+  transform: scale(0.92);
+}
+
+.marcador:disabled {
+  cursor: default;
+}
+
+.desenho {
+  width: 26px;
+  height: 56px;
+  overflow: visible;
+}
+
+.pequeno {
+  width: 12px;
+  height: 26px;
+}
+
+.pequeno .desenho {
+  width: 11px;
+  height: 24px;
+}
+
+.chumbo { fill: var(--cor-chumbo); }
+.brilho { fill: none; stroke: var(--cor-texto-suave); stroke-width: 1.2; stroke-linecap: round; opacity: 0.6; }
+.corpo { fill: var(--cor-metal); stroke: var(--cor-metal-escuro); }
+.reflexo { fill: none; stroke: var(--cor-metal-claro); stroke-width: 2; stroke-linecap: round; opacity: 0.8; }
+.aro { fill: var(--cor-metal-escuro); }
+.risco { fill: none; stroke: var(--cor-perigo); stroke-width: 3; stroke-linecap: round; }
+
+.projetil {
+  transition: transform var(--dur-media) var(--curva-saida), opacity var(--dur-media) var(--curva-saida);
+}
+
+.gasto .projetil {
+  transform: translateY(-14px);
+  opacity: 0;
+}
+
+.gasto .corpo { fill: var(--cor-vazio); stroke: var(--cor-borda-forte); }
+.gasto .reflexo { opacity: 0; }
+.gasto .aro { fill: var(--cor-borda-forte); }
+
+/* Guardado: inteiro em ouro, para ler como reserva à distância. */
+.guardado .chumbo { fill: var(--cor-destaque-forte); }
+.guardado .corpo { fill: var(--cor-destaque); stroke: var(--cor-destaque-forte); }
+.guardado .aro { fill: var(--cor-destaque-forte); }
+
+.bloqueado .chumbo,
+.bloqueado .corpo,
+.bloqueado .aro {
+  fill: var(--cor-vazio);
+  stroke: var(--cor-borda);
+}
+
+.bloqueado .reflexo,
+.bloqueado .brilho {
+  opacity: 0;
+}

@@ -1,0 +1,177 @@
+.camada {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  gap: var(--esp-2);
+  padding: var(--esp-5) var(--esp-4) var(--esp-4);
+  background: var(--cor-fundo);
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+  animation: aparecer var(--dur-media) var(--curva-saida);
+}
+
+.topo {
+  display: grid;
+  justify-items: center;
+  gap: var(--esp-1);
+}
+
+.titulo {
+  font-family: var(--fonte-titulo);
+  font-size: var(--texto-xl);
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.subtitulo {
+  font-size: var(--texto-s);
+  color: var(--cor-texto-suave);
+}
+
+.alvo {
+  margin-top: var(--esp-1);
+  padding: var(--esp-1) var(--esp-3);
+  border: 1px solid var(--cor-borda-forte);
+  border-radius: var(--raio-m);
+  font-size: var(--texto-xl);
+  line-height: 1;
+  color: var(--cor-destaque);
+}
+
+.palco {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 0;
+}
+
+.palco canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+/* O carimbo cai na base do dado, sem cobrir o número da face que ficou para cima. */
+.selo {
+  position: absolute;
+  top: 88%;
+  left: 50%;
+  padding: var(--esp-2) var(--esp-5) var(--esp-1);
+  background: var(--cor-fundo);
+  border: 4px double currentColor;
+  border-radius: var(--raio-m);
+  box-shadow: var(--sombra-m);
+  font-family: var(--fonte-rotulo);
+  font-size: clamp(2.75rem, 12vw, 5rem);
+  letter-spacing: var(--rotulo-espaco);
+  text-transform: var(--rotulo-caixa);
+  line-height: 1;
+  white-space: nowrap;
+  transform: translate(-50%, -50%) rotate(-5deg);
+  animation: carimbar calc(420ms * var(--fator-animacao)) var(--curva-carimbo) both;
+}
+
+.bom {
+  color: var(--cor-sucesso);
+}
+
+.ruim {
+  color: var(--cor-perigo);
+}
+
+.conta {
+  display: grid;
+  justify-items: center;
+  gap: var(--esp-2);
+  min-height: 132px;
+  align-content: start;
+}
+
+.notas {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--esp-1);
+  min-height: 22px;
+}
+
+.cartas {
+  display: flex;
+  justify-content: center;
+  gap: var(--esp-2);
+}
+
+.mods {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--esp-1) var(--esp-2);
+}
+
+.mod {
+  display: flex;
+  align-items: baseline;
+  gap: var(--esp-1);
+  padding: var(--esp-1) var(--esp-2);
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-m);
+  font-size: var(--texto-m);
+}
+
+.modEntrando {
+  animation: entrarMod calc(240ms * var(--fator-animacao)) var(--curva-carimbo) both;
+}
+
+.negativo {
+  color: var(--cor-perigo);
+}
+
+.total {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: var(--esp-3);
+}
+
+.totalValor {
+  font-size: var(--texto-3xl);
+}
+
+.contra {
+  font-size: var(--texto-l);
+  color: var(--cor-texto-suave);
+}
+
+.notaFinal {
+  font-size: var(--texto-m);
+  color: var(--cor-texto-suave);
+}
+
+.dica {
+  color: var(--cor-texto-fraco);
+}
+
+@keyframes aparecer {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes entrarMod {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.8);
+  }
+}
+
+@keyframes carimbar {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(-5deg) scale(2.4);
+  }
+}
