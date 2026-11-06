@@ -9,9 +9,10 @@
 
 .topo {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
-  gap: var(--esp-3);
+  gap: var(--esp-1) var(--esp-3);
   margin-bottom: var(--esp-2);
 }
 
@@ -23,6 +24,8 @@
   font-size: var(--texto-l);
   font-weight: 400;
   line-height: 1.1;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 /* O losango dos marcadores de lista dos livros. */

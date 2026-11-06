@@ -64,7 +64,10 @@ App do mestre (Electron)
 
 - **IP manual em primeiro lugar.** A descoberta automática (mDNS) quase nunca funciona em Hamachi e Radmin. Ela fica como atalho na LAN.
 - A tela do mestre mostra os endereços disponíveis (LAN, Hamachi, Radmin), cada um com botão de copiar e um QR code para o celular.
-- O app não cria regra de firewall. Ele explica como liberar e avisa quando a rede está marcada como "pública" no Windows.
+- **Firewall (decidido em 06/11/2026):** o mestre não mexe em configuração do Windows nem usa terminal. O instalador cria uma regra de entrada só para o executável do app, só TCP, e a remove ao desinstalar. Se o Windows bloquear mesmo assim, o painel do mestre detecta e mostra o botão **Liberar acesso**: um clique e a confirmação do Windows.
+- A regra vale em redes privadas e públicas, porque rede nova costuma entrar como pública no Windows. O servidor só fica ligado com a mesa aberta, e entrar exige o código e a aprovação do mestre.
+- Redes que isolam os dispositivos (Wi-Fi de escritório ou de visitantes) bloqueiam fora do computador, e nenhum app resolve. O painel explica e indica Hamachi, Radmin ou o roteador do celular.
+- **Porta:** 47821, a mesma do app antigo. Se estiver ocupada, a tela do mestre avisa e deixa escolher outra, e a escolha fica salva. O app não troca de porta sozinho, porque a porta faz parte do endereço que os jogadores usam.
 - HTTP sem TLS (rede local ou virtual). O código da mesa e a aprovação do mestre evitam entradas indesejadas.
 
 ### 3.3 Entrada na mesa
@@ -81,8 +84,8 @@ App do mestre (Electron)
 | Front | React + Vite | Você já domina; o build é rápido |
 | Estado no front | Store leve (Zustand) alimentada pelo WebSocket | Sem polling e sem camada de cache pesada |
 | Servidor | Fastify + `ws` | Leve e rápido |
-| Banco | SQLite com better-sqlite3 + Drizzle | Substitui Sequelize + Umzug; síncrono e simples |
-| Desktop | Electron | Reaproveita o que já foi resolvido no instalador NSIS |
+| Banco | SQLite com `node:sqlite` (do próprio Electron) + Drizzle 1.0 RC, em versões exatas | Substitui Sequelize + Umzug; síncrono e sem módulo nativo, que quebrou o build do app antigo no caminho com acento. Testado no Electron 44.10.2 (Node 24.22.2), no processo principal e no utilityProcess. O acesso fica numa camada fina, porque o módulo ainda é release candidate no Node 24 |
+| Desktop | Electron 44.10.2 | Reaproveita o que já foi resolvido no instalador NSIS. O 45.2.3 derruba o renderer nesta máquina, mesmo com uma página vazia |
 | Validação | Zod | Mensagens do WebSocket e pacotes de conteúdo |
 | Testes | Vitest (regras) + Playwright (fluxos principais) | Foco no motor de regras |
 
@@ -288,7 +291,7 @@ Regras de "A Evolução do Personagem" (Jogador, Progressão) e "Sistema de Pres
 - Turnos (jogadores, criaturas, NPCs), com avanço de turno disparando os gatilhos dos efeitos.
 - Criaturas do bestiário com PV, efeitos e ações clicáveis (rola acerto e dano; pede teste de resistência).
 - **Horda** (regra do Zumbi): formar, somar PV, remover integrante a cada 10 de dano, recalcular o bônus.
-- Pedido de teste para vários jogadores (seção 8).
+- Pedido de teste por tipo (habilidade, resistência, passivo ou contestado), para um ou vários jogadores, com ajuste por jogador (seção 8).
 - Fichas dos jogadores ao vivo, em resumo.
 
 ### 7.2 Encontros
@@ -320,30 +323,48 @@ Cada missão tem texto para os jogadores, notas do mestre, dificuldade e criatur
 
 ---
 
-## 8. Teste de resistência
+## 8. Testes pedidos pelo mestre
 
-### 8.1 Origens
+### 8.1 Tipos
+
+Conforme "Testes de Habilidade" e "Testes Passivos" (Jogador, Progressão) e "Esconder-se" (Jogador, Ações):
+
+| Tipo | O mestre escolhe | Como resolve | O jogador vê |
+|---|---|---|---|
+| **Habilidade** | Atributo ou perícia, e a DT | 1d20 + modificador contra a DT | Pop-up e rolagem |
+| **Resistência** | Atributo e DT | 1d20 + modificador contra a DT | Pop-up, ou rola sozinho se o automático estiver ligado (8.4) |
+| **Passivo** | Atributo ou perícia, e a DT | Sem rolagem: 10 + modificadores aplicáveis; vantagem +5, desvantagem −5 | **Nada.** O livro usa o passivo para "não entregar que há algo escondido"; o jogador não é avisado, e só o mestre vê os valores contra a DT |
+| **Contestado** (sugestão) | O teste do personagem e o teste da criatura ou NPC, como Furtividade contra Percepção ativa | Rolagem do personagem contra a rolagem do oponente | A própria rolagem. O resultado do oponente segue a mesma regra de visibilidade da DT |
+
+**Em todos:** um ou vários jogadores de uma vez e ajuste por jogador (DT, bônus ou penalidade, vantagem ou desvantagem).
+
+**DT:** a escala do livro entra como atalho (Muito fácil 5, Fácil 10, Moderada 15, Difícil 20, Muito difícil 25, Quase impossível 30), com campo livre ao lado, porque o livro também usa valores fora dela, como Fibra DT 13.
+
+### 8.2 Origens
 
 - ataque de criatura cadastrada (atributo, DT e efeito já preenchidos);
 - pedido manual do mestre;
 - efeito (ex.: Hemorragia no fim do turno).
 
-### 8.2 Mestre
+### 8.3 Mestre
 
-1. Seleciona um ou vários jogadores.
-2. Escolhe atributo e DT (ou já vêm do ataque).
+1. Escolhe o tipo do teste e seleciona um ou vários jogadores.
+2. Escolhe atributo ou perícia e a DT (ou já vêm do ataque). No contestado, escolhe o oponente e o teste dele.
 3. Ajusta por jogador: outra DT, bônus ou penalidade, vantagem ou desvantagem.
-4. Escolhe se a DT fica visível neste teste (padrão: invisível).
-5. Envia e recebe a lista de sucesso e falha por jogador. O efeito é aplicado em quem falhou, com desfazer.
+4. Escolhe se a DT fica visível neste teste (padrão: invisível). No passivo essa escolha não existe, porque o jogador não recebe nada.
+5. Envia e recebe a lista de sucesso e falha por jogador. Quando houver efeito, ele é aplicado em quem falhou, com desfazer.
 
-### 8.3 Jogador
+**Visibilidade:** o servidor não envia ao jogador nada sobre um teste passivo: nem pedido, nem linha no registro, nem aviso. Não basta esconder na tela (seção 3.1).
 
-- **Automático ligado:** o app rola, aplica e registra. Se houver uma habilidade disponível marcada para aquela situação, ele **pausa e pergunta** antes de rolar.
-- **Automático desligado:** abre um pop-up com o teste, a DT (se visível), um campo de bônus ou penalidade, vantagem ou desvantagem, as habilidades que servem para a situação (disponíveis e usadas) e o botão **Rolar**.
+### 8.4 Jogador
+
+- **Automático ligado (só teste de resistência):** o app rola, aplica e registra. Se houver uma habilidade disponível marcada para aquela situação, ele **pausa e pergunta** antes de rolar.
+- **Automático desligado, e sempre nos testes de habilidade e contestado:** abre um pop-up com o teste, a DT (se visível), um campo de bônus ou penalidade, vantagem ou desvantagem, as habilidades que servem para a situação (disponíveis e usadas) e o botão **Rolar**.
+- **Por que o automático não vale para habilidade:** esses testes têm decisões do jogador que o livro prevê, como Fazer com Calma, Tentar até Conseguir e Forçar a Rolagem. A resistência é uma reação, que costuma vir em série no combate, com o mestre esperando.
 - **Nos dois modos**, o app aplica o que o livro manda e mostra a conta: Envenenado (desvantagem), Exaustão (−2 a −6), Impedido (desvantagem em Agilidade), Atordoado e Inconsciente (falha automática em Brutalidade e Agilidade).
 - **Modelo de vantagem:** o mestre escolhe na campanha entre Dados Extras e Cartas, como em "Vantagem e Desvantagem" (Jogador, Progressão). O app segue o modelo escolhido na rolagem e no pop-up.
 
-### 8.4 Animação da rolagem
+### 8.5 Animação da rolagem
 
 No estilo Baldur's Gate 3: o d20 rola no centro, os modificadores entram um a um e o resultado aparece contra a DT (ou "?" se oculta), com **SUCESSO** ou **FALHA**.
 
@@ -436,12 +457,12 @@ Antes de abandonar o ODM-App, exportar da campanha de playtest o que não existe
 |---|---|---|
 | 0. Dados antigos ✔ | Exportação da seção 12 | Feito em 05/11/2026 |
 | 1. Protótipos ✔ | Combate do jogador (celular e desktop), Escudo do Mestre, Ficha, abertura, transições, rolagem, cartas | Feito em 05/11/2026; o aprovado está em `docs/decisoes-visuais.md` |
-| 2. Fundação | Monorepo, `estilo` com o tema padrão, Electron + servidor + WebSocket, entrada na mesa | Dois dispositivos na mesma mesa vendo uma rolagem ao vivo |
+| 2. Fundação ✔ | Monorepo, `estilo` com o tema padrão, Electron + servidor + WebSocket, entrada na mesa | Feito em 06/11/2026: computador e celular na mesma mesa vendo uma rolagem ao vivo |
 | 3. Conteúdo base | Exportador no repositório dos livros + camada mecânica dos efeitos e dos ataques de criatura (para sua revisão) | `odm-base-1.0.json` validado |
 | 4. Ficha | Criação, ficha, motor de regras com a conta de cada valor | Personagem completo de qualquer classe da base |
 | 5. Combate | Iniciativa, turnos, PA, efeitos automáticos, registro e desfazer, aba Combate, testes, pedido de teste | Um combate com zumbis (incluindo Horda) jogado do início ao fim |
 | 6. Mestre | Encontros, missões e linha do tempo, modificadores de mundo, Jogo do 21, comércio, NPCs, notas, mostrar para os jogadores | Uma sessão inteira de playtest só com o app |
-| 7. Acabamento | Animações finais, backup, instalador, testes nos fluxos principais | Instalador para os apoiadores |
+| 7. Acabamento | Animações finais, backup, instalador com a regra de firewall (seção 3.2), testes nos fluxos principais | Instalador para os apoiadores |
 | 8. Complementos | Pacote e tema de A Ordem no Caos (magia), depois A Arte da Guerra | Campanha com o complemento ativo |
 
 ---
@@ -463,6 +484,13 @@ Antes de abandonar o ODM-App, exportar da campanha de playtest o que não existe
 2. **Cartas do Destino:** regra opcional (Jogador, "Cartas do Destino"). Viram opção da campanha? O protótipo tem só um aviso na Redenção (antes da fase 4).
 3. **Pop-up de teste do jogador:** hoje dá para fechar sem responder. A recomendação é só fechar respondendo, porque o mestre fica esperando (antes da fase 5).
 4. **Abertura:** a recomendação é tocar uma vez por abertura do app, não a cada troca de tela (antes da fase 7).
+5. **Empate no teste contestado (antes da fase 5):** "Esconder-se" (Jogador, Ações) dá "igual ou maior" só contra a Percepção passiva. O teste contestado não tem regra de empate.
+6. **Teste passivo com duas ou mais fontes (antes da fase 5):** "Testes Passivos" (Jogador, Progressão) diz "com vantagem, adicione 5". Falta definir se duas fontes somam ou valem uma vez, e se vantagem e desvantagem se anulam aqui como nos modelos de Dados Extras e Cartas.
+7. **Forçar a Rolagem (antes da fase 5):** o texto (Jogador, Progressão) diz "um teste". Falta definir se vale para resistência e contestado; Fazer com Calma exclui resistência de forma expressa, e Forçar a Rolagem não.
+8. **Percepção ativa de criatura (antes da fase 5):** as fichas de `criaturas.yml` e `ameacas.yml` trazem só "Percepção passiva N". Usar N − 10 como bônus da rolagem é dedução da fórmula 10 + modificadores, não texto do livro.
+9. **Contestado em grupo (antes da fase 5):** com vários jogadores, o inimigo rola uma vez contra todos ou uma vez por jogador?
+
+10. **Assinatura do app (antes da fase 7):** o Smart App Control do Windows 11 pode barrar um executável sem assinatura digital, como aconteceu nesta máquina em 06/11/2026. Falta decidir se o instalador terá certificado de assinatura de código, que é pago, para não exigir nenhum passo técnico de quem instala.
 
 ### Lacunas de regra (para resolver ao escrever a camada mecânica)
 

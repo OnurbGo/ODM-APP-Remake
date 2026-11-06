@@ -17,14 +17,6 @@ export function PainelAparencia({ preferencias, mudar }: Props) {
           Pergaminho
         </OpcaoPainel>
       </GrupoPainel>
-      <GrupoPainel titulo="Rótulos e números">
-        <OpcaoPainel ativa={preferencias.rotulos === "cartaz"} aoTocar={() => mudar({ rotulos: "cartaz" })}>
-          League Gothic
-        </OpcaoPainel>
-        <OpcaoPainel ativa={preferencias.rotulos === "fell"} aoTocar={() => mudar({ rotulos: "fell" })}>
-          IM Fell SC + Garamond
-        </OpcaoPainel>
-      </GrupoPainel>
       <GrupoPainel titulo="Tema">
         <OpcaoPainel ativa={preferencias.tema === "olho-da-morte"} aoTocar={() => mudar({ tema: "olho-da-morte" })}>
           Olho da Morte

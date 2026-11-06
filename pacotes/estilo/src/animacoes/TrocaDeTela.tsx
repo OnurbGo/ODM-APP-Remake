@@ -14,37 +14,45 @@ const LIMITE_JORNAL = 1200;
 
 type Camada = { tipo: "portas" | "cartaz"; chave: number };
 
-type Opcoes = {
-  /* Só para avaliar: não remove a camada, para ver o quadro congelado. */
-  segurar?: boolean;
-};
-
 /* Jornal usa a View Transitions API: a imagem da tela antiga vira como página.
    Portas e cartaz cobrem a tela com elementos próprios, porque a API não divide a
    imagem da tela em duas folhas nem desenha nada por cima dela. */
-export function useTrocaDeTela({ segurar }: Opcoes = {}) {
+export function useTrocaDeTela() {
   const reduzir = useReduzirAnimacoes();
   const [camada, definirCamada] = useState<Camada | null>(null);
   const ocupado = useRef(false);
   const timers = useRef<number[]>([]);
   const chave = useRef(0);
   const geracao = useRef(0);
+  /* Uma troca pedida no meio de outra (um evento do servidor, por exemplo) não pode se perder:
+     ela espera e entra sem animação assim que a atual terminar. */
+  const pendentes = useRef<(() => void)[]>([]);
 
   useEffect(() => {
     const lista = timers.current;
     return () => lista.forEach(clearTimeout);
   }, []);
 
+  const soltar = useCallback(() => {
+    ocupado.current = false;
+    const fila = pendentes.current;
+    pendentes.current = [];
+    fila.forEach((aplicar) => aplicar());
+  }, []);
+
   const liberar = useCallback(() => {
     timers.current.forEach(clearTimeout);
     timers.current = [];
-    ocupado.current = false;
     definirCamada(null);
-  }, []);
+    soltar();
+  }, [soltar]);
 
   const trocar = useCallback(
     (tipo: TipoTransicao, aplicar: () => void) => {
-      if (ocupado.current) return;
+      if (ocupado.current) {
+        pendentes.current.push(aplicar);
+        return;
+      }
       if (reduzir || tipo === "nenhuma") {
         aplicar();
         return;
@@ -69,8 +77,9 @@ export function useTrocaDeTela({ segurar }: Opcoes = {}) {
         /* Uma transição cancelada termina depois de a seguinte começar: só a atual pode limpar. */
         const concluir = () => {
           if (esta !== geracao.current) return;
+          geracao.current += 1;
           delete raiz.dataset.transicao;
-          ocupado.current = false;
+          soltar();
         };
         const transicao = document.startViewTransition(aplicarUmaVez);
         /* Cortar a transição rejeita "ready"; aqui isso é esperado, não um erro. */
@@ -93,14 +102,14 @@ export function useTrocaDeTela({ segurar }: Opcoes = {}) {
       definirCamada({ tipo, chave: chave.current });
       const total = DURACAO[tipo];
       timers.current.push(window.setTimeout(aplicar, total * MEIO));
-      if (!segurar) timers.current.push(window.setTimeout(liberar, total));
+      timers.current.push(window.setTimeout(liberar, total));
     },
-    [liberar, reduzir, segurar],
+    [liberar, reduzir, soltar],
   );
 
   const elemento = useMemo(() => (camada ? <CamadaTransicao key={camada.chave} tipo={camada.tipo} /> : null), [camada]);
 
-  return { trocar, camada: elemento, liberar };
+  return { trocar, camada: elemento };
 }
 
 function CamadaTransicao({ tipo }: { tipo: Camada["tipo"] }) {

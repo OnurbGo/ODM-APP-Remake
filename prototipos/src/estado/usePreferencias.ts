@@ -2,13 +2,12 @@ import { useEffect, useState } from "react";
 
 export type Preferencias = {
   superficie: "tinta" | "pergaminho";
-  rotulos: "cartaz" | "fell";
   tema: "olho-da-morte" | "ordem-no-caos";
   animacoes: "completas" | "reduzidas";
 };
 
 const CHAVE = "odm-prototipos";
-const PADRAO: Preferencias = { superficie: "tinta", rotulos: "cartaz", tema: "olho-da-morte", animacoes: "completas" };
+const PADRAO: Preferencias = { superficie: "tinta", tema: "olho-da-morte", animacoes: "completas" };
 
 function carregar(): Preferencias {
   try {
@@ -25,7 +24,6 @@ export function usePreferencias() {
   useEffect(() => {
     const raiz = document.documentElement.dataset;
     raiz.superficie = preferencias.superficie;
-    raiz.rotulos = preferencias.rotulos;
     raiz.tema = preferencias.tema;
     raiz.animacoes = preferencias.animacoes;
     try {

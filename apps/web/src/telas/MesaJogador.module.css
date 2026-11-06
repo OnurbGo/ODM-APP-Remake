@@ -1,0 +1,65 @@
+.topo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--esp-1) var(--esp-3);
+  padding: var(--esp-3) var(--esp-4);
+  background: var(--cor-fundo-faixa);
+  border-bottom: 1px solid var(--cor-borda-forte);
+}
+
+.titulo {
+  min-width: 0;
+  font-family: var(--fonte-titulo);
+  font-size: var(--texto-xl);
+  font-weight: 400;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.quem {
+  min-width: 0;
+  color: var(--cor-texto-suave);
+  overflow-wrap: anywhere;
+}
+
+.celular {
+  min-height: 100dvh;
+}
+
+.colunaCelular {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-3);
+  padding: var(--esp-3) var(--esp-3) calc(var(--esp-4) + env(safe-area-inset-bottom));
+}
+
+/* Desktop: altura fixa, cada coluna rola sozinha. */
+.desktop {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+}
+
+.colunas {
+  display: grid;
+  flex: 1;
+  grid-template-columns: minmax(220px, 1fr) minmax(280px, 1.2fr) minmax(280px, 1.4fr);
+  gap: var(--esp-3);
+  min-height: 0;
+  padding: var(--esp-3);
+}
+
+.coluna {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-3);
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.preenche {
+  flex: 1;
+}

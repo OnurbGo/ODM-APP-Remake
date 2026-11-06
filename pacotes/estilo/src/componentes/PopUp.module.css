@@ -8,7 +8,6 @@
 .veu {
   position: absolute;
   inset: 0;
-  width: 100%;
   background: var(--veu);
   animation: aparecer var(--dur-media) var(--curva-saida);
 }
@@ -70,11 +69,16 @@
   padding: var(--esp-4) var(--esp-4) var(--esp-2);
 }
 
+.textos {
+  min-width: 0;
+}
+
 .titulo {
   font-family: var(--fonte-titulo);
   font-size: var(--texto-xl);
   font-weight: 400;
   line-height: 1.1;
+  overflow-wrap: anywhere;
 }
 
 .subtitulo {

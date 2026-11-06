@@ -18,6 +18,7 @@ body {
   font-family: var(--fonte-texto);
   font-size: var(--texto-m);
   line-height: var(--entrelinha);
+  overflow-wrap: break-word;
   font-variant-numeric: lining-nums;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
@@ -39,7 +40,8 @@ ul {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
   color: inherit;
 }
@@ -59,6 +61,14 @@ button {
 :focus-visible {
   outline: none;
   box-shadow: var(--sombra-foco);
+}
+
+/* Contraste alto do Windows descarta sombras: sem isto, o foco desapareceria. */
+@media (forced-colors: active) {
+  :focus-visible {
+    outline: 2px solid CanvasText;
+    outline-offset: 2px;
+  }
 }
 
 /* Rótulo de cartaz: blocos, PA, PV, DT. */

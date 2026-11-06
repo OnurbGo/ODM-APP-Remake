@@ -2,7 +2,7 @@ import { Abas, Botao, Carregando, Cartao, Seletor, useTrocaDeTela, type TipoTran
 import { useEffect, useState } from "react";
 import { useFicha } from "../estado/useFicha";
 import type { Preferencias } from "../estado/usePreferencias";
-import { GrupoPainel, Moldura, OpcaoPainel } from "../moldura/Moldura";
+import { Moldura } from "../moldura/Moldura";
 import { PainelAparencia } from "../moldura/PainelAparencia";
 import { BlocoAtributos, BlocoCarga, BlocoDinheiro, BlocoItens, BlocoProgressao } from "./ficha/BlocosFicha";
 import css from "./TransicoesProto.module.css";
@@ -29,8 +29,7 @@ export function TransicoesProto({ preferencias, mudar }: Props) {
   const [aba, definirAba] = useState("transicoes");
   const [tipo, definirTipo] = useState<TipoTransicao>("jornal");
   const [tela, definirTela] = useState<"personagem" | "inventario">("personagem");
-  const [segurar, definirSegurar] = useState(false);
-  const { trocar, camada, liberar } = useTrocaDeTela({ segurar });
+  const { trocar, camada } = useTrocaDeTela();
   const ficha = useFicha("consagracao");
 
   const ir = (destino: "personagem" | "inventario") => {
@@ -43,12 +42,6 @@ export function TransicoesProto({ preferencias, mudar }: Props) {
       titulo="Transições e carregamento"
       painel={
         <>
-          <GrupoPainel titulo="Avaliar">
-            <OpcaoPainel ativa={segurar} aoTocar={() => definirSegurar((s) => !s)}>
-              Parar no meio
-            </OpcaoPainel>
-            {segurar && <OpcaoPainel aoTocar={liberar}>Soltar</OpcaoPainel>}
-          </GrupoPainel>
           <PainelAparencia preferencias={preferencias} mudar={mudar} />
         </>
       }

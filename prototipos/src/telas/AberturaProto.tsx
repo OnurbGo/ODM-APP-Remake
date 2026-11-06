@@ -13,7 +13,6 @@ type Props = {
 export function AberturaProto({ preferencias, mudar }: Props) {
   const [chave, definirChave] = useState(1);
   const [tocando, definirTocando] = useState(true);
-  const [segurar, definirSegurar] = useState(false);
   const [ultima, definirUltima] = useState<number | null>(null);
   const inicio = useRef(performance.now());
 
@@ -36,9 +35,6 @@ export function AberturaProto({ preferencias, mudar }: Props) {
         <>
           <GrupoPainel titulo="Abertura">
             <OpcaoPainel aoTocar={tocar}>Ver de novo</OpcaoPainel>
-            <OpcaoPainel ativa={segurar} aoTocar={() => definirSegurar((s) => !s)}>
-              Parar no fim
-            </OpcaoPainel>
           </GrupoPainel>
           <PainelAparencia preferencias={preferencias} mudar={mudar} />
         </>
@@ -51,7 +47,7 @@ export function AberturaProto({ preferencias, mudar }: Props) {
           Ver de novo
         </Botao>
       </main>
-      {tocando && <Abertura key={chave} titulo="Olho da Morte" segurar={segurar} aoTerminar={terminar} />}
+      {tocando && <Abertura key={chave} titulo="Olho da Morte" aoTerminar={terminar} />}
     </Moldura>
   );
 }

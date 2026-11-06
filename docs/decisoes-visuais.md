@@ -100,6 +100,21 @@ O que foi aprovado em cada parada dos protótipos. As fases seguintes reescrevem
 - **Vantagem por cartas:** um d20, com a carta entrando como modificador. Com duas cartas, a que valeu fica em destaque e a outra, apagada.
 - Tabelas e textos de carta vêm do pacote de conteúdo. O protótipo só tem cartas de exemplo e resumos próprios.
 
+## Fase 2 — Entrada na mesa (aprovada em 05/11/2026)
+
+Telas sem protótipo, aprovadas direto no código real.
+
+- **Tela inicial do app:** "Sou o mestre" e "Sou jogador", lado a lado, com o endereço da mesa digitado à mão.
+- **Porta ocupada:** o aviso aparece na tela inicial, no lugar do botão de abrir, com o campo de outra porta já preenchido.
+- **Entrada do jogador:** título em Grenze Gotisch, nome e código da mesa. O erro aparece abaixo do campo do código, e o QR code já preenche o código.
+- **Aguardando aprovação:** tambor de revólver e uma frase, sem botões.
+- **Painel do mestre:** três colunas: convidar jogadores, pessoas na mesa e pedidos de entrada, rolar e registro. O código da mesa fica em destaque, e cada endereço tem copiar e QR code.
+- **Tirar da mesa:** sempre pede confirmação.
+- **Firewall (06/11/2026):** com a entrada bloqueada pelo Windows, o painel mostra um alerta com o botão **Liberar acesso**. Com a entrada liberada, nada aparece.
+- **Mesa do jogador:** provisória, com rolar, quem está na mesa e registro. A fase 5 a substitui pela aba Combate.
+- O registro mostra o mais recente no topo.
+- Quem rola vê a animação; os outros veem a linha no registro.
+
 ## Temas de complemento
 
 - **A Ordem no Caos:** fundo roxo muito escuro, quase preto, com roxo forte como cor predominante. As cores vêm da introdução do livro (`#22093d` a `#12041f` e `#b05cff`). O rascunho está em `prototipos/`; o tema real vem no pacote do complemento, na fase 8.

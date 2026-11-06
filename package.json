@@ -4,12 +4,24 @@
   "version": "0.0.0",
   "type": "module",
   "workspaces": [
+    "apps/*",
     "pacotes/*",
     "prototipos"
   ],
   "scripts": {
+    "dev": "concurrently -n servidor,web -c red,yellow \"npm run dev --workspace @odm/servidor\" \"npm run dev --workspace @odm/web\"",
+    "desktop": "npm run build --workspace @odm/web && npm run dev --workspace @odm/desktop",
+    "build": "npm run build --workspace @odm/web && npm run build --workspace @odm/desktop",
+    "empacotar": "npm run build && npm run empacotar --workspace @odm/desktop",
+    "testar": "vitest run",
+    "tipos": "node scripts/tipos.mjs",
+    "orcamento": "node scripts/orcamento.mjs",
     "prototipos": "npm run dev --workspace prototipos",
-    "prototipos:rede": "npm run dev --workspace prototipos -- --host",
-    "tipos": "tsc --noEmit -p prototipos/tsconfig.json"
+    "prototipos:rede": "npm run dev --workspace prototipos -- --host"
+  },
+  "devDependencies": {
+    "concurrently": "10.0.6",
+    "typescript": "7.0.2",
+    "vitest": "5.1.0"
   }
 }

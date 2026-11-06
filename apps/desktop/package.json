@@ -1,0 +1,21 @@
+{
+  "name": "@odm/desktop",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "main": "dist/principal.cjs",
+  "scripts": {
+    "instalar-electron": "install-electron",
+    "build": "node scripts/construir.mjs",
+    "dev": "npm run build && electron .",
+    "empacotar": "node scripts/empacotar.mjs"
+  },
+  "devDependencies": {
+    "@odm/servidor": "*",
+    "@types/node": "24.12.4",
+    "electron": "44.10.2",
+    "electron-builder": "26.18.0",
+    "vite": "8.3.6",
+    "@odm/protocolo": "*"
+  }
+}

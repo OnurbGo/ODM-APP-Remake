@@ -4,6 +4,7 @@
   justify-content: space-between;
   gap: var(--esp-3);
   min-height: var(--alvo-toque);
+  overflow-wrap: anywhere;
 }
 
 .controle {

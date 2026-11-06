@@ -1,0 +1,110 @@
+.rolar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-3);
+}
+
+.registro {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.lista {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+}
+
+.linha {
+  display: flex;
+  align-items: baseline;
+  gap: var(--esp-2);
+  padding: var(--esp-2) 0;
+  border-top: 1px solid var(--cor-borda);
+}
+
+.linha:first-child {
+  border-top: 0;
+}
+
+.linhaTexto {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.autor {
+  font-weight: 600;
+}
+
+.conta {
+  font-size: var(--texto-s);
+  color: var(--cor-texto-suave);
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+.total {
+  flex: none;
+  font-size: var(--texto-xl);
+  color: var(--cor-destaque);
+}
+
+.linhaSistema {
+  flex: 1;
+  min-width: 0;
+  font-style: italic;
+  color: var(--cor-texto-suave);
+}
+
+.hora {
+  flex: none;
+  font-size: var(--texto-xs);
+  color: var(--cor-texto-fraco);
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+.vazio {
+  color: var(--cor-texto-suave);
+}
+
+.participante {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-2);
+  min-height: var(--alvo-toque);
+}
+
+.ponto {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border: 1px solid var(--cor-borda-forte);
+  border-radius: 50%;
+  background: var(--cor-vazio);
+}
+
+.online {
+  background: var(--cor-sucesso);
+  border-color: var(--cor-sucesso);
+}
+
+.nome {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.faixa {
+  padding: var(--esp-2) var(--esp-4);
+  background: var(--cor-perigo-fundo);
+  color: var(--cor-sobre-perigo);
+  font-size: var(--texto-s);
+  text-align: center;
+}

@@ -1,0 +1,21 @@
+appId: br.com.olhodamorte.app
+productName: Olho da Morte
+electronVersion: "44.10.2"
+npmRebuild: false
+nodeGypRebuild: false
+buildDependenciesFromSource: false
+directories:
+  buildResources: build
+files:
+  - dist/**/*
+  - package.json
+extraResources:
+  - from: ../web/dist
+    to: web
+  - from: ../servidor/migracoes
+    to: migracoes
+asar: true
+win:
+  target:
+    - dir
+  signExecutable: false

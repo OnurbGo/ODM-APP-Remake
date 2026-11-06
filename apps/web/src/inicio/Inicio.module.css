@@ -1,0 +1,51 @@
+.pagina {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--esp-6);
+  min-height: 100dvh;
+  padding: var(--esp-6) var(--esp-4);
+}
+
+.titulo {
+  font-family: var(--fonte-gotica);
+  font-size: var(--texto-3xl);
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+  color: var(--cor-destaque);
+}
+
+.opcoes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: var(--esp-4);
+  width: 100%;
+  max-width: 760px;
+}
+
+.formulario,
+.porta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-3);
+}
+
+.texto {
+  margin-bottom: var(--esp-3);
+  color: var(--cor-texto-suave);
+}
+
+.porta .texto {
+  margin-bottom: 0;
+}
+
+.problema {
+  margin-bottom: var(--esp-3);
+  color: var(--cor-perigo);
+}
+
+.porta .problema {
+  margin-bottom: 0;
+}

@@ -34,20 +34,15 @@
   --carta-verso: var(--p-sangue);
   --carta-verso-trama: #8f2a22;
 
+  /* QR code: sempre escuro sobre claro, em qualquer superfície, ou o leitor do celular falha. */
+  --qr-escuro: var(--p-tinta);
+  --qr-claro: var(--p-osso);
+
   --transicao-madeira: #6b4423;
   --transicao-madeira-escura: #3f2612;
   --transicao-parede: #2a1d12;
   --transicao-papel: var(--p-pergaminho);
   --transicao-tinta: var(--p-texto);
-}
-
-/* A variante de comparação da parada 1: rótulos em IM Fell SC, números em EB Garamond. */
-:root[data-rotulos="fell"] {
-  --fonte-rotulo: var(--p-f-titulo);
-  --fonte-numero: var(--p-f-texto);
-  --rotulo-caixa: none;
-  --rotulo-espaco: 0.02em;
-  --rotulo-escala: 1;
 }
 
 :root,
@@ -109,9 +104,9 @@
 
   --cor-texto: var(--p-texto);
   --cor-texto-suave: #4a3f33; /* tela: texto suave escurecido */
-  --cor-texto-fraco: #5f5244;
+  --cor-texto-fraco: #5a4e40;
 
-  --cor-destaque: #6f4f12; /* tela: ouro escurecido */
+  --cor-destaque: #6a4b10; /* tela: ouro escurecido */
   --cor-destaque-forte: #5a3f0c;
   --cor-sobre-destaque: var(--p-osso);
   --cor-perigo: var(--p-sangue);
@@ -120,7 +115,7 @@
   --cor-sucesso: #285c26; /* tela: incomum escurecido */
   --cor-sucesso-fundo: #c9d8b9;
   --cor-tecnica: #7a3f0f;
-  --cor-prestigio: #8a3f06;
+  --cor-prestigio: #843c05;
 
   --cor-metal: #a57c2c;
   --cor-metal-claro: #dcb565;

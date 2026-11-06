@@ -12,7 +12,7 @@
 }
 
 .marcador:disabled {
-  cursor: default;
+  cursor: not-allowed;
 }
 
 .desenho {

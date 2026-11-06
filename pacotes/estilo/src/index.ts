@@ -4,6 +4,7 @@ export { Alternador } from "./componentes/Alternador";
 export { BarraPV } from "./componentes/BarraPV";
 export { Botao } from "./componentes/Botao";
 export { CampoNumero } from "./componentes/CampoNumero";
+export { CampoTexto } from "./componentes/CampoTexto";
 export { CartaBaralho, CartaMini } from "./componentes/CartaBaralho";
 export type { Naipe } from "./componentes/CartaBaralho";
 export { Cartao } from "./componentes/Cartao";

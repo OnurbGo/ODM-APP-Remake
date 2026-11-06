@@ -15,11 +15,15 @@ import {
   Vector3,
   WebGLRenderer,
 } from "three";
+import css from "./RolagemD20.module.css";
 
 type Props = {
   valores: number[];
   escolhido: number;
   duracaoMs: number;
+  /* Instante em que a rolagem começou: com carga lenta, o dado entra no ponto certo da
+     animação e não fica para trás dos modificadores. */
+  inicioMs: number;
   pulado: boolean;
   aoFalhar: () => void;
 };
@@ -117,19 +121,26 @@ function orientacaoFinal(face: Face, inclinacao: number) {
   return inclina.multiply(q2).multiply(q1);
 }
 
-export default function D20Tres({ valores, escolhido, duracaoMs, pulado, aoFalhar }: Props) {
-  const tela = useRef<HTMLCanvasElement>(null);
+export default function D20Tres({ valores, escolhido, duracaoMs, inicioMs, pulado, aoFalhar }: Props) {
+  const caixa = useRef<HTMLDivElement>(null);
   const puladoRef = useRef(pulado);
   puladoRef.current = pulado;
 
   useEffect(() => {
-    const canvas = tela.current;
-    if (!canvas) return;
+    const destino = caixa.current;
+    if (!destino) return;
+
+    /* Canvas novo a cada montagem: o contexto é liberado ao sair, e um canvas com contexto
+       perdido não serve mais. Com canvas fixo, o modo estrito do React quebraria o dado. */
+    const canvas = document.createElement("canvas");
+    canvas.setAttribute("aria-hidden", "true");
+    destino.append(canvas);
 
     let render: WebGLRenderer;
     try {
       render = new WebGLRenderer({ canvas, alpha: true, antialias: true });
     } catch {
+      canvas.remove();
       aoFalhar();
       return;
     }
@@ -163,7 +174,7 @@ export default function D20Tres({ valores, escolhido, duracaoMs, pulado, aoFalha
       const malha = new Mesh(geo, material);
       malha.scale.setScalar(escala);
       cena.add(malha);
-      const face = faces.find((f) => f.numero === valor) ?? faces[0];
+      const face = faces.find((f) => f.numero === valor) ?? faces[0]!;
       return {
         malha,
         material,
@@ -198,25 +209,36 @@ export default function D20Tres({ valores, escolhido, duracaoMs, pulado, aoFalha
     }
 
     let quadro = 0;
-    const inicio = performance.now();
     const passar = (agora: number) => {
-      const t = duracaoMs > 0 && !puladoRef.current ? Math.min(1, (agora - inicio) / duracaoMs) : 1;
+      const t = duracaoMs > 0 && !puladoRef.current ? Math.min(1, Math.max(0, (agora - inicioMs) / duracaoMs)) : 1;
       posar(t);
       if (t < 1) quadro = requestAnimationFrame(passar);
     };
     quadro = requestAnimationFrame(passar);
 
+    /* O celular pode tomar o contexto de volta (troca de app, pouca memória): cai para o d20 plano. */
+    const aoPerderContexto = (e: Event) => {
+      e.preventDefault();
+      cancelAnimationFrame(quadro);
+      aoFalhar();
+    };
+    canvas.addEventListener("webglcontextlost", aoPerderContexto);
+
     return () => {
+      canvas.removeEventListener("webglcontextlost", aoPerderContexto);
       cancelAnimationFrame(quadro);
       geo.dispose();
       textura.dispose();
       dados.forEach((d) => d.material.dispose());
       render.dispose();
+      /* Cada rolagem cria um contexto, e o navegador limita quantos ficam vivos. */
+      render.forceContextLoss();
+      canvas.remove();
     };
-    // A cena é montada uma vez por rolagem; a chave do componente troca a cada rolagem.
+    // A cena é montada uma vez por rolagem: a chave de RolagemD20 troca a cada rolagem.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /* Pular depois que o laço terminou não existe; durante o laço, o próximo quadro já assenta. */
-  return <canvas ref={tela} className="odm-d20-tela" aria-hidden="true" />;
+  return <div ref={caixa} className={css.tela} />;
 }

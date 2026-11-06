@@ -12,7 +12,9 @@
   font-size: calc(var(--texto-m) * var(--rotulo-escala));
   letter-spacing: var(--rotulo-espaco);
   text-transform: var(--rotulo-caixa);
-  line-height: 1;
+  line-height: 1.1;
+  max-width: 100%;
+  overflow-wrap: anywhere;
   transition: transform var(--dur-rapida) var(--curva-carimbo), opacity var(--dur-rapida) var(--curva-padrao);
 }
 

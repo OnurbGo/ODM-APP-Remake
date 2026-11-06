@@ -2,6 +2,12 @@
   display: flex;
 }
 
+.rotulo {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
 .aba {
   position: relative;
   flex: 1 1 0;
@@ -18,8 +24,11 @@
   color: var(--cor-destaque);
 }
 
+/* Coluna estreita: as abas rolam de lado, em vez de vazar por cima do que vem depois. */
 .segmentada {
   border-bottom: 1px solid var(--cor-borda);
+  overflow-x: auto;
+  scrollbar-width: none;
 }
 
 /* Larguras pelo conteúdo: rótulos de tamanhos diferentes não colidem em colunas estreitas. */

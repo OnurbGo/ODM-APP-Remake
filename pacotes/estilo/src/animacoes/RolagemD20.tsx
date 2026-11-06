@@ -10,6 +10,8 @@ export type ModificadorRolagem = { rotulo: string; valor: number };
 
 /* Tudo chega pronto de quem chamou: este componente só mostra, não calcula regra. */
 export type DadosRolagem = {
+  /* Identifica a rolagem: dois resultados iguais seguidos ainda são duas rolagens. */
+  id?: string;
   titulo: string;
   subtitulo?: string;
   /* Valores dos d20; vazio quando não há rolagem (falha automática). */
@@ -53,7 +55,13 @@ function temWebGL() {
 
 const sinal = (n: number) => (n < 0 ? `−${Math.abs(n)}` : `+${n}`);
 
-export function RolagemD20({ rolagem, rapida, semTresD, fecharSozinhoMs, aoFechar }: Props) {
+export function RolagemD20(props: Props) {
+  const { rolagem } = props;
+  /* Rolagem nova, cena nova: dado, tempos e estado recomeçam juntos. */
+  return <Cena key={rolagem.id ?? `${rolagem.titulo}-${rolagem.dados.join("-")}-${rolagem.total}`} {...props} />;
+}
+
+function Cena({ rolagem, rapida, semTresD, fecharSozinhoMs, aoFechar }: Props) {
   const reduzir = useReduzirAnimacoes();
   const semDado = rolagem.dados.length === 0;
   const qtdMods = rolagem.modificadores.length;
@@ -70,6 +78,15 @@ export function RolagemD20({ rolagem, rapida, semTresD, fecharSozinhoMs, aoFecha
   const [falhou3D, definirFalhou3D] = useState(false);
   const usar3D = useMemo(() => !semTresD && temWebGL(), [semTresD]);
   const timers = useRef<number[]>([]);
+  const inicio = useRef(performance.now());
+  const camada = useRef<HTMLDivElement>(null);
+
+  /* O foco entra na rolagem e volta para onde estava ao fechar. */
+  useEffect(() => {
+    const anterior = document.activeElement as HTMLElement | null;
+    camada.current?.focus();
+    return () => anterior?.focus?.();
+  }, []);
 
   useEffect(() => {
     if (direto) return;
@@ -109,15 +126,23 @@ export function RolagemD20({ rolagem, rapida, semTresD, fecharSozinhoMs, aoFecha
 
   usePularAnimacao(true, avancar);
 
-  const natural = rolagem.dados[rolagem.escolhido];
+  const natural = rolagem.dados[rolagem.escolhido] ?? 0;
   const somaParcial =
     natural + rolagem.modificadores.slice(0, Math.max(0, Math.min(passo, qtdMods))).reduce((soma, m) => soma + m.valor, 0);
   const mostrarTotal = terminou ? rolagem.total : somaParcial;
-  const dadoParou = passo >= 1 || pulado || (qtdMods === 0 && passo > 0);
+  const dadoParou = passo >= 1 || pulado;
   const alvoTexto = rolagem.alvo ? `${rolagem.alvo.rotulo} ${rolagem.alvo.valor ?? "?"}` : null;
 
   return (
-    <div className={css.camada} role="dialog" aria-modal="true" aria-label={rolagem.titulo} onClick={avancar}>
+    <div
+      ref={camada}
+      tabIndex={-1}
+      className={css.camada}
+      role="dialog"
+      aria-modal="true"
+      aria-label={rolagem.titulo}
+      onClick={avancar}
+    >
       <header className={css.topo}>
         <h2 className={css.titulo}>{rolagem.titulo}</h2>
         {rolagem.subtitulo && <p className={css.subtitulo}>{rolagem.subtitulo}</p>}
@@ -133,16 +158,22 @@ export function RolagemD20({ rolagem, rapida, semTresD, fecharSozinhoMs, aoFecha
               }
             >
               <D20Tres
-                key={rolagem.dados.join("-")}
                 valores={rolagem.dados}
                 escolhido={rolagem.escolhido}
                 duracaoMs={direto ? 0 : tempos.dado}
+                inicioMs={inicio.current}
                 pulado={pulado}
                 aoFalhar={() => definirFalhou3D(true)}
               />
             </Suspense>
           ) : (
-            <D20Plano valores={rolagem.dados} escolhido={rolagem.escolhido} duracaoMs={direto ? 0 : tempos.dado} pulado={pulado} />
+            /* Se o 3D cair no meio da animação, mostra o resultado em vez de recomeçar o giro. */
+            <D20Plano
+              valores={rolagem.dados}
+              escolhido={rolagem.escolhido}
+              duracaoMs={direto ? 0 : tempos.dado}
+              pulado={pulado || falhou3D}
+            />
           ))}
 
         {terminou && rolagem.resultado && (
@@ -160,9 +191,9 @@ export function RolagemD20({ rolagem, rapida, semTresD, fecharSozinhoMs, aoFecha
 
         {!semDado && rolagem.cartas && rolagem.cartas.length > 0 && (
           <div className={css.cartas}>
-            {rolagem.cartas.map((c) => (
+            {rolagem.cartas.map((c, i) => (
               <CartaBaralho
-                key={`${c.valor}${c.naipe}`}
+                key={i}
                 valor={c.valor}
                 naipe={c.naipe}
                 virada={dadoParou}
@@ -181,7 +212,7 @@ export function RolagemD20({ rolagem, rapida, semTresD, fecharSozinhoMs, aoFecha
             </li>
             {rolagem.modificadores.map((m, i) =>
               passo > i ? (
-                <li key={m.rotulo} className={`${css.mod} ${css.modEntrando}`}>
+                <li key={i} className={`${css.mod} ${css.modEntrando}`}>
                   <span className="odm-rotulo">{m.rotulo}</span>
                   <span className={`odm-numero ${m.valor < 0 ? css.negativo : ""}`}>{sinal(m.valor)}</span>
                 </li>

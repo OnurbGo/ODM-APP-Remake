@@ -6,8 +6,6 @@ import { useReduzirAnimacoes } from "./useReduzirAnimacoes";
 type Props = {
   titulo: string;
   aoTerminar: () => void;
-  /* Só para avaliar: fica parada no último quadro em vez de sair. */
-  segurar?: boolean;
 };
 
 const DURACAO = 2000;
@@ -45,7 +43,7 @@ const RAJADAS = [
   { topo: 78, largura: 26, atraso: 860 },
 ];
 
-export function Abertura({ titulo, aoTerminar, segurar }: Props) {
+export function Abertura({ titulo, aoTerminar }: Props) {
   const reduzir = useReduzirAnimacoes();
   const [saindo, definirSaindo] = useState(false);
   const fim = useRef(aoTerminar);
@@ -54,10 +52,9 @@ export function Abertura({ titulo, aoTerminar, segurar }: Props) {
   const sair = useCallback(() => definirSaindo(true), []);
 
   useEffect(() => {
-    if (segurar) return;
     const id = window.setTimeout(sair, reduzir ? DURACAO_REDUZIDA : DURACAO);
     return () => clearTimeout(id);
-  }, [reduzir, sair, segurar]);
+  }, [reduzir, sair]);
 
   useEffect(() => {
     if (!saindo) return;
