@@ -49,12 +49,16 @@ export type Papel = z.infer<typeof Papel>;
 export const Participante = z.object({ id: z.string(), nome: z.string(), papel: Papel, online: z.boolean() });
 export type Participante = z.infer<typeof Participante>;
 
+/* Todo jogador que já passou pela mesa, incluindo quem foi tirado: o personagem dele continua aqui. */
+export const JogadorConhecido = z.object({ id: z.string(), nome: z.string(), revogado: z.boolean() });
+export type JogadorConhecido = z.infer<typeof JogadorConhecido>;
+
 export const PedidoEntrada = z.object({
   id: z.string(),
   nome: z.string(),
   criadoEm: z.string(),
   /* Participante com o mesmo nome: pode ser a mesma pessoa em outro dispositivo. */
-  mesmoNomeDe: z.object({ id: z.string(), nome: z.string(), revogado: z.boolean() }).nullable(),
+  mesmoNomeDe: JogadorConhecido.nullable(),
 });
 export type PedidoEntrada = z.infer<typeof PedidoEntrada>;
 
@@ -97,7 +101,13 @@ export const MensagemServidor = z.discriminatedUnion("t", [
   }),
   /* Só o mestre recebe estas duas: o que o jogador nunca pode ver vai numa mensagem à parte. */
   z.object({ t: z.literal("sem_mesa") }),
-  z.object({ t: z.literal("estado_mestre"), codigo: z.string(), pedidos: z.array(PedidoEntrada), rede: RedeMestre }),
+  z.object({
+    t: z.literal("estado_mestre"),
+    codigo: z.string(),
+    pedidos: z.array(PedidoEntrada),
+    jogadores: z.array(JogadorConhecido),
+    rede: RedeMestre,
+  }),
   z.object({ t: z.literal("entrada_aguardando"), pedidoId: z.string(), segredo: z.string() }),
   z.object({ t: z.literal("entrada_aprovada"), token: z.string() }),
   z.object({ t: z.literal("entrada_recusada") }),

@@ -248,6 +248,57 @@ describe("entrada na mesa", () => {
     expect(boasVindas.participantes.filter((p) => p.papel === "jogador")).toHaveLength(1);
   });
 
+  it("o mestre liga o pedido a um jogador da mesa, mesmo com outro nome", async () => {
+    const { mestre, codigo } = await mestreComMesa();
+    const { id } = await jogadorAprovado(mestre, codigo, "Ana");
+    const celular = await visitante();
+    celular.enviar({ t: "pedir_entrada", nome: "Aninha", codigo });
+    const estado = await mestre.esperar("estado_mestre", (m) => m.pedidos.some((p) => p.nome === "Aninha"));
+    const pedido = estado.pedidos.find((p) => p.nome === "Aninha")!;
+    expect(pedido.mesmoNomeDe).toBeNull();
+    expect(estado.jogadores).toEqual([{ id, nome: "Ana", revogado: false }]);
+
+    mestre.enviar({ t: "aprovar_entrada", pedidoId: pedido.id, vincularA: id });
+    const { token } = await celular.esperar("entrada_aprovada");
+    celular.enviar({ t: "ola", versao: VERSAO_PROTOCOLO, credencial: { tipo: "jogador", token } });
+    const boasVindas = await celular.esperar("bem_vindo");
+    expect(boasVindas.eu).toMatchObject({ id, nome: "Ana" });
+    expect(boasVindas.participantes.filter((p) => p.papel === "jogador")).toHaveLength(1);
+  });
+
+  it("jogador tirado da mesa continua na lista e volta como a mesma pessoa, com outro nome", async () => {
+    const { mestre, codigo } = await mestreComMesa();
+    const { id, token } = await jogadorAprovado(mestre, codigo, "Ana");
+    mestre.enviar({ t: "revogar_acesso", participanteId: id });
+    const estado = await mestre.esperar("estado_mestre", (m) => m.jogadores[0]?.revogado === true);
+    expect(estado.jogadores).toEqual([{ id, nome: "Ana", revogado: true }]);
+
+    const celular = await visitante();
+    celular.enviar({ t: "pedir_entrada", nome: "Celular novo", codigo });
+    const comPedido = await mestre.esperar("estado_mestre", (m) => m.pedidos.some((p) => p.nome === "Celular novo"));
+    mestre.enviar({ t: "aprovar_entrada", pedidoId: comPedido.pedidos[0]!.id, vincularA: id });
+    const novo = await celular.esperar("entrada_aprovada");
+    celular.enviar({ t: "ola", versao: VERSAO_PROTOCOLO, credencial: { tipo: "jogador", token: novo.token } });
+    expect((await celular.esperar("bem_vindo")).eu.id).toBe(id);
+
+    /* O celular perdido continua fora: voltar não reativa o token antigo. */
+    const perdido = await abrir();
+    perdido.enviar({ t: "ola", versao: VERSAO_PROTOCOLO, credencial: { tipo: "jogador", token } });
+    await perdido.esperar("erro", (m) => m.codigo === "token_invalido");
+  });
+
+  it("o pedido não pode ser ligado ao mestre", async () => {
+    const { mestre, codigo } = await mestreComMesa();
+    const { eu } = await mestre.esperar("bem_vindo");
+    const jogador = await visitante();
+    jogador.enviar({ t: "pedir_entrada", nome: "Ana", codigo });
+    const estado = await mestre.esperar("estado_mestre", (m) => m.pedidos.length === 1);
+    const antes = mestre.recebidas.length;
+    mestre.enviar({ t: "aprovar_entrada", pedidoId: estado.pedidos[0]!.id, vincularA: eu.id });
+    await mestre.esperar("erro", (m) => m.codigo === "pedido_inexistente", antes);
+    expect(jogador.recebidas.some((m) => m.t === "entrada_aprovada")).toBe(false);
+  });
+
   it("revogar derruba a conexão na hora e o token deixa de valer", async () => {
     const { mestre, codigo } = await mestreComMesa();
     const { jogador, token, id } = await jogadorAprovado(mestre, codigo, "Ana");

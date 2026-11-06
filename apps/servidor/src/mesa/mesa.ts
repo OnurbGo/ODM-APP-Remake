@@ -5,6 +5,7 @@ import {
   type CodigoErro,
   type EventoCompleto,
   type EventoVisto,
+  type JogadorConhecido,
   type MensagemClienteLida,
   type MensagemServidor,
   type Participante,
@@ -426,6 +427,7 @@ export class Mesa {
       }
     }
     this.registrar(this.novoEvento(conexao, { tipo: "participante_revogado", dados: { participanteId: alvo.id, nome: alvo.nome } }));
+    this.avisarMestre();
     this.avisarPresenca();
   }
 
@@ -493,19 +495,24 @@ export class Mesa {
     for (const c of this.conexoes) if (c.estado.fase === "dentro") c.canal.enviar({ t: "presenca", participantes });
   }
 
+  private jogadoresConhecidos(): JogadorConhecido[] {
+    if (!this.campanha) return [];
+    return this.repo
+      .participantesDa(this.campanha.id)
+      .filter((p) => p.papel === "jogador")
+      .map((p) => ({ id: p.id, nome: p.nome, revogado: p.revogadoEm !== null }));
+  }
+
   private pedidosParaMestre(): PedidoEntrada[] {
-    const campanha = this.campanha;
-    if (!campanha) return [];
-    const participantes = this.repo.participantesDa(campanha.id).filter((p) => p.papel === "jogador");
+    const jogadores = this.jogadoresConhecidos();
     return [...this.pedidos.values()]
       .filter((p) => !p.decisao)
       .map((p) => {
-        const igual = participantes.find((o) => mesmoNome(o.nome, p.nome));
         return {
           id: p.id,
           nome: p.nome,
           criadoEm: p.criadoEm,
-          mesmoNomeDe: igual ? { id: igual.id, nome: igual.nome, revogado: igual.revogadoEm !== null } : null,
+          mesmoNomeDe: jogadores.find((o) => mesmoNome(o.nome, p.nome)) ?? null,
         };
       });
   }
@@ -516,6 +523,7 @@ export class Mesa {
       t: "estado_mestre",
       codigo: this.campanha.codigo,
       pedidos: this.pedidosParaMestre(),
+      jogadores: this.jogadoresConhecidos(),
       rede: this.opcoes.rede?.() ?? SEM_REDE,
     });
   }

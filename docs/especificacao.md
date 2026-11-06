@@ -75,6 +75,7 @@ App do mestre (Electron)
 1. O jogador abre o endereço e digita nome + código da mesa.
 2. O mestre aprova; o jogador recebe um token salvo no dispositivo.
 3. Na próxima vez, ele entra direto. O mestre pode revogar o acesso.
+4. **Celular novo:** o personagem fica na campanha, não no aparelho. Ao aprovar o pedido, o mestre pode ligá-lo a um jogador que já passou pela mesa, com o mesmo nome ou não, e o novo dispositivo volta como esse jogador. Tirar o jogador da mesa invalida todos os aparelhos dele, inclusive um celular perdido.
 
 ### 3.4 Stack (proposta)
 

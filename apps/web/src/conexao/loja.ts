@@ -2,6 +2,7 @@ import { CAMINHO_WS, VERSAO_PROTOCOLO } from "@odm/protocolo/constantes";
 import type {
   Credencial,
   EventoVisto,
+  JogadorConhecido,
   MensagemCliente,
   MensagemServidor,
   Participante,
@@ -24,7 +25,7 @@ export type Fase =
 
 export type EventoRolagem = Extract<EventoVisto, { tipo: "rolagem" }>;
 
-type EstadoMestre = { codigo: string; pedidos: PedidoEntrada[]; rede: RedeMestre };
+type EstadoMestre = { codigo: string; pedidos: PedidoEntrada[]; jogadores: JogadorConhecido[]; rede: RedeMestre };
 
 type Estado = {
   fase: Fase;
@@ -111,7 +112,9 @@ function tratar(mensagem: MensagemServidor) {
       }));
       return;
     case "estado_mestre":
-      definir({ mestre: { codigo: mensagem.codigo, pedidos: mensagem.pedidos, rede: mensagem.rede } });
+      definir({
+        mestre: { codigo: mensagem.codigo, pedidos: mensagem.pedidos, jogadores: mensagem.jogadores, rede: mensagem.rede },
+      });
       return;
     case "entrada_aguardando":
       pedidoEmEspera = { pedidoId: mensagem.pedidoId, segredo: mensagem.segredo };

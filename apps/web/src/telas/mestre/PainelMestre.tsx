@@ -1,5 +1,5 @@
 import { Botao, Cartao, Etiqueta, Icone, PopUp } from "@odm/estilo";
-import type { EnderecoRede, Participante, PedidoEntrada, RedeMestre, TipoRede } from "@odm/protocolo";
+import type { EnderecoRede, JogadorConhecido, Participante, PedidoEntrada, RedeMestre, TipoRede } from "@odm/protocolo";
 import { useEffect, useState } from "react";
 import { acoes, useLoja } from "../../conexao/loja";
 import { FaixaConexao, NomeParticipante, Registro, Rolar } from "../Blocos";
@@ -97,8 +97,40 @@ function Convite({ codigo, rede }: { codigo: string; rede: RedeMestre }) {
   );
 }
 
-function LinhaPedido({ pedido }: { pedido: PedidoEntrada }) {
+/* Quem troca de celular pode digitar outro nome: a ficha continua com o jogador que já existe. */
+function EscolherJogador({ pedido, jogadores, aoFechar }: { pedido: PedidoEntrada; jogadores: JogadorConhecido[]; aoFechar: () => void }) {
+  return (
+    <PopUp
+      aberto
+      titulo={`Quem é ${pedido.nome}?`}
+      subtitulo="O novo dispositivo entra como este jogador."
+      variante="central"
+      aoFechar={aoFechar}
+    >
+      <ul className={css.escolha}>
+        {jogadores.map((j) => (
+          <li key={j.id}>
+            <Botao
+              largo
+              onClick={() => {
+                acoes.aprovar(pedido.id, j.id);
+                aoFechar();
+              }}
+            >
+              {j.nome}
+              {j.revogado && <Etiqueta>Fora da mesa</Etiqueta>}
+            </Botao>
+          </li>
+        ))}
+      </ul>
+    </PopUp>
+  );
+}
+
+function LinhaPedido({ pedido, jogadores }: { pedido: PedidoEntrada; jogadores: JogadorConhecido[] }) {
   const igual = pedido.mesmoNomeDe;
+  const [escolhendo, definirEscolhendo] = useState(false);
+  const outros = jogadores.filter((j) => j.id !== igual?.id);
   return (
     <li className={css.pedido}>
       <p className={css.pedidoNome}>{pedido.nome}</p>
@@ -121,15 +153,19 @@ function LinhaPedido({ pedido }: { pedido: PedidoEntrada }) {
             Aprovar
           </Botao>
         )}
+        {outros.length > 0 && (
+          <Botao onClick={() => definirEscolhendo(true)}>{igual ? "É outro jogador" : "Já joga nesta mesa"}</Botao>
+        )}
         <Botao variante="fantasma" onClick={() => acoes.recusar(pedido.id)}>
           Recusar
         </Botao>
       </div>
+      {escolhendo && <EscolherJogador pedido={pedido} jogadores={outros} aoFechar={() => definirEscolhendo(false)} />}
     </li>
   );
 }
 
-function Pessoas({ pedidos }: { pedidos: PedidoEntrada[] }) {
+function Pessoas({ pedidos, jogadores }: { pedidos: PedidoEntrada[]; jogadores: JogadorConhecido[] }) {
   const participantes = useLoja((e) => e.participantes);
   const [tirar, definirTirar] = useState<Participante | null>(null);
   return (
@@ -138,7 +174,7 @@ function Pessoas({ pedidos }: { pedidos: PedidoEntrada[] }) {
         <Cartao titulo="Pedidos de entrada">
           <ul>
             {pedidos.map((p) => (
-              <LinhaPedido key={p.id} pedido={p} />
+              <LinhaPedido key={p.id} pedido={p} jogadores={jogadores} />
             ))}
           </ul>
         </Cartao>
@@ -207,7 +243,7 @@ export default function PainelMestre() {
       <main className={css.colunas}>
         <div className={css.coluna}>{mestre && <Convite codigo={mestre.codigo} rede={mestre.rede} />}</div>
         <div className={css.coluna}>
-          <Pessoas pedidos={mestre?.pedidos ?? []} />
+          <Pessoas pedidos={mestre?.pedidos ?? []} jogadores={mestre?.jogadores ?? []} />
         </div>
         <div className={css.coluna}>
           <Rolar />
