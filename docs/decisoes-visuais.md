@@ -109,11 +109,19 @@ Telas sem protótipo, aprovadas direto no código real.
 - **Entrada do jogador:** título em Grenze Gotisch, nome e código da mesa. O erro aparece abaixo do campo do código, e o QR code já preenche o código.
 - **Aguardando aprovação:** tambor de revólver e uma frase, sem botões.
 - **Painel do mestre:** três colunas: convidar jogadores, pessoas na mesa e pedidos de entrada, rolar e registro. O código da mesa fica em destaque, e cada endereço tem copiar e QR code.
+- **Pedido de entrada (06/11/2026):** três botões fixos, na mesma ordem: Aceitar, Associar e Recusar. Associar abre a lista de jogadores, com quem tem o mesmo nome no topo e a etiqueta "Sugerido". Sem jogadores, o botão fica desativado, com o motivo escrito abaixo dele.
 - **Tirar da mesa:** sempre pede confirmação.
 - **Firewall (06/11/2026):** com a entrada bloqueada pelo Windows, o painel mostra um alerta com o botão **Liberar acesso**. Com a entrada liberada, nada aparece.
 - **Mesa do jogador:** provisória, com rolar, quem está na mesa e registro. A fase 5 a substitui pela aba Combate.
 - O registro mostra o mais recente no topo.
 - Quem rola vê a animação; os outros veem a linha no registro.
+
+## Ícone do app (aprovado em 06/11/2026)
+
+- **Desenho:** olho no selo. Selo de tinta, olho de pergaminho e íris de sangue com 6 sulcos na borda, que fazem dela o tambor de revólver da abertura. Desenho próprio, sem arte dos livros.
+- **Dois desenhos:** até 24 px, um olho simples (`icone-16.svg`), porque os sulcos viram borrão. A partir de 32 px, o desenho completo (`icone-mestre.svg`).
+- **Android:** `icone-mestre.svg` já está na grade do ícone adaptativo, com as camadas `fundo` e `figura` e a figura dentro da zona segura.
+- **Gerar de novo:** `npm run icones`, só quando o desenho mudar.
 
 ## Temas de complemento
 

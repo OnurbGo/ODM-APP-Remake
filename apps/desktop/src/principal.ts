@@ -42,6 +42,8 @@ let encerrando = false;
 protocol.registerSchemesAsPrivileged([{ scheme: "odm", privileges: { standard: true, secure: true, supportFetchAPI: true } }]);
 
 const PREFERENCIAS = { contextIsolation: true, sandbox: true, nodeIntegration: false, webviewTag: false } as const;
+/* O .ico fica ao lado do código; no empacotado, o executável já traz o mesmo ícone. */
+const ICONE = join(__dirname, "icone.ico");
 
 /* Cada janela fica na própria origem: link externo, redirecionamento e pop-up não saem dela. */
 function prenderNaOrigem(janela: BrowserWindow, origem: string) {
@@ -125,6 +127,7 @@ function abrirJanelaMestre() {
     backgroundColor: "#0f0c09",
     autoHideMenuBar: true,
     title: "Olho da Morte",
+    icon: ICONE,
     webPreferences: { ...PREFERENCIAS, preload: join(__dirname, "preloadMestre.cjs") },
   });
   prenderNaOrigem(janela, origem);
@@ -159,6 +162,7 @@ function abrirJanelaJogador(origem: string) {
     backgroundColor: "#0f0c09",
     autoHideMenuBar: true,
     title: "Olho da Morte",
+    icon: ICONE,
     webPreferences: { ...PREFERENCIAS, session: sessao },
   });
   prenderNaOrigem(janela, origem);
@@ -175,6 +179,7 @@ function abrirJanelaInicio() {
     backgroundColor: "#0f0c09",
     autoHideMenuBar: true,
     title: "Olho da Morte",
+    icon: ICONE,
     webPreferences: { ...PREFERENCIAS, preload: join(__dirname, "preloadInicio.cjs") },
   });
   prenderNaOrigem(janela, ORIGEM_INICIO);

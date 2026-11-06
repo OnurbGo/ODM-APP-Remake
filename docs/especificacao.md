@@ -20,7 +20,8 @@ Versão de 05/11/2026. Substitui o ODM-App antigo (OnurbGo/ODM-App), que fica s�
 | Jogadores | Entram pelo navegador (`http://IP:porta`); o app instalado também funciona |
 | Rede | LAN, Hamachi ou Radmin, com IP manual como caminho principal |
 | Contas | Sem senha; o jogador entra com nome + código da mesa, e o mestre aprova |
-| Personagem | Fica na campanha do mestre, com exportar e importar |
+| Personagem | Pertence à campanha do mestre, com exportar e importar; o mestre liga e troca quem controla cada um |
+| Celular | Android com app Capacitor (APK); iPhone pelo navegador (seção 3.6) |
 | Conteúdo | Gerado a partir do repositório dos livros (Olho-Da-Morte-RPG); fim do importador por planilha |
 | Complementos | Pacote base (Jogador + Mestre) + um pacote por complemento, abertos a conteúdo novo |
 | Automação | O app aplica as regras do livro sozinho, e o usuário pode desfazer, editar ou encerrar antes |
@@ -38,7 +39,7 @@ Versão de 05/11/2026. Substitui o ODM-App antigo (OnurbGo/ODM-App), que fica s�
 
 1. **Uma fonte só para o conteúdo:** o livro. Corrigiu o livro, o app recebe a correção.
 2. **Automático, mas reversível.** Toda ação automática aparece no registro da sessão com **desfazer**.
-3. **Fiel aos termos do livro.** PA (sem "Ações Bônus"), DT, Brutalidade/Agilidade/Fibra/Intelecto/Astúcia/Presença, dano profano e dano psicológico, "uma vez por descanso curto" em vez de "recarga".
+3. **Fiel aos termos do livro.** PA (sem "Ações Bônus"), DT, Brutalidade/Agilidade/Fibra/Intelecto/Astúcia/Presença, dano profano e dano psicológico, e, nas habilidades de personagem, "uma vez por descanso curto/longo/cena". "Recarga X–Y" só existe em habilidade de criatura (seção 14).
 4. **Leve.** Sem dependência pesada sem motivo; cada tela carrega só o próprio código.
 5. **Pequeno.** Meta de 15 a 25 mil linhas no núcleo (o antigo tinha cerca de 136 mil).
 
@@ -51,7 +52,7 @@ Versão de 05/11/2026. Substitui o ODM-App antigo (OnurbGo/ODM-App), que fica s�
 ```
 App do mestre (Electron)
  ├─ Servidor embutido (HTTP + WebSocket) ─┬─ Navegador do jogador (celular ou PC)
- ├─ SQLite (campanhas, fichas, registro)   ├─ App instalado do jogador (opcional)
+ ├─ SQLite (campanhas, fichas, registro)   ├─ App instalado do jogador (opcional; Android na seção 3.6)
  ├─ Pacotes de conteúdo (base + complementos)
  └─ Interface do mestre (a mesma aplicação web)
 ```
@@ -73,9 +74,10 @@ App do mestre (Electron)
 ### 3.3 Entrada na mesa
 
 1. O jogador abre o endereço e digita nome + código da mesa.
-2. O mestre aprova; o jogador recebe um token salvo no dispositivo.
+2. O pedido chega ao mestre com três botões fixos: **Aceitar** (pessoa nova), **Associar** e **Recusar**. Aceito ou associado, o jogador recebe um token salvo no dispositivo.
 3. Na próxima vez, ele entra direto. O mestre pode revogar o acesso.
-4. **Celular novo:** o personagem fica na campanha, não no aparelho. Ao aprovar o pedido, o mestre pode ligá-lo a um jogador que já passou pela mesa, com o mesmo nome ou não, e o novo dispositivo volta como esse jogador. Tirar o jogador da mesa invalida todos os aparelhos dele, inclusive um celular perdido.
+4. **Associar (celular novo):** o botão abre a lista dos jogadores que já passaram pela mesa, com quem tem o mesmo nome no topo, já sugerido. O novo dispositivo volta como o jogador escolhido, com o mesmo nome ou não. Sem ninguém para associar, o botão fica desativado e a tela explica por quê. Tirar o jogador da mesa invalida todos os aparelhos dele, inclusive um celular perdido.
+5. **Personagem é da campanha (decidido em 06/11/2026):** o personagem pertence à campanha, não ao jogador nem ao aparelho. O mestre liga e troca a qualquer momento qual jogador controla qual personagem, inclusive de quem já foi aceito. Um personagem tem no máximo um jogador e pode ficar sem nenhum; um jogador pode ter mais de um, como ao cobrir quem faltou. A interface entra na fase 4, quando houver fichas; o protocolo já prevê a mensagem `ligar_personagem` (seção 6).
 
 ### 3.4 Stack (proposta)
 
@@ -106,6 +108,16 @@ ODM-APP-Remake/
 └─ docs/
 ```
 
+### 3.6 App de celular (decidido em 06/11/2026)
+
+- **Android:** um app Capacitor que embrulha a mesma interface web. Traz ícone, tela cheia, entrada por QR code, tela sempre acesa e vibração no "seu turno". É distribuído como APK.
+- **iPhone:** continua pelo navegador.
+- **HTTP em texto claro:** liberado só para a LAN e para Hamachi/Radmin.
+- **Por que não PWA:** um PWA instalável exige HTTPS, e a mesa roda em `http://IP`.
+- **Construção:** fase 7, junto do instalador. O ícone adaptativo sai do SVG-mestre em `pacotes/estilo/src/icone/`.
+
+**A confirmar na fase 7:** a configuração de rede do Android trabalha com nomes de domínio e, segundo fontes de fórum, não aceita faixas de IP. Se isso se confirmar na documentação oficial, o app libera texto claro e ele mesmo recusa endereços fora das faixas privadas, de Hamachi (`25.x`) e de Radmin (`26.x`).
+
 ---
 
 ## 4. Conteúdo
@@ -122,9 +134,21 @@ odm-arte-da-guerra-1.0.json   A Arte da Guerra
 
 Cada pacote tem: identificador, versão, dependências (os complementos dependem da base), conteúdo e o tema visual do complemento (seção 9).
 
+A lista de pacotes fica em `tools/exportar/pacotes.yml`, no repositório dos livros. Só a base é gerada por enquanto; os outros ficam reservados e desligados.
+
+**Onde o app lê o pacote:** em desenvolvimento, em `%LOCALAPPDATA%\ODM-dev\conteudo`, fora dos dois repositórios, ou na pasta da variável `ODM_CONTEUDO`. Quem carrega o pacote é o servidor, e ele não vai para a pasta da interface: o jogador recebe só o que pode ver (seção 3.1). Como o pacote entra no instalador fica para a fase 7. O app confere o arquivo com `npm run conteudo:validar`.
+
 ### 4.2 Identificadores fixos
 
 Todo item do conteúdo tem um id que não muda (ex.: `classe.cacador`, `efeito.hemorragia`, `criatura.zumbi`). A ficha guarda o id. Quando o livro muda o texto ou um complemento ganha conteúdo novo, as fichas existentes continuam válidas. Se algo for removido do livro, a ficha mantém uma cópia e mostra o aviso "não está mais no livro".
+
+**Como o id sobrevive à troca de nome:** o id nunca é calculado a partir do nome. Ele fica num registro (`livros/<livro>/dados/app/ids.yml`) que liga o id ao lugar atual do item no livro.
+
+- **Item novo:** o exportador propõe um id, que só vale depois de entrar no registro.
+- **Nome mudou:** um id fica sem item e surge um item sem id. O exportador para e sugere o par, comparando com o texto da exportação anterior. Confirmado, muda-se uma linha do registro, e o id continua o mesmo.
+- **Item removido:** a linha fica marcada com `removido: true`, e o id nunca é reaproveitado.
+
+Nada é marcado no Markdown dos livros.
 
 ### 4.3 O que já está estruturado e o que falta
 
@@ -142,7 +166,9 @@ Todo item do conteúdo tem um id que não muda (ex.: `classe.cacador`, `efeito.h
 
 ### 4.4 Camada mecânica
 
-O texto do livro não muda. Ao lado dele vai um bloco mecânico, em arquivos próprios no repositório dos livros (ex.: `livros/jogador/dados/efeitos-mecanica.yml`), que o build dos livros ignora e o exportador usa.
+O texto do livro não muda. Ao lado dele vai um bloco mecânico, em arquivos próprios no repositório dos livros (`livros/jogador/dados/app/efeitos-mecanica.yml` e `livros/mestre/dados/app/ataques-mecanica.yml`), que o build dos livros ignora e o exportador usa.
+
+**Revisão:** cada item desses arquivos tem o campo `situacao` (`proposta`, `aprovado` ou `lacuna`), e esses YAML são a fonte. O relatório em `revisao/` é gerado a partir deles, e aprovação nunca fica em arquivo regenerado. Só item `aprovado` leva mecânica ao pacote; os outros vão só como texto.
 
 Exemplo — Hemorragia (tudo tirado do texto atual):
 
@@ -217,6 +243,10 @@ Toda mudança é um evento: rolagem, dano, cura, efeito aplicado, PA gasto, item
 ---
 
 ## 6. Jogador
+
+### 6.0 De quem é o personagem
+
+O personagem pertence à campanha. O mestre liga e troca a qualquer momento qual jogador o controla, inclusive de quem já foi aceito (seção 3.3). A interface entra na fase 4.
 
 ### 6.1 Criação de personagem
 
@@ -463,7 +493,7 @@ Antes de abandonar o ODM-App, exportar da campanha de playtest o que não existe
 | 4. Ficha | Criação, ficha, motor de regras com a conta de cada valor | Personagem completo de qualquer classe da base |
 | 5. Combate | Iniciativa, turnos, PA, efeitos automáticos, registro e desfazer, aba Combate, testes, pedido de teste | Um combate com zumbis (incluindo Horda) jogado do início ao fim |
 | 6. Mestre | Encontros, missões e linha do tempo, modificadores de mundo, Jogo do 21, comércio, NPCs, notas, mostrar para os jogadores | Uma sessão inteira de playtest só com o app |
-| 7. Acabamento | Animações finais, backup, instalador com a regra de firewall (seção 3.2), testes nos fluxos principais | Instalador para os apoiadores |
+| 7. Acabamento | Animações finais, backup, instalador com a regra de firewall (seção 3.2), APK do Android (seção 3.6), testes nos fluxos principais | Instalador e APK para os apoiadores |
 | 8. Complementos | Pacote e tema de A Ordem no Caos (magia), depois A Arte da Guerra | Campanha com o complemento ativo |
 
 ---
@@ -493,11 +523,13 @@ Antes de abandonar o ODM-App, exportar da campanha de playtest o que não existe
 
 10. **Assinatura do app (antes da fase 7):** o Smart App Control do Windows 11 pode barrar um executável sem assinatura digital, como aconteceu nesta máquina em 06/11/2026. Falta decidir se o instalador terá certificado de assinatura de código, que é pago, para não exigir nenhum passo técnico de quem instala.
 
+11. **Fast Play como pacote grátis (futuro, aprovado em 06/11/2026):** reservado em `tools/exportar/pacotes.yml` como `odm-fastplay`, sem geração por enquanto. O livro já traz seis personagens prontos e a missão *Cheiro de Fuligem*, então o pacote depende da ficha (fase 4). Os efeitos dele repetem o texto do Livro do Jogador e usariam os mesmos ids da base, para quem passar de um para o outro não perder a ficha.
+
 ### Lacunas de regra (para resolver ao escrever a camada mecânica)
 
 Vou levantar cada caso com a citação do livro durante a fase 3. Já encontrei:
 
-- **Termo "recarga":** o livro não usa. O app mostra "uma vez por descanso curto/longo/cena", conforme cada habilidade.
+- **Termo "recarga":** em habilidade de personagem, o app mostra "uma vez por descanso curto/longo/cena", conforme cada uma. Em habilidade de criatura, "Recarga X–Y" existe em `criaturas.yml` (ex.: Rajada Elemental, "1 PA, Recarga 3–6"), mas o livro não define a regra: **lacuna do Bruno a decidir**, e nada é suposto até lá. O campo "Recarga:" das armas e dos ataques especiais é outra coisa e fica como está.
 - **Alucinado e Enfeitiçado:** dependem do mestre; ficam só como texto.
 - **Bêbado:** a regra de doses vale "para personagens comuns". Falta definir quem não é comum (raça, habilidade).
 - **Empate final na iniciativa:** depois da Agilidade, o livro aceita naipe ou nova compra, "o método que sua mesa preferir". Falta decidir se vira opção da campanha; o protótipo usa naipe.

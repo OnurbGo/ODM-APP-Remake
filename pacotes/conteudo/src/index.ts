@@ -1,1 +1,2 @@
-export { IdConteudo, ManifestoPacote, PacoteConteudo, lerPacote, verificarDependencias } from "./pacote";
+export * from "./esquemas";
+export { ManifestoPacote, PacoteConteudo, conferirPacote, lerPacote, verificarDependencias } from "./pacote";

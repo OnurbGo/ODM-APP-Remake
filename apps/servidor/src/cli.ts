@@ -1,4 +1,5 @@
 /* Sobe o servidor sem o Electron, para desenvolver. */
+import { lerPasta, pastaConteudo } from "@odm/conteudo/pasta";
 import { randomBytes } from "node:crypto";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -23,6 +24,8 @@ try {
     tokenMestre,
   });
   console.log(`Servidor na porta ${servidor.porta}. Dados em ${pastaDados}`);
+  const pacotes = lerPasta(pastaConteudo()).filter((l) => l.pacote && l.problemas.length === 0);
+  console.log(`Conteúdo em ${pastaConteudo()}: ${pacotes.map((l) => l.arquivo).join(", ") || "nenhum pacote"}`);
   console.log(`Mestre (desenvolvimento): http://localhost:5173/?tokenMestre=${tokenMestre}`);
 
   const parar = async () => {

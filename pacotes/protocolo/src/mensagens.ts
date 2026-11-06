@@ -36,6 +36,9 @@ export const MensagemCliente = z.discriminatedUnion("t", [
     rotulo: z.string().trim().max(60).optional(),
     bonus: z.number().int().min(-99).max(99).default(0),
   }),
+  /* O personagem é da campanha: o mestre troca quem o controla a qualquer momento (null = sem jogador).
+     Formato já definido; o servidor responde "indisponivel" até a fase 4. */
+  z.object({ t: z.literal("ligar_personagem"), personagemId: Id, participanteId: Id.nullable() }),
   /* Formato já definido; o servidor responde "indisponivel" até a fase 5. */
   z.object({ t: z.literal("pedir_teste"), pedido: PedidoTeste }),
   z.object({ t: z.literal("responder_teste"), resposta: RespostaTeste }),
@@ -57,8 +60,8 @@ export const PedidoEntrada = z.object({
   id: z.string(),
   nome: z.string(),
   criadoEm: z.string(),
-  /* Participante com o mesmo nome: pode ser a mesma pessoa em outro dispositivo. */
-  mesmoNomeDe: JogadorConhecido.nullable(),
+  /* Jogadores com o mesmo nome: pode ser a mesma pessoa em outro dispositivo. */
+  mesmoNomeDe: z.array(JogadorConhecido),
 });
 export type PedidoEntrada = z.infer<typeof PedidoEntrada>;
 

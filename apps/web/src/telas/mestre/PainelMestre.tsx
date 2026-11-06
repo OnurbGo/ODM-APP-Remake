@@ -1,6 +1,6 @@
 import { Botao, Cartao, Etiqueta, Icone, PopUp } from "@odm/estilo";
 import type { EnderecoRede, JogadorConhecido, Participante, PedidoEntrada, RedeMestre, TipoRede } from "@odm/protocolo";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { acoes, useLoja } from "../../conexao/loja";
 import { FaixaConexao, NomeParticipante, Registro, Rolar } from "../Blocos";
 import css from "./PainelMestre.module.css";
@@ -97,6 +97,15 @@ function Convite({ codigo, rede }: { codigo: string; rede: RedeMestre }) {
   );
 }
 
+/* Sugeridos primeiro, depois quem está na mesa, depois quem saiu: o personagem de todos continua aqui. */
+function paraAssociar(pedido: PedidoEntrada, jogadores: JogadorConhecido[]) {
+  const sugeridos = new Set(pedido.mesmoNomeDe.map((j) => j.id));
+  const grupo = (j: JogadorConhecido) => (sugeridos.has(j.id) ? 0 : j.revogado ? 2 : 1);
+  return [...jogadores]
+    .sort((a, b) => grupo(a) - grupo(b) || a.nome.localeCompare(b.nome, "pt-BR"))
+    .map((jogador) => ({ jogador, sugerido: sugeridos.has(jogador.id) }));
+}
+
 /* Quem troca de celular pode digitar outro nome: a ficha continua com o jogador que já existe. */
 function EscolherJogador({ pedido, jogadores, aoFechar }: { pedido: PedidoEntrada; jogadores: JogadorConhecido[]; aoFechar: () => void }) {
   return (
@@ -108,17 +117,18 @@ function EscolherJogador({ pedido, jogadores, aoFechar }: { pedido: PedidoEntrad
       aoFechar={aoFechar}
     >
       <ul className={css.escolha}>
-        {jogadores.map((j) => (
-          <li key={j.id}>
+        {paraAssociar(pedido, jogadores).map(({ jogador, sugerido }) => (
+          <li key={jogador.id}>
             <Botao
               largo
               onClick={() => {
-                acoes.aprovar(pedido.id, j.id);
+                acoes.aprovar(pedido.id, jogador.id);
                 aoFechar();
               }}
             >
-              {j.nome}
-              {j.revogado && <Etiqueta>Fora da mesa</Etiqueta>}
+              {jogador.nome}
+              {sugerido && <Etiqueta tom="destaque">Sugerido</Etiqueta>}
+              {jogador.revogado && <Etiqueta>Fora da mesa</Etiqueta>}
             </Botao>
           </li>
         ))}
@@ -127,40 +137,40 @@ function EscolherJogador({ pedido, jogadores, aoFechar }: { pedido: PedidoEntrad
   );
 }
 
+function avisoMesmoNome(iguais: JogadorConhecido[]) {
+  const [unico] = iguais;
+  if (!unico) return null;
+  if (iguais.length > 1) return `${iguais.length} jogadores têm este nome. Se for um deles, use Associar.`;
+  const situacao = unico.revogado ? "já foi tirado da mesa" : "já está na mesa";
+  return `${unico.nome} ${situacao}. Se for a mesma pessoa, use Associar.`;
+}
+
 function LinhaPedido({ pedido, jogadores }: { pedido: PedidoEntrada; jogadores: JogadorConhecido[] }) {
-  const igual = pedido.mesmoNomeDe;
   const [escolhendo, definirEscolhendo] = useState(false);
-  const outros = jogadores.filter((j) => j.id !== igual?.id);
+  const motivo = useId();
+  const aviso = avisoMesmoNome(pedido.mesmoNomeDe);
+  const semJogadores = jogadores.length === 0;
   return (
     <li className={css.pedido}>
       <p className={css.pedidoNome}>{pedido.nome}</p>
-      {igual && (
-        <p className={css.nota}>
-          {igual.revogado ? `${igual.nome} já foi tirado da mesa.` : `${igual.nome} já está na mesa.`} Pode ser a mesma pessoa em
-          outro dispositivo.
-        </p>
-      )}
+      {aviso && <p className={css.nota}>{aviso}</p>}
       <div className={css.pedidoAcoes}>
-        {igual ? (
-          <>
-            <Botao variante="primario" onClick={() => acoes.aprovar(pedido.id, igual.id)}>
-              É a mesma pessoa
-            </Botao>
-            <Botao onClick={() => acoes.aprovar(pedido.id)}>Pessoa nova</Botao>
-          </>
-        ) : (
-          <Botao variante="primario" onClick={() => acoes.aprovar(pedido.id)}>
-            Aprovar
-          </Botao>
-        )}
-        {outros.length > 0 && (
-          <Botao onClick={() => definirEscolhendo(true)}>{igual ? "É outro jogador" : "Já joga nesta mesa"}</Botao>
-        )}
+        <Botao variante="primario" onClick={() => acoes.aprovar(pedido.id)}>
+          Aceitar
+        </Botao>
+        <Botao disabled={semJogadores} aria-describedby={semJogadores ? motivo : undefined} onClick={() => definirEscolhendo(true)}>
+          Associar
+        </Botao>
         <Botao variante="fantasma" onClick={() => acoes.recusar(pedido.id)}>
           Recusar
         </Botao>
       </div>
-      {escolhendo && <EscolherJogador pedido={pedido} jogadores={outros} aoFechar={() => definirEscolhendo(false)} />}
+      {semJogadores && (
+        <p id={motivo} className={css.nota}>
+          Ainda não há jogadores nesta mesa para associar.
+        </p>
+      )}
+      {escolhendo && <EscolherJogador pedido={pedido} jogadores={jogadores} aoFechar={() => definirEscolhendo(false)} />}
     </li>
   );
 }

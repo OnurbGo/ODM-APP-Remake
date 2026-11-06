@@ -21,7 +21,9 @@ App de mesa para o RPG autoral **Olho da Morte**, do Bruno (OnurbGo). Substitui 
   - DT (não CD).
   - Atributos: Brutalidade, Agilidade, Fibra, Intelecto, Astúcia, Presença, nesta ordem.
   - Dano **profano** (não necrótico) e dano **psicológico** (não psíquico), inclusive em nomes.
-  - "Uma vez por descanso curto/longo/cena", conforme a habilidade; o livro não usa "recarga".
+  - Habilidade de personagem: "uma vez por descanso curto/longo/cena", conforme a habilidade.
+  - Habilidade de criatura: "Recarga X–Y" existe nas fichas, mas a regra não está definida no livro. É lacuna do Bruno a decidir: não suponha a regra.
+  - O campo "Recarga:" de armas e ataques especiais é outra coisa e fica como está.
   - Fichas de classe: Ficha de Olho da Morte, Ficha de Mana, Ficha de Adrenalina etc.
 - **Interface e textos em português do Brasil.**
 - **Fases em ordem** (seção 13 da especificação). A fase 1 é de protótipos: nada de implementar telas antes de o Bruno aprovar o visual e o fluxo.

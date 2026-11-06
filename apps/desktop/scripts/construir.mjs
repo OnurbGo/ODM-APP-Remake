@@ -1,6 +1,6 @@
 /* Uma construção por processo. Juntas, o empacotador reparte o código comum entre os arquivos,
    e o processo principal acabaria carregando o servidor inteiro. */
-import { rmSync } from "node:fs";
+import { copyFileSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { build } from "vite";
@@ -30,5 +30,8 @@ for (const entrada of ENTRADAS) {
     },
   });
 }
+
+/* Fora do empacotado, a janela não tem o ícone do executável para herdar. */
+copyFileSync(join(raiz, "build", "icon.ico"), join(raiz, "dist", "icone.ico"));
 
 console.log(`Pronto: ${ENTRADAS.join(", ")}`);

@@ -1,7 +1,5 @@
 import { z } from "zod";
-
-/* Especificação, 4.2: id fixo no formato tipo.nome. */
-export const IdConteudo = z.string().regex(/^[a-z0-9_-]+(\.[a-z0-9_-]+)+$/);
+import { Conteudo } from "./esquemas";
 
 const Versao = z.string().regex(/^\d+\.\d+(\.\d+)?$/);
 
@@ -13,18 +11,37 @@ export const ManifestoPacote = z.object({
   dependencias: z.array(z.object({ id: z.string(), versaoMinima: Versao.optional() })).default([]),
   /* Identificador do tema visual do complemento (seção 9). */
   tema: z.string().optional(),
+  /* De que livros e de qual versão deles o pacote saiu. */
+  origem: z.object({ livros: z.array(z.string()), commit: z.string() }).optional(),
 });
 export type ManifestoPacote = z.infer<typeof ManifestoPacote>;
 
-/* A estrutura interna do conteúdo chega na fase 3, com o exportador do repositório dos livros. */
 export const PacoteConteudo = z.object({
   manifesto: ManifestoPacote,
-  conteudo: z.record(z.string(), z.unknown()),
+  conteudo: Conteudo,
 });
 export type PacoteConteudo = z.infer<typeof PacoteConteudo>;
 
 export function lerPacote(json: string): PacoteConteudo {
   return PacoteConteudo.parse(JSON.parse(json));
+}
+
+/* O que o esquema não enxerga: id repetido quebraria a ligação das fichas com o conteúdo. */
+export function conferirPacote(pacote: PacoteConteudo): string[] {
+  const vistos = new Set<string>();
+  const problemas: string[] = [];
+  const ver = (id: string) => {
+    if (vistos.has(id)) problemas.push(`Id repetido: ${id}`);
+    vistos.add(id);
+  };
+  for (const lista of Object.values(pacote.conteudo)) {
+    for (const item of lista) {
+      ver(item.id);
+      if (!("secoes" in item)) continue;
+      for (const secao of item.secoes) for (const acao of secao.itens) if ("id" in acao) ver(acao.id);
+    }
+  }
+  return problemas;
 }
 
 const partes = (v: string) => v.split(".").map(Number);

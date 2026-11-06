@@ -180,6 +180,7 @@ export class Mesa {
       case "trocar_codigo":
         if (this.exigirMestre(conexao)) this.trocarCodigo();
         return;
+      case "ligar_personagem":
       case "pedir_teste":
         if (this.exigirMestre(conexao)) this.erro(conexao.canal, "indisponivel");
         return;
@@ -512,7 +513,7 @@ export class Mesa {
           id: p.id,
           nome: p.nome,
           criadoEm: p.criadoEm,
-          mesmoNomeDe: jogadores.find((o) => mesmoNome(o.nome, p.nome)) ?? null,
+          mesmoNomeDe: jogadores.filter((o) => mesmoNome(o.nome, p.nome)),
         };
       });
   }

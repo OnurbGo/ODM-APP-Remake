@@ -238,7 +238,7 @@ describe("entrada na mesa", () => {
     celular.enviar({ t: "pedir_entrada", nome: "ana", codigo });
     const estado = await mestre.esperar("estado_mestre", (m) => m.pedidos.some((p) => p.nome === "ana"));
     const pedido = estado.pedidos[0]!;
-    expect(pedido.mesmoNomeDe).toEqual({ id, nome: "Ana", revogado: false });
+    expect(pedido.mesmoNomeDe).toEqual([{ id, nome: "Ana", revogado: false }]);
 
     mestre.enviar({ t: "aprovar_entrada", pedidoId: pedido.id, vincularA: id });
     const { token } = await celular.esperar("entrada_aprovada");
@@ -255,7 +255,7 @@ describe("entrada na mesa", () => {
     celular.enviar({ t: "pedir_entrada", nome: "Aninha", codigo });
     const estado = await mestre.esperar("estado_mestre", (m) => m.pedidos.some((p) => p.nome === "Aninha"));
     const pedido = estado.pedidos.find((p) => p.nome === "Aninha")!;
-    expect(pedido.mesmoNomeDe).toBeNull();
+    expect(pedido.mesmoNomeDe).toEqual([]);
     expect(estado.jogadores).toEqual([{ id, nome: "Ana", revogado: false }]);
 
     mestre.enviar({ t: "aprovar_entrada", pedidoId: pedido.id, vincularA: id });
@@ -285,6 +285,18 @@ describe("entrada na mesa", () => {
     const perdido = await abrir();
     perdido.enviar({ t: "ola", versao: VERSAO_PROTOCOLO, credencial: { tipo: "jogador", token } });
     await perdido.esperar("erro", (m) => m.codigo === "token_invalido");
+  });
+
+  it("todos os jogadores com o mesmo nome aparecem no pedido", async () => {
+    const { mestre, codigo } = await mestreComMesa();
+    const primeira = await jogadorAprovado(mestre, codigo, "Ana");
+    const segunda = await jogadorAprovado(mestre, codigo, "ANA");
+    await jogadorAprovado(mestre, codigo, "Bia");
+    const celular = await visitante();
+    celular.enviar({ t: "pedir_entrada", nome: "ana", codigo });
+    const estado = await mestre.esperar("estado_mestre", (m) => m.pedidos.some((p) => p.nome === "ana"));
+    const ids = estado.pedidos.find((p) => p.nome === "ana")!.mesmoNomeDe.map((j) => j.id);
+    expect(ids.sort()).toEqual([primeira.id, segunda.id].sort());
   });
 
   it("o pedido não pode ser ligado ao mestre", async () => {
@@ -586,6 +598,15 @@ describe("visibilidade", () => {
       t: "pedir_teste",
       pedido: { id: "p", tipo: "resistencia", atributo: "fibra", dt: 10, dtVisivel: false, jogadores: [{ jogadorId: "j" }] },
     });
+    await mestre.esperar("erro", (m) => m.codigo === "indisponivel");
+  });
+
+  it("ligar personagem a jogador é do mestre e fica indisponível até a fase 4", async () => {
+    const { mestre, codigo } = await mestreComMesa();
+    const { jogador, id } = await jogadorAprovado(mestre, codigo, "Ana");
+    jogador.enviar({ t: "ligar_personagem", personagemId: "p", participanteId: id });
+    await jogador.esperar("erro", (m) => m.codigo === "nao_autorizado");
+    mestre.enviar({ t: "ligar_personagem", personagemId: "p", participanteId: null });
     await mestre.esperar("erro", (m) => m.codigo === "indisponivel");
   });
 });
