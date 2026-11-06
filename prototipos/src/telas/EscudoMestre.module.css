@@ -1,0 +1,631 @@
+.tela {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.faixa {
+  display: grid;
+  flex: none;
+  grid-template-columns: auto minmax(0, 420px) 1fr auto;
+  align-items: center;
+  gap: var(--esp-5);
+  min-height: 64px;
+  padding: var(--esp-2) var(--esp-4);
+  background: var(--cor-fundo-faixa);
+  border-bottom: 1px solid var(--cor-borda-forte);
+}
+
+.marca {
+  font-family: var(--fonte-gotica);
+  font-size: var(--texto-xl);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--cor-destaque);
+  white-space: nowrap;
+}
+
+.rodada {
+  justify-self: end;
+  color: var(--cor-texto-suave);
+  white-space: nowrap;
+}
+
+.faixaAcoes {
+  display: flex;
+  gap: var(--esp-2);
+}
+
+.vazio {
+  padding: var(--esp-8);
+  text-align: center;
+  color: var(--cor-texto-suave);
+}
+
+.grade {
+  display: grid;
+  flex: 1;
+  grid-template-columns: 280px minmax(0, 1fr) 340px;
+  min-height: 0;
+}
+
+/* Iniciativa */
+
+.iniciativa {
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--cor-fundo-faixa);
+  border-right: 1px solid var(--cor-borda);
+  scrollbar-width: thin;
+}
+
+.ordem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-1);
+  margin: 0;
+  padding: var(--esp-2);
+  list-style: none;
+}
+
+.combatente {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-1);
+  width: 100%;
+  padding: var(--esp-2);
+  border: 1px solid transparent;
+  border-radius: var(--raio-m);
+  text-align: left;
+}
+
+.combatente:hover {
+  background: var(--cor-superficie);
+}
+
+.selecionado {
+  background: var(--cor-superficie);
+  border-color: var(--cor-borda-forte);
+}
+
+/* Cor da vez fica na borda esquerda: o nome continua legível e a barra de PV, visível. */
+.davez {
+  border-left: 4px solid var(--cor-destaque);
+}
+
+.combatenteTopo {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+}
+
+.combatenteNome {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.davez .combatenteNome {
+  color: var(--cor-destaque);
+}
+
+.combatentePv {
+  flex: none;
+  font-size: var(--texto-m);
+  color: var(--cor-texto-suave);
+}
+
+.combatenteEfeitos {
+  overflow: hidden;
+  font-size: var(--texto-xs);
+  line-height: 1.2;
+  color: var(--cor-texto-suave);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Círculo é jogador, losango é criatura, quadrado é NPC. */
+.sinal {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border: 1.5px solid var(--cor-texto-suave);
+  border-radius: 50%;
+}
+
+.sinalCriatura {
+  border-color: var(--cor-perigo);
+  border-radius: 0;
+  transform: rotate(45deg);
+}
+
+.sinalNpc {
+  border-radius: 0;
+}
+
+/* Centro */
+
+.centro {
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.centroInterno {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-3);
+  max-width: 960px;
+  margin-inline: auto;
+  padding: var(--esp-3) var(--esp-4);
+}
+
+.nota {
+  font-size: var(--texto-s);
+  line-height: 1.25;
+  color: var(--cor-texto-suave);
+}
+
+.teste {
+  border-color: var(--cor-destaque);
+  animation: entrar var(--dur-media) var(--curva-saida);
+}
+
+@keyframes entrar {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+.testeTopo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--esp-3);
+  margin-bottom: var(--esp-2);
+}
+
+.testeTitulo {
+  font-family: var(--fonte-titulo);
+  font-size: var(--texto-l);
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.fechar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--raio-m);
+  color: var(--cor-texto-suave);
+}
+
+.resultado {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  min-height: 36px;
+  border-top: 1px solid var(--cor-borda);
+  font-size: var(--texto-s);
+}
+
+.resultadoNome {
+  flex: none;
+  width: 130px;
+  font-size: var(--texto-m);
+}
+
+.resultadoConta {
+  flex: 1;
+  min-width: 0;
+  color: var(--cor-texto-suave);
+}
+
+.aguardando {
+  flex: 1;
+  font-style: italic;
+  color: var(--cor-texto-fraco);
+}
+
+.ficha {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-2);
+}
+
+.cabecalho {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-4);
+}
+
+.identidade {
+  flex: 1;
+  min-width: 0;
+}
+
+.nome {
+  font-family: var(--fonte-titulo);
+  font-size: var(--texto-xl);
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.vidaLinha {
+  display: flex;
+  flex: none;
+  align-items: baseline;
+  gap: var(--esp-1);
+}
+
+.pvAtual {
+  font-size: var(--texto-3xl);
+}
+
+.pvMax {
+  font-size: var(--texto-xl);
+  color: var(--cor-texto-suave);
+}
+
+.pvRotulo {
+  margin-right: var(--esp-2);
+  color: var(--cor-perigo);
+}
+
+.minis {
+  display: flex;
+  flex: none;
+  gap: var(--esp-1);
+}
+
+.mini {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 60px;
+  min-height: 52px;
+  padding: var(--esp-1) var(--esp-2);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-m);
+  color: var(--cor-texto-suave);
+}
+
+.mini span:first-child {
+  font-size: var(--texto-l);
+  color: var(--cor-texto);
+}
+
+.fichaBase {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-3);
+}
+
+.atributos {
+  display: grid;
+  grid-template-columns: repeat(6, 52px);
+  gap: var(--esp-1);
+}
+
+.atributo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: var(--esp-1) 0;
+  background: var(--cor-fundo-inset);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-m);
+  color: var(--cor-texto-suave);
+}
+
+.atributo span:last-child {
+  font-size: var(--texto-l);
+  color: var(--cor-texto);
+}
+
+.controleVida {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--esp-2);
+}
+
+.paLinha {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-1);
+  color: var(--cor-texto-suave);
+}
+
+.horda {
+  border-color: var(--cor-perigo);
+}
+
+.hordaLinha {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  margin-bottom: var(--esp-1);
+}
+
+.integrantes {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: var(--esp-1);
+  min-width: 0;
+}
+
+.integrante {
+  width: 16px;
+  height: 16px;
+  background: var(--cor-perigo-fundo);
+  border: 1px solid var(--cor-perigo);
+  transform: rotate(45deg);
+}
+
+.colunas {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  align-items: start;
+  gap: var(--esp-3);
+}
+
+.acoes > li + li {
+  border-top: 1px solid var(--cor-borda);
+}
+
+.acao {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 48px;
+  padding: var(--esp-1) var(--esp-2);
+  border-radius: var(--raio-m);
+  text-align: left;
+}
+
+.acao:hover {
+  background: var(--cor-superficie-alta);
+}
+
+.acaoNome {
+  line-height: 1.2;
+  color: var(--cor-destaque);
+}
+
+.acaoDetalhe {
+  font-size: var(--texto-s);
+  line-height: 1.2;
+  color: var(--cor-texto-suave);
+}
+
+.alvos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-1);
+  padding: var(--esp-1) var(--esp-2) var(--esp-2);
+  color: var(--cor-texto-suave);
+}
+
+.efeito {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-1);
+  min-height: 36px;
+}
+
+.efeito > span:first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.tom-perigo {
+  color: var(--cor-perigo);
+}
+
+.tom-sucesso {
+  color: var(--cor-sucesso);
+}
+
+.encerrar {
+  min-height: 28px;
+  padding-inline: var(--esp-1);
+  border-radius: var(--raio-s);
+  font-size: var(--texto-s);
+  color: var(--cor-destaque);
+}
+
+.fichasClasse li {
+  display: flex;
+  justify-content: space-between;
+  min-height: 32px;
+  align-items: center;
+}
+
+/* Direita */
+
+.direita {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--cor-fundo-faixa);
+  border-left: 1px solid var(--cor-borda);
+}
+
+.direitaTitulo {
+  flex: none;
+  padding: var(--esp-2) var(--esp-3);
+  border-bottom: 1px solid var(--cor-borda-forte);
+  font-family: var(--fonte-titulo);
+  font-size: var(--texto-l);
+  font-weight: 400;
+}
+
+.aoVivo {
+  flex: none;
+}
+
+.jogador {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  padding: var(--esp-1) var(--esp-3);
+  border-bottom: 1px solid var(--cor-borda);
+  text-align: left;
+}
+
+.jogador:hover {
+  background: var(--cor-superficie);
+}
+
+.jogadorTopo {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+}
+
+.jogadorNome {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jogadorPa {
+  display: flex;
+  flex: none;
+  gap: 3px;
+}
+
+.ponto {
+  width: 7px;
+  height: 14px;
+  border: 1px solid var(--cor-metal-escuro);
+  border-radius: 3px 3px 1px 1px;
+}
+
+.pa-disponivel {
+  background: var(--cor-metal);
+}
+
+.pa-guardado {
+  background: var(--cor-destaque-forte);
+  border-color: var(--cor-destaque-forte);
+}
+
+.pa-gasto {
+  background: transparent;
+  border-color: var(--cor-borda-forte);
+}
+
+.pa-bloqueado {
+  background: transparent;
+  border-color: var(--cor-perigo);
+}
+
+.jogadorBase {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--esp-2);
+  font-size: var(--texto-xs);
+  line-height: 1.2;
+  color: var(--cor-texto-suave);
+}
+
+.jogadorEfeitos {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--cor-perigo);
+}
+
+.registro {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.registroLista {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 0 var(--esp-3);
+  overflow-y: auto;
+  list-style: none;
+  scrollbar-width: thin;
+}
+
+.evento {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--esp-2);
+  padding: var(--esp-1) 0;
+  border-bottom: 1px dashed var(--cor-borda);
+  font-size: var(--texto-s);
+  line-height: 1.2;
+  animation: entrarEvento var(--dur-media) var(--curva-saida);
+}
+
+@keyframes entrarEvento {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+}
+
+.desfeita {
+  color: var(--cor-texto-fraco);
+  text-decoration: line-through;
+}
+
+.desfazer {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  min-height: 24px;
+  border-radius: var(--raio-s);
+  font-family: var(--fonte-rotulo);
+  font-size: calc(var(--texto-xs) * var(--rotulo-escala));
+  letter-spacing: var(--rotulo-espaco);
+  text-transform: var(--rotulo-caixa);
+  color: var(--cor-destaque);
+}
+
+@media (max-width: 1279px) {
+  .grade {
+    grid-template-columns: 240px minmax(0, 1fr) 300px;
+  }
+
+  .faixa {
+    gap: var(--esp-3);
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .rodada {
+    display: none;
+  }
+
+  .fichaBase,
+  .cabecalho {
+    flex-wrap: wrap;
+  }
+}

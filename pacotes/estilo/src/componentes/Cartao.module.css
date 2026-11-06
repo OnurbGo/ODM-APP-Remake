@@ -1,0 +1,36 @@
+.cartao {
+  position: relative;
+  padding: var(--esp-3);
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-m);
+  box-shadow: var(--sombra-s);
+}
+
+.topo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--esp-3);
+  margin-bottom: var(--esp-2);
+}
+
+.titulo {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  font-family: var(--fonte-titulo);
+  font-size: var(--texto-l);
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+/* O losango dos marcadores de lista dos livros. */
+.titulo::before {
+  content: "";
+  flex: none;
+  width: 7px;
+  height: 7px;
+  background: var(--cor-perigo);
+  transform: rotate(45deg);
+}

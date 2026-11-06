@@ -1,0 +1,25 @@
+.seletor {
+  display: flex;
+  background: var(--cor-fundo-inset);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-m);
+}
+
+.opcao {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: var(--alvo-toque);
+  padding-inline: var(--esp-1);
+  border-radius: var(--raio-m);
+  font-family: var(--fonte-rotulo);
+  font-size: calc(var(--texto-m) * var(--rotulo-escala));
+  letter-spacing: var(--rotulo-espaco);
+  text-transform: var(--rotulo-caixa);
+  line-height: 1;
+  color: var(--cor-texto-suave);
+}
+
+.ativa {
+  background: var(--cor-destaque);
+  color: var(--cor-sobre-destaque);
+}

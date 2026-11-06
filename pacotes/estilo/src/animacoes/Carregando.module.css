@@ -1,0 +1,62 @@
+.carregando {
+  display: inline-flex;
+}
+
+.desenho {
+  display: block;
+  flex: none;
+  overflow: visible;
+}
+
+.metal {
+  fill: var(--cor-metal);
+  stroke: var(--cor-metal-escuro);
+  stroke-width: 2;
+}
+
+.friso {
+  fill: none;
+  stroke: var(--cor-metal-escuro);
+  stroke-width: 1.5;
+}
+
+.camara {
+  fill: var(--cor-fundo-inset);
+  stroke: var(--cor-metal-escuro);
+  stroke-width: 1.5;
+}
+
+.tambor {
+  transform-origin: 50px 50px;
+  animation: girarTambor calc(1800ms * var(--fator-animacao)) infinite;
+}
+
+@keyframes girarTambor {
+  0%,
+  10% {
+    transform: rotate(0);
+  }
+  16.6%,
+  26.6% {
+    transform: rotate(60deg);
+  }
+  33.3%,
+  43.3% {
+    transform: rotate(120deg);
+  }
+  50%,
+  60% {
+    transform: rotate(180deg);
+  }
+  66.6%,
+  76.6% {
+    transform: rotate(240deg);
+  }
+  83.3%,
+  93.3% {
+    transform: rotate(300deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}

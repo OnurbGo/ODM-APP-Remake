@@ -1,0 +1,51 @@
+/* Escalas de tela: valem para todos os temas, que podem sobrescrever qualquer uma. */
+:root {
+  /* Espaçamento (base de 4 px) */
+  --esp-1: 4px;
+  --esp-2: 8px;
+  --esp-3: 12px;
+  --esp-4: 16px;
+  --esp-5: 20px;
+  --esp-6: 24px;
+  --esp-8: 32px;
+
+  /* Tipografia */
+  --texto-xs: 0.8125rem;
+  --texto-s: 0.9375rem;
+  --texto-m: 1.0625rem;
+  --texto-l: 1.25rem;
+  --texto-xl: 1.625rem;
+  --texto-2xl: 2.25rem;
+  --texto-3xl: 3.5rem;
+  --texto-4xl: 5rem;
+  --entrelinha: 1.35;
+
+  /* Raios: discretos, como os selos dos livros */
+  --raio-s: 2px;
+  --raio-m: 4px;
+  --raio-l: 8px;
+  --raio-total: 999px;
+
+  /* Toque */
+  --alvo-toque: 44px;
+
+  /* Movimento: tudo passa por --fator-animacao, inclusive "reduzir animações" */
+  --fator-animacao: 1;
+  --dur-rapida: calc(120ms * var(--fator-animacao));
+  --dur-media: calc(240ms * var(--fator-animacao));
+  --dur-lenta: calc(480ms * var(--fator-animacao));
+  --dur-entrada-turno: calc(900ms * var(--fator-animacao));
+  --curva-padrao: cubic-bezier(0.2, 0, 0.2, 1);
+  --curva-saida: cubic-bezier(0, 0, 0.2, 1);
+  --curva-carimbo: cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-animacoes="completas"]) {
+    --fator-animacao: 0;
+  }
+}
+
+:root[data-animacoes="reduzidas"] {
+  --fator-animacao: 0;
+}

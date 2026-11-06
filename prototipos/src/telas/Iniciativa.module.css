@@ -1,0 +1,147 @@
+.mestre {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  align-items: start;
+  gap: var(--esp-4);
+}
+
+.participantes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--esp-2);
+}
+
+.participante {
+  display: flex;
+  gap: var(--esp-2);
+  min-height: 96px;
+  padding: var(--esp-2);
+  background: var(--cor-fundo-inset);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-m);
+}
+
+.detalhes {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--esp-1);
+  min-width: 0;
+}
+
+.nome {
+  line-height: 1.15;
+}
+
+.carta {
+  font-size: var(--texto-s);
+  line-height: 1.1;
+  color: var(--cor-texto-suave);
+}
+
+.nota {
+  font-size: var(--texto-s);
+  line-height: 1.25;
+  font-style: italic;
+  color: var(--cor-texto-suave);
+}
+
+.alvos {
+  display: grid;
+  gap: var(--esp-1);
+}
+
+.alvo {
+  min-height: 36px;
+  padding-inline: var(--esp-1);
+  background: var(--cor-superficie-alta);
+  border: 1px solid var(--cor-borda-forte);
+  border-radius: var(--raio-m);
+  color: var(--cor-texto);
+}
+
+.lateral {
+  position: sticky;
+  top: 0;
+}
+
+.subtitulo {
+  margin-bottom: var(--esp-1);
+  color: var(--cor-texto-suave);
+}
+
+.ordem {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ordemLinha {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  min-height: 34px;
+  border-bottom: 1px solid var(--cor-borda);
+}
+
+.voce .ordemNome {
+  color: var(--cor-destaque);
+}
+
+.posicao {
+  flex: none;
+  width: 18px;
+  text-align: right;
+  font-size: var(--texto-l);
+  color: var(--cor-texto-suave);
+}
+
+.ordemNome {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.acao {
+  margin-top: var(--esp-3);
+}
+
+.jogador {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-3);
+}
+
+.mesaCartas {
+  display: flex;
+  justify-content: center;
+  gap: var(--esp-4);
+  padding-block: var(--esp-2);
+}
+
+.escolher {
+  border-radius: var(--raio-l);
+  transition: transform var(--dur-rapida) var(--curva-carimbo);
+}
+
+.escolher:active {
+  transform: scale(0.97);
+}
+
+.decidir {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-2);
+}
+
+.efeito {
+  line-height: 1.25;
+}
+
+.efeito strong {
+  font-weight: 600;
+  color: var(--cor-destaque);
+}

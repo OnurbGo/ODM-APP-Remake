@@ -1,0 +1,93 @@
+.pagina {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.topo {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-2) var(--esp-6);
+  padding: var(--esp-3) var(--esp-4);
+  background: var(--cor-fundo-faixa);
+  border-bottom: 1px solid var(--cor-borda-forte);
+}
+
+.topo > div {
+  flex: 1 1 280px;
+  max-width: 460px;
+}
+
+.titulo {
+  font-family: var(--fonte-gotica);
+  font-size: var(--texto-xl);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--cor-destaque);
+}
+
+.conteudo {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-3);
+  width: min(1040px, 100%);
+  margin-inline: auto;
+  padding: var(--esp-4);
+}
+
+.navegacao {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--esp-2);
+}
+
+.tela {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  align-items: start;
+  gap: var(--esp-3);
+}
+
+.pilha {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-3);
+}
+
+.exibicao {
+  display: grid;
+  place-items: center;
+  min-height: 150px;
+}
+
+.exemplos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-2);
+}
+
+.linha {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  color: var(--cor-texto-suave);
+}
+
+.botoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
+  padding-block: var(--esp-2);
+}
+
+.nota {
+  font-size: var(--texto-s);
+  color: var(--cor-texto-suave);
+}

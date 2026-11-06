@@ -1,0 +1,165 @@
+.camada {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  overflow: hidden;
+  pointer-events: none;
+  perspective: 1400px;
+}
+
+/* Portas de saloon: batem, fecham a tela e passam para o outro lado. */
+.folha {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50.5%;
+  background:
+    linear-gradient(90deg, var(--transicao-madeira-escura), transparent 10%, transparent 90%, var(--transicao-madeira-escura)),
+    repeating-linear-gradient(0deg, var(--transicao-madeira) 0 16px, var(--transicao-madeira-escura) 16px 19px);
+  border: 8px solid var(--transicao-madeira-escura);
+  backface-visibility: visible;
+  animation: var(--duracao) cubic-bezier(0.4, 0, 0.3, 1) both;
+}
+
+.esquerda {
+  left: 0;
+  transform-origin: left center;
+  animation-name: portaEsquerda;
+}
+
+.direita {
+  right: 0;
+  transform-origin: right center;
+  animation-name: portaDireita;
+}
+
+/* Cartaz: bate na parede, fica pregado e cai quando a tela nova aparece. */
+.parede {
+  position: absolute;
+  inset: 0;
+  background: var(--transicao-parede);
+  animation: paredeCartaz var(--duracao) linear both;
+}
+
+.cartaz {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: min(74vw, 46vh, 340px);
+  aspect-ratio: 3 / 4;
+  margin-top: calc(min(74vw, 46vh, 340px) * -0.667);
+  margin-left: calc(min(74vw, 46vh, 340px) * -0.5);
+  padding: var(--esp-5) var(--esp-4);
+  background: var(--transicao-papel);
+  border: 2px solid var(--transicao-tinta);
+  box-shadow: var(--sombra-m);
+  color: var(--transicao-tinta);
+  text-align: center;
+  animation: baterCartaz var(--duracao) var(--curva-padrao) both;
+}
+
+.prego {
+  position: absolute;
+  top: 8px;
+  width: 12px;
+  height: 12px;
+  background: var(--transicao-tinta);
+  border-radius: 50%;
+}
+
+.procurado {
+  font-family: var(--fonte-rotulo);
+  font-size: clamp(2.5rem, 7vh, 3.5rem);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.retrato {
+  flex: 1;
+  min-height: 0;
+  width: 70%;
+  margin-block: var(--esp-2);
+  fill: var(--transicao-tinta);
+}
+
+.recompensa {
+  font-family: var(--fonte-titulo);
+  font-size: var(--texto-l);
+  line-height: 1;
+}
+
+.valor {
+  font-family: var(--fonte-rotulo);
+  font-size: var(--texto-2xl);
+  line-height: 1.1;
+  color: var(--cor-perigo-fundo);
+}
+
+@keyframes portaEsquerda {
+  0% {
+    transform: rotateY(100deg);
+  }
+  40% {
+    transform: rotateY(-5deg);
+  }
+  50%,
+  56% {
+    transform: rotateY(0);
+  }
+  100% {
+    transform: rotateY(-105deg);
+  }
+}
+
+@keyframes portaDireita {
+  0% {
+    transform: rotateY(-100deg);
+  }
+  40% {
+    transform: rotateY(5deg);
+  }
+  50%,
+  56% {
+    transform: rotateY(0);
+  }
+  100% {
+    transform: rotateY(105deg);
+  }
+}
+
+@keyframes paredeCartaz {
+  0% {
+    opacity: 0;
+  }
+  30%,
+  62% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes baterCartaz {
+  0% {
+    opacity: 0;
+    transform: scale(2) rotate(-9deg);
+  }
+  26% {
+    opacity: 1;
+    transform: scale(0.97) rotate(-2deg);
+  }
+  32%,
+  62% {
+    opacity: 1;
+    transform: scale(1) rotate(-2deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(70vh) rotate(16deg);
+  }
+}

@@ -1,0 +1,88 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  background: var(--cor-fundo);
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: var(--cor-fundo);
+  color: var(--cor-texto);
+  font-family: var(--fonte-texto);
+  font-size: var(--texto-m);
+  line-height: var(--entrelinha);
+  font-variant-numeric: lining-nums;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+h1,
+h2,
+h3,
+h4,
+p,
+ul {
+  margin: 0;
+  padding: 0;
+}
+
+ul {
+  list-style: none;
+}
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--sombra-foco);
+}
+
+/* Rótulo de cartaz: blocos, PA, PV, DT. */
+.odm-rotulo {
+  font-family: var(--fonte-rotulo);
+  font-size: calc(var(--texto-s) * var(--rotulo-escala));
+  font-weight: 400;
+  letter-spacing: var(--rotulo-espaco);
+  text-transform: var(--rotulo-caixa);
+}
+
+/* Números de jogo: alinhados e tabulares, nunca os de estilo antigo dos livros. */
+.odm-numero {
+  font-family: var(--fonte-numero);
+  font-variant-numeric: lining-nums tabular-nums;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.odm-oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

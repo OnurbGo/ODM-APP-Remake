@@ -1,0 +1,78 @@
+.ficha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-2);
+  min-height: var(--alvo-toque);
+}
+
+.textos {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.nome {
+  font-size: var(--texto-m);
+  line-height: 1.1;
+}
+
+.pips {
+  display: flex;
+  gap: 5px;
+}
+
+/* Moeda gravada: a mesma linguagem de metal dos marcadores de PA. */
+.pip {
+  width: 11px;
+  height: 11px;
+  border: 1px solid var(--cor-borda-forte);
+  border-radius: 50%;
+  background: var(--cor-fundo-inset);
+}
+
+.cheio {
+  background: var(--cor-metal);
+  border-color: var(--cor-metal-claro);
+}
+
+.controle {
+  display: flex;
+  align-items: center;
+  flex: none;
+}
+
+.passo {
+  width: var(--alvo-toque);
+  height: var(--alvo-toque);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-m);
+  background: var(--cor-superficie-alta);
+  font-family: var(--fonte-numero);
+  font-size: var(--texto-xl);
+  line-height: 1;
+  color: var(--cor-destaque);
+  transition: transform var(--dur-rapida) var(--curva-carimbo);
+}
+
+.passo:active:not(:disabled) {
+  transform: scale(0.92);
+}
+
+.passo:disabled {
+  color: var(--cor-texto-fraco);
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.valor {
+  min-width: 52px;
+  text-align: center;
+  font-size: var(--texto-xl);
+}
+
+.maximo {
+  font-size: var(--texto-m);
+  color: var(--cor-texto-suave);
+}

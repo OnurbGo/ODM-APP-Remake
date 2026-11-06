@@ -1,0 +1,30 @@
+/* Primitivos: cores e fontes de shared/estilo/tokens.css (repositório dos livros).
+   Medidas de impressão (mm/pt, página) ficam de fora de propósito.
+   Componentes nunca usam esta camada: só os tokens semânticos do tema. */
+:root {
+  --p-tinta: #0f0c09;
+  --p-tinta-2: #1d1712;
+  --p-pergaminho: #e4dccb;
+  --p-pergaminho-escuro: #cfc3aa;
+  --p-osso: #efe7d6;
+  --p-texto: #1a1510;
+  --p-texto-suave: #5b4f41;
+  --p-sangue: #7a1610;
+  --p-ferrugem: #8a4a14;
+  --p-ouro: #a57c2c;
+  --p-filete: #3a2e22;
+  --p-filete-titulo: #4a3a2a;
+  --p-prestigio: #a9500a;
+
+  --p-rar-comum: #6b665c;
+  --p-rar-incomum: #2f6b2c;
+  --p-rar-raro: #1f4f8a;
+  --p-rar-extraordinario: #6a2c86;
+  --p-rar-unico: #a8631a;
+
+  --p-f-gotica: "Grenze Gotisch", Georgia, serif;
+  --p-f-titulo: "IM Fell English SC", "EB Garamond", Georgia, serif;
+  --p-f-epigrafe: "IM Fell English", "EB Garamond", Georgia, serif;
+  --p-f-texto: "EB Garamond", Garamond, Georgia, serif;
+  --p-f-cartaz: "League Gothic", "Arial Narrow", sans-serif;
+}

@@ -1,0 +1,17 @@
+/* Só os pesos e o subconjunto latino usados: pesa menos e cobre o português. */
+@import "@fontsource/eb-garamond/latin-400.css";
+@import "@fontsource/eb-garamond/latin-400-italic.css";
+@import "@fontsource/eb-garamond/latin-600.css";
+@import "@fontsource/grenze-gotisch/latin-600.css";
+@import "@fontsource/grenze-gotisch/latin-700.css";
+@import "@fontsource/im-fell-english/latin-400.css";
+@import "@fontsource/im-fell-english/latin-400-italic.css";
+@import "@fontsource/im-fell-english-sc/latin-400.css";
+@import "@fontsource/league-gothic/latin-400.css";
+
+@import "./tokens/primitivos.css";
+@import "./tokens/escala.css";
+@import "./temas/olho-da-morte.css";
+@import "./base.css";
+@import "./grao.css";
+@import "./transicoes.css";

@@ -1,0 +1,20 @@
+.etiqueta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-1);
+  padding: 3px 6px 2px;
+  border: 1px solid currentColor;
+  border-radius: var(--raio-s);
+  font-family: var(--fonte-rotulo);
+  font-size: calc(var(--texto-xs) * var(--rotulo-escala));
+  letter-spacing: var(--rotulo-espaco);
+  text-transform: var(--rotulo-caixa);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.neutro { color: var(--cor-texto-suave); }
+.destaque { color: var(--cor-destaque); }
+.perigo { color: var(--cor-perigo); }
+.sucesso { color: var(--cor-sucesso); }
+.tecnica { color: var(--cor-tecnica); }

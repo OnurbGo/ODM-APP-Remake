@@ -1,0 +1,110 @@
+.tela {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.faixa {
+  display: grid;
+  flex: none;
+  grid-template-columns: 300px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--esp-5);
+  min-height: 72px;
+  padding: var(--esp-2) var(--esp-4);
+  background: var(--cor-fundo-faixa);
+  border-bottom: 1px solid var(--cor-borda-forte);
+}
+
+.nome {
+  font-family: var(--fonte-gotica);
+  font-size: var(--texto-2xl);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--cor-destaque);
+}
+
+.classe {
+  font-size: var(--texto-s);
+  color: var(--cor-texto-suave);
+}
+
+.direita {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-3);
+}
+
+.voltar {
+  font-family: var(--fonte-rotulo);
+  letter-spacing: var(--rotulo-espaco);
+  text-transform: var(--rotulo-caixa);
+  color: var(--cor-destaque);
+  white-space: nowrap;
+}
+
+.corpo {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--esp-3) var(--esp-4);
+  scrollbar-width: thin;
+}
+
+.personagem {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(0, 1.5fr) minmax(300px, 1fr);
+  align-items: start;
+  gap: var(--esp-3);
+  max-width: 1400px;
+  margin-inline: auto;
+}
+
+.coluna {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-3);
+}
+
+.colunasHabilidades {
+  max-width: 1100px;
+  margin-inline: auto;
+}
+
+.colunasHabilidades > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+}
+
+.inventario {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+  align-items: start;
+  gap: var(--esp-3);
+  max-width: 1180px;
+  margin-inline: auto;
+}
+
+.notas {
+  max-width: 900px;
+  margin-inline: auto;
+}
+
+.prestigio {
+  max-width: 1040px;
+  margin-inline: auto;
+}
+
+@media (max-width: 1099px) {
+  .faixa {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: var(--esp-3);
+  }
+
+  .personagem {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}

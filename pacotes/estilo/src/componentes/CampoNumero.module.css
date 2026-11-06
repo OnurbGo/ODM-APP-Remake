@@ -1,0 +1,41 @@
+.campo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-3);
+  min-height: var(--alvo-toque);
+}
+
+.controle {
+  display: flex;
+  align-items: center;
+  flex: none;
+}
+
+.passo {
+  width: var(--alvo-toque);
+  height: var(--alvo-toque);
+  background: var(--cor-superficie-alta);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-m);
+  font-family: var(--fonte-numero);
+  font-size: var(--texto-xl);
+  line-height: 1;
+  color: var(--cor-destaque);
+  transition: transform var(--dur-rapida) var(--curva-carimbo);
+}
+
+.passo:active:not(:disabled) {
+  transform: scale(0.92);
+}
+
+.passo:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.valor {
+  min-width: 52px;
+  text-align: center;
+  font-size: var(--texto-xl);
+}
