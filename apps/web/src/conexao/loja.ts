@@ -2,11 +2,16 @@ import { CAMINHO_WS, VERSAO_PROTOCOLO } from "@odm/protocolo/constantes";
 import type {
   Credencial,
   EventoVisto,
+  FichaRascunho,
   JogadorConhecido,
+  Kit,
   MensagemCliente,
   MensagemServidor,
+  OpcoesCampanha,
+  Operacao,
   Participante,
   PedidoEntrada,
+  Personagem,
   RedeMestre,
 } from "@odm/protocolo";
 import { create } from "zustand";
@@ -25,7 +30,7 @@ export type Fase =
 
 export type EventoRolagem = Extract<EventoVisto, { tipo: "rolagem" }>;
 
-type EstadoMestre = { codigo: string; pedidos: PedidoEntrada[]; jogadores: JogadorConhecido[]; rede: RedeMestre };
+type EstadoMestre = { codigo: string; pedidos: PedidoEntrada[]; jogadores: JogadorConhecido[]; rede: RedeMestre; kits: Kit[] };
 
 type Estado = {
   fase: Fase;
@@ -35,11 +40,14 @@ type Estado = {
   erro: string | null;
   aviso: string | null;
   eu: Participante | null;
-  mesa: { nome: string } | null;
+  mesa: { nome: string; opcoes: OpcoesCampanha; conteudo: boolean } | null;
   participantes: Participante[];
   eventos: EventoVisto[];
   mestre: EstadoMestre | null;
   rolagem: EventoRolagem | null;
+  personagens: Personagem[];
+  /* Rolagens até esta posição saem da tela. O histórico fica: o desfazer depende dele. */
+  rolagensLimpasAte: number;
 };
 
 const INICIAL: Estado = {
@@ -54,6 +62,8 @@ const INICIAL: Estado = {
   eventos: [],
   mestre: null,
   rolagem: null,
+  personagens: [],
+  rolagensLimpasAte: 0,
 };
 
 export const useLoja = create<Estado>(() => INICIAL);
@@ -85,6 +95,9 @@ function identificar(nova: Credencial) {
   dizerOla();
 }
 
+/* Para os pedidos HTTP: o conteúdo da ficha pede o mesmo token da mesa. */
+export const tokenDaSessao = () => (credencial.tipo === "mestre" || credencial.tipo === "jogador" ? credencial.token : null);
+
 /* Junta o que chegou com o que já estava: ao reconectar, vem só o que faltava. */
 function juntarEventos(atuais: EventoVisto[], novos: EventoVisto[]) {
   if (!novos.length) return atuais;
@@ -108,12 +121,26 @@ function tratar(mensagem: MensagemServidor) {
         eu: mensagem.eu,
         mesa: mensagem.mesa,
         participantes: mensagem.participantes,
+        personagens: mensagem.personagens,
         eventos: juntarEventos(e.eu?.id === mensagem.eu.id ? e.eventos : [], mensagem.eventos),
       }));
       return;
+    case "personagem":
+      definir((e) => ({
+        personagens: e.personagens.some((p) => p.id === mensagem.personagem.id)
+          ? e.personagens.map((p) => (p.id === mensagem.personagem.id ? mensagem.personagem : p))
+          : [...e.personagens, mensagem.personagem],
+      }));
+      return;
+    case "personagem_removido":
+      definir((e) => ({ personagens: e.personagens.filter((p) => p.id !== mensagem.personagemId) }));
+      return;
+    case "opcoes_campanha":
+      definir((e) => ({ mesa: e.mesa ? { ...e.mesa, opcoes: mensagem.opcoes } : null }));
+      return;
     case "estado_mestre":
       definir({
-        mestre: { codigo: mensagem.codigo, pedidos: mensagem.pedidos, jogadores: mensagem.jogadores, rede: mensagem.rede },
+        mestre: { codigo: mensagem.codigo, pedidos: mensagem.pedidos, jogadores: mensagem.jogadores, rede: mensagem.rede, kits: mensagem.kits },
       });
       return;
     case "entrada_aguardando":
@@ -259,4 +286,16 @@ export const acoes = {
   recusar: (pedidoId: string) => enviar({ t: "recusar_entrada", pedidoId }),
   revogar: (participanteId: string) => enviar({ t: "revogar_acesso", participanteId }),
   trocarCodigo: () => enviar({ t: "trocar_codigo" }),
+  limparRolagens: () => definir((e) => ({ rolagensLimpasAte: e.eventos.at(-1)?.n ?? 0 })),
+  criarPersonagem: () => enviar({ t: "personagem_criar" }),
+  salvarRascunho: (personagemId: string, ficha: FichaRascunho) => enviar({ t: "personagem_salvar", personagemId, ficha }),
+  concluirPersonagem: (personagemId: string) => enviar({ t: "personagem_concluir", personagemId }),
+  apagarPersonagem: (personagemId: string) => enviar({ t: "personagem_apagar", personagemId }),
+  operar: (personagemId: string, operacao: Operacao) => enviar({ t: "ficha_operar", personagemId, operacao }),
+  desfazerFicha: (eventoId: string) => enviar({ t: "ficha_desfazer", eventoId }),
+  ligarPersonagem: (personagemId: string, participanteId: string | null) => enviar({ t: "ligar_personagem", personagemId, participanteId }),
+  definirOpcoes: (opcoes: OpcoesCampanha) => enviar({ t: "opcoes_campanha", opcoes }),
+  salvarKit: (kit: Kit) => enviar({ t: "kit_salvar", kit }),
+  apagarKit: (kitId: string) => enviar({ t: "kit_apagar", kitId }),
+  entregarKit: (personagemId: string, kitId: string) => enviar({ t: "kit_entregar", personagemId, kitId }),
 };

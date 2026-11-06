@@ -1,9 +1,10 @@
 /* Sobe o servidor sem o Electron, para desenvolver. */
-import { lerPasta, pastaConteudo } from "@odm/conteudo/pasta";
+import { pastaConteudo } from "@odm/conteudo/pasta";
 import { randomBytes } from "node:crypto";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { pacotesDaPasta } from "./pacotes";
 import { iniciarServidor, PortaOcupada } from "./servidor";
 
 const aqui = dirname(fileURLToPath(import.meta.url));
@@ -15,6 +16,8 @@ const tokenMestre = process.env.ODM_TOKEN_MESTRE ?? randomBytes(32).toString("ba
 const porta = process.env.ODM_PORTA ? Number(process.env.ODM_PORTA) : undefined;
 const pastaWeb = process.env.ODM_PASTA_WEB;
 
+const pacotes = pacotesDaPasta();
+
 try {
   const servidor = await iniciarServidor({
     porta,
@@ -22,10 +25,10 @@ try {
     pastaMigracoes: resolve(aqui, "../migracoes"),
     pastaWeb,
     tokenMestre,
+    pacotes,
   });
   console.log(`Servidor na porta ${servidor.porta}. Dados em ${pastaDados}`);
-  const pacotes = lerPasta(pastaConteudo()).filter((l) => l.pacote && l.problemas.length === 0);
-  console.log(`Conteúdo em ${pastaConteudo()}: ${pacotes.map((l) => l.arquivo).join(", ") || "nenhum pacote"}`);
+  console.log(`Conteúdo em ${pastaConteudo()}: ${pacotes.map((p) => p.manifesto.id).join(", ") || "nenhum pacote"}`);
   console.log(`Mestre (desenvolvimento): http://localhost:5173/?tokenMestre=${tokenMestre}`);
 
   const parar = async () => {

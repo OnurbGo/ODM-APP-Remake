@@ -1,0 +1,601 @@
+/* Atributos */
+
+.atributos {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--esp-2);
+}
+
+.atributo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: var(--esp-2) 0;
+  background: var(--cor-fundo-inset);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-m);
+}
+
+.atributoValor {
+  font-size: var(--texto-2xl);
+}
+
+.atributoNome {
+  font-size: var(--texto-s);
+  color: var(--cor-texto-suave);
+}
+
+/* Valores calculados */
+
+.calculados li + li {
+  border-top: 1px solid var(--cor-borda);
+}
+
+.calculado {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  width: 100%;
+  min-height: var(--alvo-toque);
+  border-radius: var(--raio-s);
+  text-align: left;
+}
+
+.calculado > span:first-child {
+  flex: 1;
+}
+
+.calculadoValor {
+  font-size: var(--texto-xl);
+}
+
+.conta {
+  margin-bottom: var(--esp-3);
+}
+
+.conta li {
+  padding: 2px 0;
+}
+
+.contaAjuste {
+  color: var(--cor-destaque);
+}
+
+/* Perícias */
+
+.pericias {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  column-gap: var(--esp-5);
+}
+
+.pericia {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  min-height: 36px;
+  border-bottom: 1px solid var(--cor-borda);
+}
+
+.treino {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border: 1px solid var(--cor-borda-forte);
+  transform: rotate(45deg);
+}
+
+.treinada {
+  background: var(--cor-destaque);
+  border-color: var(--cor-destaque);
+}
+
+.periciaNome {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.periciaAtributo {
+  flex: none;
+  color: var(--cor-texto-fraco);
+}
+
+.periciaValor {
+  flex: none;
+  min-width: 30px;
+  text-align: right;
+  font-size: var(--texto-l);
+}
+
+/* Honra: a mesma leitura da escala do livro, do sangue ao ouro */
+
+.resumo {
+  font-size: var(--texto-s);
+  color: var(--cor-texto-suave);
+}
+
+.honra {
+  position: relative;
+  padding-top: 24px;
+}
+
+.honraTrilho {
+  display: flex;
+  gap: 2px;
+  height: 10px;
+}
+
+.honraFaixa {
+  flex-basis: 0;
+  border-radius: 1px;
+}
+
+.faixa0 {
+  background: var(--cor-perigo);
+}
+
+.faixa1 {
+  background: var(--cor-tecnica);
+  opacity: 0.7;
+}
+
+.faixa2 {
+  background: var(--cor-borda-forte);
+}
+
+.faixa3 {
+  background: var(--cor-metal);
+  opacity: 0.7;
+}
+
+.faixa4 {
+  background: var(--cor-destaque-forte);
+}
+
+.honraMarca {
+  position: absolute;
+  top: 0;
+  font-size: var(--texto-l);
+  transform: translateX(-50%);
+}
+
+.nota {
+  margin-top: var(--esp-1);
+  font-size: var(--texto-s);
+  line-height: 1.25;
+  color: var(--cor-texto-suave);
+}
+
+/* Redenção */
+
+.trilha {
+  font-family: var(--fonte-epigrafe);
+  font-style: italic;
+  color: var(--cor-texto-suave);
+}
+
+.passos {
+  margin: var(--esp-1) 0;
+  padding: 0;
+  list-style: none;
+}
+
+.passo {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  min-height: 36px;
+  cursor: pointer;
+}
+
+.passo input,
+.marcar input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--cor-destaque);
+}
+
+.passoTravado {
+  color: var(--cor-texto-fraco);
+  cursor: not-allowed;
+}
+
+/* Progressão */
+
+.xpTrilho {
+  height: 10px;
+  overflow: hidden;
+  background: var(--cor-fundo-inset);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-s);
+}
+
+.xp {
+  height: 100%;
+  background: var(--cor-prestigio);
+  transform-origin: left center;
+  transition: transform var(--dur-lenta) var(--curva-saida);
+}
+
+.xpTexto {
+  margin-top: var(--esp-1);
+  font-size: var(--texto-l);
+}
+
+.botaoLoja {
+  margin-top: var(--esp-2);
+}
+
+/* Listas */
+
+.grupos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-3);
+}
+
+.lista > li + li {
+  border-top: 1px solid var(--cor-borda);
+}
+
+.linhaTexto {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: var(--alvo-toque);
+  padding: var(--esp-1) 0;
+  line-height: 1.2;
+}
+
+.detalhe {
+  font-size: var(--texto-s);
+  line-height: 1.25;
+  color: var(--cor-texto-suave);
+}
+
+.subtitulo {
+  margin: var(--esp-3) 0 var(--esp-1);
+  color: var(--cor-texto-suave);
+}
+
+.opcoes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-2);
+}
+
+/* Inventário */
+
+.cargaValor {
+  font-size: var(--texto-xl);
+  margin-bottom: var(--esp-1);
+}
+
+.cargaTrilho {
+  position: relative;
+  height: 14px;
+  overflow: hidden;
+  background: var(--cor-fundo-inset);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-s);
+}
+
+.cargaBarra {
+  height: 100%;
+  background: var(--cor-metal);
+  transform-origin: left center;
+  transition: transform var(--dur-lenta) var(--curva-saida);
+}
+
+.cargaExcesso {
+  background: var(--cor-perigo);
+}
+
+.cargaLimite {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--cor-texto);
+}
+
+.dinheiro {
+  font-size: var(--texto-2xl);
+}
+
+.item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-1) var(--esp-2);
+  min-height: var(--alvo-toque);
+  padding: var(--esp-1) 0;
+}
+
+.raridade {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.rar-comum {
+  background: var(--rar-comum);
+}
+
+.rar-incomum {
+  background: var(--rar-incomum);
+}
+
+.rar-raro {
+  background: var(--rar-raro);
+}
+
+.rar-extraordinario {
+  background: var(--rar-extraordinario);
+}
+
+.rar-unico {
+  background: var(--rar-unico);
+}
+
+.itemNome {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.15;
+}
+
+.itemPeso {
+  flex: none;
+  font-size: var(--texto-m);
+  color: var(--cor-texto-suave);
+}
+
+.itemUsar {
+  flex: none;
+  min-height: 36px;
+  padding: 0 var(--esp-2);
+  background: var(--cor-superficie-alta);
+  border: 1px solid var(--cor-borda-forte);
+  border-radius: var(--raio-m);
+  font-family: var(--fonte-rotulo);
+  letter-spacing: var(--rotulo-espaco);
+  text-transform: var(--rotulo-caixa);
+}
+
+.notas {
+  display: block;
+  width: 100%;
+  min-height: 220px;
+  padding: var(--esp-2);
+  background: var(--cor-fundo-inset);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-m);
+  color: var(--cor-texto);
+  font: inherit;
+  resize: vertical;
+}
+
+/* Loja de prestígio */
+
+.loja {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-3);
+}
+
+.saldo {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-3);
+  padding: var(--esp-2) 0;
+}
+
+.saldo > span:last-child {
+  display: flex;
+  flex-direction: column;
+}
+
+.saldoValor {
+  font-size: var(--texto-3xl);
+  color: var(--cor-prestigio);
+}
+
+.saldoRotulo {
+  color: var(--cor-prestigio);
+}
+
+.opcoesLoja {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--esp-2);
+}
+
+.lojaLarga .opcoesLoja {
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+}
+
+.opcaoLoja {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-2);
+  padding: var(--esp-3);
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-m);
+}
+
+.opcaoLoja .detalhe {
+  flex: 1;
+}
+
+.opcaoTopo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-2);
+}
+
+.opcaoNome {
+  font-family: var(--fonte-titulo);
+  font-size: var(--texto-l);
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.custo {
+  display: flex;
+  flex: none;
+  gap: 6px;
+  padding-right: 2px;
+}
+
+.custoPonto {
+  width: 11px;
+  height: 11px;
+  background: var(--cor-prestigio);
+  transform: rotate(45deg);
+}
+
+.compra {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-2);
+  min-height: 36px;
+}
+
+.gradeAtributos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--esp-1);
+}
+
+.janela {
+  padding-bottom: var(--esp-2);
+}
+
+.classes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-3);
+}
+
+.classe {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-1);
+  padding: var(--esp-2);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-m);
+}
+
+.requisitos li {
+  min-height: 28px;
+  font-size: var(--texto-s);
+}
+
+/* Colunas largas: na página inteira da ficha */
+
+.largo .atributos {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.largo .pericias {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* Acréscimos da ficha real. */
+.falha {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--esp-3);
+  padding: var(--esp-4);
+}
+
+.celular {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+.topoCelular {
+  padding: var(--esp-2) var(--esp-3);
+  background: var(--cor-fundo-faixa);
+  border-bottom: 1px solid var(--cor-borda-forte);
+}
+
+.nomeCelular {
+  font-family: var(--fonte-gotica);
+  font-size: var(--texto-2xl);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--cor-destaque);
+  overflow-wrap: anywhere;
+}
+
+.voltar {
+  padding: 0;
+  font-family: var(--fonte-rotulo);
+  letter-spacing: var(--rotulo-espaco);
+  text-transform: var(--rotulo-caixa);
+  color: var(--cor-destaque);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.corpoCelular {
+  flex: 1;
+  padding: var(--esp-3);
+}
+
+.navegacao {
+  position: sticky;
+  bottom: 0;
+  padding-bottom: env(safe-area-inset-bottom);
+  background: var(--cor-fundo-faixa);
+  border-top: 1px solid var(--cor-borda-forte);
+}
+
+.habilidade summary {
+  cursor: pointer;
+}
+
+.habilidadeTexto {
+  padding-block: var(--esp-1);
+  white-space: pre-line;
+  color: var(--cor-texto-suave);
+}
+
+.opcoesLado {
+  display: flex;
+  gap: var(--esp-2);
+  margin-top: var(--esp-2);
+}
+
+.erroFicha {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-2);
+  padding: var(--esp-2) var(--esp-3);
+  color: var(--cor-perigo-texto, var(--cor-perigo));
+  background: var(--cor-fundo-faixa);
+}
+
+.atributo,
+.pericia {
+  width: 100%;
+}

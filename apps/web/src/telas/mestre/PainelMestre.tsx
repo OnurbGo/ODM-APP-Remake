@@ -1,11 +1,14 @@
-import { Botao, Cartao, Etiqueta, Icone, PopUp } from "@odm/estilo";
+import { Botao, Carregando, Cartao, Etiqueta, Icone, PopUp } from "@odm/estilo";
 import type { EnderecoRede, JogadorConhecido, Participante, PedidoEntrada, RedeMestre, TipoRede } from "@odm/protocolo";
-import { useEffect, useId, useState } from "react";
+import { lazy, Suspense, useEffect, useId, useState } from "react";
 import { acoes, useLoja } from "../../conexao/loja";
 import { FaixaConexao, NomeParticipante, Registro, Rolar } from "../Blocos";
 import css from "./PainelMestre.module.css";
 import { AvisoFirewall } from "./AvisoFirewall";
 import { QrEndereco } from "./QrEndereco";
+
+const AreaFicha = lazy(() => import("../ficha/AreaFicha"));
+const Personagens = lazy(() => import("./Personagens"));
 
 const NOME_REDE: Record<TipoRede, string> = {
   lan: "Rede local",
@@ -234,6 +237,16 @@ export default function PainelMestre() {
   const mesa = useLoja((e) => e.mesa);
   const mestre = useLoja((e) => e.mestre);
   const erro = useLoja((e) => e.erro);
+  const [aberto, abrir] = useState<string | null>(null);
+  const existe = useLoja((e) => e.personagens.some((p) => p.id === aberto));
+
+  if (aberto && existe) {
+    return (
+      <Suspense fallback={<Carregando rotulo="Abrindo a ficha" />}>
+        <AreaFicha personagemId={aberto} aoVoltar={() => abrir(null)} />
+      </Suspense>
+    );
+  }
 
   return (
     <div className={`${css.painel} odm-grao`}>
@@ -254,6 +267,9 @@ export default function PainelMestre() {
         <div className={css.coluna}>{mestre && <Convite codigo={mestre.codigo} rede={mestre.rede} />}</div>
         <div className={css.coluna}>
           <Pessoas pedidos={mestre?.pedidos ?? []} jogadores={mestre?.jogadores ?? []} />
+          <Suspense fallback={null}>
+            <Personagens aoAbrir={abrir} />
+          </Suspense>
         </div>
         <div className={css.coluna}>
           <Rolar />

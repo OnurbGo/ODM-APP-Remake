@@ -38,6 +38,13 @@ export const salvos = {
   },
   guardarPedido: (pedido: PedidoSalvo | null) => gravar(sessao, "odm-pedido", pedido ? JSON.stringify(pedido) : null),
 
+  /* Último nível mostrado neste aparelho, para o aviso de subir de nível. */
+  nivelVisto(personagemId: string) {
+    const bruto = ler(local, `odm-nivel-${personagemId}`);
+    return bruto === null ? null : Number(bruto);
+  },
+  guardarNivelVisto: (personagemId: string, nivel: number) => gravar(local, `odm-nivel-${personagemId}`, String(nivel)),
+
   tokenMestreDev: () => ler(sessao, "odm-token-mestre"),
   guardarTokenMestreDev: (token: string) => gravar(sessao, "odm-token-mestre", token),
 };

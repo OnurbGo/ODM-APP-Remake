@@ -1,6 +1,7 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import fastifyStatic from "@fastify/static";
+import type { PacoteConteudo } from "@odm/conteudo";
 import { PORTA_PADRAO, VERSAO_PROTOCOLO } from "@odm/protocolo";
 import type { Aleatorio } from "@odm/regras";
 import Fastify from "fastify";
@@ -17,6 +18,8 @@ export type OpcoesServidor = {
   /* Pasta da web já construída. Sem ela, só a API e o WebSocket sobem. */
   pastaWeb?: string;
   tokenMestre: string;
+  /* Pacotes válidos da pasta de conteúdo. Sem eles, a mesa abre, mas não há ficha. */
+  pacotes?: readonly PacoteConteudo[];
   aleatorio?: Aleatorio;
   agora?: () => number;
 };
@@ -50,6 +53,7 @@ export async function iniciarServidor(opcoes: OpcoesServidor) {
     tokenMestre: opcoes.tokenMestre,
     aleatorio: opcoes.aleatorio,
     agora: opcoes.agora,
+    pacotes: opcoes.pacotes,
     rede: () => ({ porta: portaAberta, enderecos: listarEnderecos() }),
   });
 
@@ -62,6 +66,16 @@ export async function iniciarServidor(opcoes: OpcoesServidor) {
   });
 
   app.get("/api/saude", async () => ({ ok: true, protocolo: VERSAO_PROTOCOLO }));
+
+  /* Só a parte de ficha, e só para quem está na mesa: criaturas e encontros ficam aqui (especificação, 3.1). */
+  app.get("/api/conteudo-ficha", async (pedido, resposta) => {
+    const token = pedido.headers.authorization?.replace(/^Bearer /, "") ?? "";
+    const local = pedido.ip === "127.0.0.1" || pedido.ip === "::1" || pedido.ip === "::ffff:127.0.0.1";
+    const conteudo = mesa.conteudoPara(token, local);
+    if (conteudo === undefined) return resposta.code(401).send({ erro: "nao_autorizado" });
+    if (conteudo === null) return resposta.code(404).send({ erro: "sem_conteudo" });
+    return conteudo;
+  });
 
   if (opcoes.pastaWeb) {
     await app.register(fastifyStatic, { root: opcoes.pastaWeb, wildcard: false });

@@ -18,6 +18,7 @@
     "orcamento": "node scripts/orcamento.mjs",
     "icones": "npm exec --workspace @odm/desktop -- electron ../../scripts/gerar-icones.mjs",
     "conteudo:validar": "npm exec --workspace @odm/servidor -- tsx ../../pacotes/conteudo/src/validar.ts",
+    "ficha:aceite": "npm exec --workspace @odm/servidor -- tsx ../../scripts/aceite-ficha.ts",
     "prototipos": "npm run dev --workspace prototipos",
     "prototipos:rede": "npm run dev --workspace prototipos -- --host"
   },

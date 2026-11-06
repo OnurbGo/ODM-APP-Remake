@@ -1,0 +1,227 @@
+.tela {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+.larga {
+  height: 100dvh;
+}
+
+.topo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--esp-1) var(--esp-3);
+  padding: var(--esp-3) var(--esp-4);
+  background: var(--cor-fundo-faixa);
+  border-bottom: 1px solid var(--cor-borda-forte);
+}
+
+.titulo {
+  font-family: var(--fonte-titulo);
+  font-size: var(--texto-xl);
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.voltar {
+  font-family: var(--fonte-rotulo);
+  letter-spacing: var(--rotulo-espaco);
+  text-transform: var(--rotulo-caixa);
+  color: var(--cor-destaque);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.erro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-2);
+  padding: var(--esp-2) var(--esp-3);
+  color: var(--cor-perigo-texto, var(--cor-perigo));
+}
+
+.passos {
+  display: flex;
+  gap: var(--esp-1);
+  overflow-x: auto;
+  padding: var(--esp-2) var(--esp-3);
+  scrollbar-width: thin;
+}
+
+.passo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-1);
+  padding: var(--esp-1) var(--esp-2);
+  font-family: var(--fonte-rotulo);
+  letter-spacing: var(--rotulo-espaco);
+  text-transform: var(--rotulo-caixa);
+  color: var(--cor-texto-suave);
+  white-space: nowrap;
+  background: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.passoAtivo {
+  color: var(--cor-destaque);
+  border-color: var(--cor-destaque);
+}
+
+.pontoErro {
+  width: 7px;
+  height: 7px;
+  background: var(--cor-perigo);
+  border-radius: 50%;
+}
+
+.corpo {
+  flex: 1;
+  width: 100%;
+  max-width: 720px;
+  min-height: 0;
+  margin-inline: auto;
+  overflow-y: auto;
+  padding: var(--esp-2) var(--esp-3) var(--esp-4);
+  scrollbar-width: thin;
+}
+
+.tituloPasso {
+  margin-bottom: var(--esp-2);
+  font-family: var(--fonte-titulo);
+  font-size: var(--texto-l);
+  font-weight: 400;
+}
+
+.coluna {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-3);
+}
+
+.texto {
+  white-space: pre-line;
+  color: var(--cor-texto-suave);
+}
+
+.campoLongo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-1);
+}
+
+.campoLongo textarea {
+  min-height: 140px;
+  padding: var(--esp-2);
+  font: inherit;
+  color: inherit;
+  background: var(--cor-fundo-campo, transparent);
+  border: 1px solid var(--cor-borda-forte);
+}
+
+.opcoes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-2);
+}
+
+.opcao {
+  padding: var(--esp-2);
+  border: 1px solid var(--cor-borda-forte);
+}
+
+.opcaoAtiva {
+  border-color: var(--cor-destaque);
+}
+
+.opcaoNome {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-2);
+  font-family: var(--fonte-titulo);
+  cursor: pointer;
+}
+
+.opcao .texto {
+  margin-block: var(--esp-2);
+}
+
+.atributos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--esp-2);
+}
+
+.atributo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-2);
+}
+
+.atributo select {
+  min-width: 72px;
+  min-height: 44px;
+  padding-inline: var(--esp-2);
+  font: inherit;
+  color: inherit;
+  background: var(--cor-fundo-campo, transparent);
+  border: 1px solid var(--cor-borda-forte);
+}
+
+.atributo option {
+  color: #000;
+}
+
+.grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--esp-1) var(--esp-2);
+}
+
+.marca {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  min-height: 44px;
+}
+
+.resumo {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--esp-1) var(--esp-2);
+  margin-top: var(--esp-2);
+}
+
+.erros {
+  padding: var(--esp-2) var(--esp-3);
+  color: var(--cor-perigo-texto, var(--cor-perigo));
+  border: 1px solid var(--cor-perigo);
+}
+
+.rodape {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
+  padding: var(--esp-2) var(--esp-3) calc(var(--esp-2) + env(safe-area-inset-bottom));
+  background: var(--cor-fundo-faixa);
+  border-top: 1px solid var(--cor-borda-forte);
+}
+
+.espaco {
+  flex: 1;
+}
+
+.confirmar {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--esp-2);
+}

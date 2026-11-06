@@ -9,12 +9,16 @@ import {
   type MensagemClienteLida,
   type MensagemServidor,
   type Participante,
+  type OpcoesCampanha,
   type PedidoEntrada,
+  type Personagem,
   type RedeMestre,
 } from "@odm/protocolo";
+import type { PacoteConteudo } from "@odm/conteudo";
 import { rolarD20, totalDaRolagem, type Aleatorio, type Modificador } from "@odm/regras";
 import type { Campanha, ParticipanteBanco, Repositorio } from "../banco/repositorio";
 import { LimiteTentativas } from "./limite";
+import { Personagens } from "./personagens";
 import { projetarEvento, type Espectador } from "./visibilidade";
 
 /* O transporte (WebSocket) fica fora daqui: a mesa só conhece esta interface. */
@@ -49,6 +53,7 @@ export type OpcoesMesa = {
   aleatorio?: Aleatorio;
   agora?: () => number;
   rede?: () => RedeMestre;
+  pacotes?: readonly PacoteConteudo[];
 };
 
 const SEM_REDE: RedeMestre = { porta: 0, enderecos: [] };
@@ -79,6 +84,7 @@ const MENSAGEM: Record<CodigoErro, string> = {
   codigo_incorreto: "Código da mesa incorreto.",
   muitas_tentativas: "Muitas tentativas. Espere um minuto e tente de novo.",
   indisponivel: "Isso ainda não está disponível nesta versão.",
+  recusado: "Isso não pode ser feito agora.",
 };
 
 const hash = (valor: string) => createHash("sha256").update(valor).digest("hex");
@@ -105,6 +111,7 @@ export class Mesa {
   private readonly aleatorio: Aleatorio;
   private readonly agora: () => number;
   private campanha: Campanha | undefined;
+  readonly personagens: Personagens;
 
   constructor(
     private readonly repo: Repositorio,
@@ -113,6 +120,22 @@ export class Mesa {
     this.aleatorio = opcoes.aleatorio ?? ((minimo, maximo) => randomInt(minimo, maximo + 1));
     this.agora = opcoes.agora ?? Date.now;
     this.campanha = repo.campanhaAtual();
+    this.personagens = new Personagens(repo, opcoes.pacotes ?? [], {
+      campanha: () => this.campanha,
+      registrar: (evento) => this.registrar(evento),
+      novoEvento: (quem, corpo) => this.eventoDe(quem.id, corpo),
+      enviarPersonagem: (personagem, antigoDono) => this.enviarPersonagem(personagem, antigoDono),
+      avisarRemocao: (personagemId, donoId) => this.avisarRemocao(personagemId, donoId),
+      avisarOpcoes: (o) => this.avisarOpcoes(o),
+      avisarMestre: () => this.avisarMestre(),
+    }, this.aleatorio);
+  }
+
+  /* Pedido HTTP do conteúdo da ficha: vale o token de quem está na mesa. */
+  conteudoPara(token: string, local: boolean) {
+    const mestre = local && iguais(token, this.opcoes.tokenMestre);
+    if (!mestre && this.repo.participantePorToken(hash(token))?.campanhaId !== this.campanha?.id) return undefined;
+    return this.personagens.conteudo();
   }
 
   conectar(canal: Canal): Conexao {
@@ -181,6 +204,28 @@ export class Mesa {
         if (this.exigirMestre(conexao)) this.trocarCodigo();
         return;
       case "ligar_personagem":
+      case "personagem_criar":
+      case "personagem_salvar":
+      case "personagem_concluir":
+      case "personagem_apagar":
+      case "ficha_operar":
+      case "ficha_desfazer":
+        if (estado.fase === "dentro") this.responder(conexao, this.personagens.receber(mensagem, estado.quem));
+        return;
+      case "opcoes_campanha":
+        if (this.exigirMestre(conexao)) this.responder(conexao, this.personagens.definirOpcoes(mensagem.opcoes));
+        return;
+      case "kit_salvar":
+        if (this.exigirMestre(conexao)) this.responder(conexao, this.personagens.salvarKit(mensagem.kit));
+        return;
+      case "kit_apagar":
+        if (this.exigirMestre(conexao)) this.responder(conexao, this.personagens.apagarKit(mensagem.kitId));
+        return;
+      case "kit_entregar":
+        if (estado.fase === "dentro" && this.exigirMestre(conexao)) {
+          this.responder(conexao, this.personagens.entregarKit(mensagem.personagemId, mensagem.kitId, estado.quem));
+        }
+        return;
       case "pedir_teste":
         if (this.exigirMestre(conexao)) this.erro(conexao.canal, "indisponivel");
         return;
@@ -202,6 +247,33 @@ export class Mesa {
       estado.visto += 1;
       conexao.canal.enviar({ t: "evento", evento: { ...projetado, n: estado.visto } as EventoVisto });
     }
+  }
+
+  private responder(conexao: Conexao, resultado: { recusado: string } | void) {
+    if (resultado) conexao.canal.enviar({ t: "erro", codigo: "recusado", mensagem: resultado.recusado });
+  }
+
+  /* Vai para o dono atual e o mestre; quem deixou de controlar vê o personagem sair. */
+  private enviarPersonagem(personagem: Personagem, antigoDono: string | null) {
+    const { id, participanteId, situacao, ficha } = personagem;
+    const mensagem = { t: "personagem", personagem: { id, participanteId, situacao, ficha } } as const;
+    for (const c of this.conexoes) {
+      if (c.estado.fase !== "dentro") continue;
+      const { quem } = c.estado;
+      if (quem.papel === "mestre" || quem.id === participanteId) c.canal.enviar(mensagem);
+      else if (quem.id === antigoDono) c.canal.enviar({ t: "personagem_removido", personagemId: personagem.id });
+    }
+  }
+
+  private avisarRemocao(personagemId: string, donoId: string | null) {
+    for (const c of this.conexoes) {
+      if (c.estado.fase !== "dentro") continue;
+      if (c.estado.quem.papel === "mestre" || c.estado.quem.id === donoId) c.canal.enviar({ t: "personagem_removido", personagemId });
+    }
+  }
+
+  private avisarOpcoes(opcoes: OpcoesCampanha) {
+    for (const c of this.conexoes) if (c.estado.fase === "dentro") c.canal.enviar({ t: "opcoes_campanha", opcoes });
   }
 
   private ehMestreSemMesa(conexao: Conexao) {
@@ -304,9 +376,10 @@ export class Mesa {
     conexao.canal.enviar({
       t: "bem_vindo",
       eu: { id: participante.id, nome: participante.nome, papel: participante.papel, online: true },
-      mesa: { nome: campanha.nome },
+      mesa: { nome: campanha.nome, opcoes: this.repo.opcoesDa(campanha), conteudo: this.personagens.conteudo() !== null },
       participantes: this.listaParticipantes(campanha.id),
       eventos: proprios.filter((e) => e.n > vistos).slice(-MAX_EVENTOS_NA_CHEGADA),
+      personagens: this.personagens.visiveisPara(quem).map(({ id, participanteId, situacao, ficha }) => ({ id, participanteId, situacao, ficha })),
     });
     if (participante.papel === "mestre") this.enviarEstadoMestre(conexao);
     this.avisarPresenca();
@@ -471,7 +544,11 @@ export class Mesa {
 
   private novoEvento<T extends Pick<EventoCompleto, "tipo" | "dados">>(conexao: Conexao, corpo: T) {
     const { estado } = conexao;
-    const autor = estado.fase === "dentro" ? this.repo.participante(estado.quem.id) : undefined;
+    return this.eventoDe(estado.fase === "dentro" ? estado.quem.id : null, corpo);
+  }
+
+  private eventoDe<T extends Pick<EventoCompleto, "tipo" | "dados">>(autorId: string | null, corpo: T) {
+    const autor = autorId ? this.repo.participante(autorId) : undefined;
     return {
       id: randomUUID(),
       autorId: autor?.id ?? null,
@@ -526,6 +603,7 @@ export class Mesa {
       pedidos: this.pedidosParaMestre(),
       jogadores: this.jogadoresConhecidos(),
       rede: this.opcoes.rede?.() ?? SEM_REDE,
+      kits: this.repo.kitsDa(this.campanha.id),
     });
   }
 

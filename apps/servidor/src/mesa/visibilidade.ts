@@ -47,6 +47,11 @@ export function projetarEvento(evento: EventoCompleto, quem: Espectador): Evento
       return evento;
     case "pv_criatura":
       return quem.papel === "mestre" ? evento : null;
+    case "ficha_alterada":
+    case "ficha_desfeita":
+      return quem.papel === "mestre" || quem.id === evento.dados.donoId ? evento : null;
+    case "personagem_ligado":
+      return quem.papel === "mestre" || quem.id === evento.dados.participanteId || quem.id === evento.dados.antigoDonoId ? evento : null;
     case "teste_pedido": {
       if (quem.papel === "mestre") return evento;
       const pedido = pedidoParaJogador(evento.dados.pedido, quem.id);

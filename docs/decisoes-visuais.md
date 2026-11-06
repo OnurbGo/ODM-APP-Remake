@@ -47,6 +47,7 @@ O que foi aprovado em cada parada dos protótipos. As fases seguintes reescrevem
 - Sem WebGL, d20 plano em SVG, que é também o que aparece enquanto o 3D carrega.
 - Em teste de resistência, 20 e 1 têm destaque visual, mas quem decide é o total contra a DT. Em ataque, 20 natural mostra o Acerto crítico com o dobro dos dados; 1 natural mostra Falha crítica e o total ainda vai contra a Defesa.
 - O d20 3D fica num pacote separado, baixado só quando um teste é pedido.
+- **Recusar rolagem (06/11/2026):** o pop-up não fecha sem resposta, mas tem o botão Recusar rolagem. O teste fica como "Recusado" no cartão do mestre, com Sucesso, Falha, Rolar por ele e Cancelar teste. A tela entra na fase 5.
 
 
 ## Parada 4 — Escudo do Mestre (aprovada em 05/11/2026)
@@ -114,7 +115,20 @@ Telas sem protótipo, aprovadas direto no código real.
 - **Firewall (06/11/2026):** com a entrada bloqueada pelo Windows, o painel mostra um alerta com o botão **Liberar acesso**. Com a entrada liberada, nada aparece.
 - **Mesa do jogador:** provisória, com rolar, quem está na mesa e registro. A fase 5 a substitui pela aba Combate.
 - O registro mostra o mais recente no topo.
+- **Limpar rolagens (06/11/2026):** um botão tira as rolagens da tela sem apagar o histórico, porque o desfazer depende dele.
 - Quem rola vê a animação; os outros veem a linha no registro.
+
+## Fase 4 — Criação e personagens (aprovada em 06/11/2026)
+
+Telas sem protótipo, aprovadas direto no código real. A ficha e a loja seguem a parada 5.
+
+- **Assistente de criação:** sete passos em faixa no topo: Conceito, Origem, Classe, Atributos, Perícias, Redenção e Revisão. Salva sozinho, e "Concluir personagem" só libera sem erros. Os erros aparecem na Revisão.
+- **Origem e classe:** lista que abre o texto do livro, com o botão Escolher dentro de cada item.
+- **Atributos:** um seletor por atributo, que só oferece os números ainda livres.
+- **Subir de nível:** cartaz de procurado e um aviso com o que já foi aplicado. O que pede escolha fica como pendência na ficha, uma de cada vez.
+- **Área de personagens do mestre:** cartão no painel, com lista de personagens, nível e jogador. Tocar abre uma janela com quem controla, XP, Prestígio, Honra, dar item, dar habilidade, entregar kit e abrir a ficha.
+- **Kits e Opções da campanha:** botões no topo do cartão de personagens.
+- **Mesa do jogador:** ganhou o cartão Personagens, e a ficha abre por cima da mesa.
 
 ## Ícone do app (aprovado em 06/11/2026)
 
@@ -125,4 +139,5 @@ Telas sem protótipo, aprovadas direto no código real.
 
 ## Temas de complemento
 
+- **A Arte da Guerra:** as cores da capa, já pronta em `livros/guerra`. O tema é feito na fase 8.
 - **A Ordem no Caos:** fundo roxo muito escuro, quase preto, com roxo forte como cor predominante. As cores vêm da introdução do livro (`#22093d` a `#12041f` e `#b05cff`). O rascunho está em `prototipos/`; o tema real vem no pacote do complemento, na fase 8.

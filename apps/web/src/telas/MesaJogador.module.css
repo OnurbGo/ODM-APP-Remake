@@ -63,3 +63,36 @@
 .preenche {
   flex: 1;
 }
+
+.vazio {
+  color: var(--cor-texto-suave);
+}
+
+.personagens {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: var(--esp-2);
+}
+
+.personagem {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  padding-block: var(--esp-1);
+}
+
+.personagemNome {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.erro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-2);
+  padding: var(--esp-2) var(--esp-3);
+  color: var(--cor-perigo-texto, var(--cor-perigo));
+  background: var(--cor-fundo-faixa);
+}

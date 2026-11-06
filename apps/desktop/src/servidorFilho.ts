@@ -1,5 +1,5 @@
 /* Roda em utilityProcess: o SQLite síncrono não trava a janela, e uma queda aqui não derruba o app. */
-import { iniciarServidor, PortaOcupada, type ServidorOdm } from "@odm/servidor";
+import { iniciarServidor, pacotesDaPasta, PortaOcupada, type ServidorOdm } from "@odm/servidor";
 
 export type MensagemFilho =
   | { tipo: "pronto"; porta: number }
@@ -25,6 +25,7 @@ async function subir() {
       pastaWeb: ODM_PASTA_WEB,
       pastaMigracoes: ODM_PASTA_MIGRACOES ?? "",
       tokenMestre: ODM_TOKEN_MESTRE ?? "",
+      pacotes: pacotesDaPasta(),
     });
     avisar({ tipo: "pronto", porta: servidor.porta });
   } catch (erro) {

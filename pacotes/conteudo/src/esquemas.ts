@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { Atributo, MecanicaClasse, MecanicaFicha, MecanicaHabilidade, MecanicaItem } from "./mecanica";
 
 /* Especificação, 4.2: id fixo no formato tipo.nome. */
 export const IdConteudo = z.string().regex(/^[a-z0-9_-]+(\.[a-z0-9_-]+)+$/);
@@ -78,8 +79,16 @@ export const Classe = z.object({
   ...Item,
   tipo: z.literal("classe"),
   descricao: z.string(),
-  tabela: z.array(z.object({ nivel: z.number().int().min(1).max(20), caracteristicas: z.string() })),
+  tabela: z.array(
+    z.object({
+      nivel: z.number().int().min(1).max(20),
+      caracteristicas: z.string(),
+      /* Colunas próprias da classe, como Fichas de Fúria e Dado do Caçador. */
+      colunas: z.record(z.string(), z.string()).optional(),
+    }),
+  ),
   caracteristicas: z.record(z.string(), z.string()),
+  mecanica: MecanicaClasse.optional(),
 });
 export type Classe = z.infer<typeof Classe>;
 
@@ -100,8 +109,10 @@ export const Habilidade = z.object({
   nivel: z.number().int().optional(),
   tecnica: z.enum(["avancada", "lendaria"]).optional(),
   requisito: z.string().optional(),
+  requisitoNivel: z.number().int().optional(),
   inicio: z.boolean().optional(),
   combo: z.boolean().optional(),
+  mecanica: MecanicaHabilidade.optional(),
 });
 export type Habilidade = z.infer<typeof Habilidade>;
 
@@ -111,6 +122,7 @@ export const Recurso = z.object({
   tipo: z.literal("recurso"),
   classe: z.string(),
   especializacao: z.string().nullable(),
+  mecanica: MecanicaFicha.optional(),
 });
 export type Recurso = z.infer<typeof Recurso>;
 
@@ -119,10 +131,11 @@ export const Origem = z.object({
   tipo: z.literal("origem"),
   pericias: z.string().nullable(),
   ferramentas: z.string().nullable(),
+  mecanica: MecanicaHabilidade.optional(),
 });
 export type Origem = z.infer<typeof Origem>;
 
-export const Talento = z.object({ ...Item, tipo: z.literal("talento") });
+export const Talento = z.object({ ...Item, tipo: z.literal("talento"), mecanica: MecanicaHabilidade.optional() });
 export type Talento = z.infer<typeof Talento>;
 
 const Catalogo = {
@@ -132,7 +145,12 @@ const Catalogo = {
   campos: z.record(z.string(), z.string()),
 };
 
-export const ItemCatalogo = z.object({ ...Catalogo, tipo: z.literal("item"), categoria: z.enum(["arma", "protecao", "equipamento"]) });
+export const ItemCatalogo = z.object({
+  ...Catalogo,
+  tipo: z.literal("item"),
+  categoria: z.enum(["arma", "protecao", "equipamento"]),
+  mecanica: MecanicaItem.optional(),
+});
 export type ItemCatalogo = z.infer<typeof ItemCatalogo>;
 
 export const Modificacao = z.object({ ...Catalogo, tipo: z.literal("modificacao"), grupo: z.string().nullable() });
@@ -152,6 +170,18 @@ export const Tabela = z.object({
 });
 export type Tabela = z.infer<typeof Tabela>;
 
+export const Pericia = z.object({
+  ...Item,
+  tipo: z.literal("pericia"),
+  exibir: z.string().min(1),
+  atributo: Atributo,
+});
+export type Pericia = z.infer<typeof Pericia>;
+
+/* Regra em prosa que o app calcula: carga, atributos iniciais, loja de prestígio. */
+export const Regra = z.object({ ...Item, tipo: z.literal("regra") });
+export type Regra = z.infer<typeof Regra>;
+
 /* Tudo opcional: um complemento só traz o que acrescenta. Chave desconhecida é erro, para o exportador e o app não divergirem. */
 export const Conteudo = z.strictObject({
   efeitos: z.array(Efeito).default([]),
@@ -168,5 +198,7 @@ export const Conteudo = z.strictObject({
   municoes: z.array(Municao).default([]),
   propriedades: z.array(Propriedade).default([]),
   tabelas: z.array(Tabela).default([]),
+  pericias: z.array(Pericia).default([]),
+  regras: z.array(Regra).default([]),
 });
 export type Conteudo = z.infer<typeof Conteudo>;

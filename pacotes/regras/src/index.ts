@@ -1,2 +1,9 @@
 export { rolarD20, type Aleatorio } from "./dados";
 export { alcancaDT, somarModificadores, totalDaRolagem, type Modificador } from "./teste";
+export * from "./ficha/calculo";
+export * from "./ficha/contexto";
+export * from "./ficha/criacao";
+export * from "./ficha/loja";
+export * from "./ficha/operacoes";
+export * from "./ficha/progressao";
+export * from "./ficha/rotulos";

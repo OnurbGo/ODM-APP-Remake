@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { Operacao } from "./ficha";
 import { PedidoTeste, PedidoTesteVisto } from "./testes";
 
 export const ModificadorVisto = z.object({ rotulo: z.string(), valor: z.number().int() });
@@ -19,6 +20,32 @@ const DadosPvCriatura = z.object({
   maximo: z.number().int(),
 });
 
+const DadosFichaAlterada = z.object({
+  personagemId: z.string(),
+  personagemNome: z.string(),
+  /* Quem controlava o personagem na hora: só ele e o mestre veem a linha. */
+  donoId: z.string().nullable(),
+  rotulo: z.string(),
+  inversa: Operacao,
+  subiuPara: z.number().int().nullable(),
+});
+
+const DadosFichaDesfeita = z.object({
+  eventoId: z.string(),
+  personagemId: z.string(),
+  personagemNome: z.string(),
+  donoId: z.string().nullable(),
+  rotulo: z.string(),
+});
+
+const DadosPersonagemLigado = z.object({
+  personagemId: z.string(),
+  personagemNome: z.string(),
+  participanteId: z.string().nullable(),
+  participanteNome: z.string().nullable(),
+  antigoDonoId: z.string().nullable(),
+});
+
 const Comum = {
   id: z.string(),
   autorId: z.string().nullable(),
@@ -33,6 +60,9 @@ export const EventoCompleto = z.discriminatedUnion("tipo", [
   z.object({ ...Comum, tipo: z.literal("participante_revogado"), dados: DadosParticipante }),
   z.object({ ...Comum, tipo: z.literal("teste_pedido"), dados: z.object({ pedido: PedidoTeste }) }),
   z.object({ ...Comum, tipo: z.literal("pv_criatura"), dados: DadosPvCriatura }),
+  z.object({ ...Comum, tipo: z.literal("ficha_alterada"), dados: DadosFichaAlterada }),
+  z.object({ ...Comum, tipo: z.literal("ficha_desfeita"), dados: DadosFichaDesfeita }),
+  z.object({ ...Comum, tipo: z.literal("personagem_ligado"), dados: DadosPersonagemLigado }),
 ]);
 export type EventoCompleto = z.infer<typeof EventoCompleto>;
 
@@ -48,6 +78,10 @@ export const EventoVisto = z.discriminatedUnion("tipo", [
   /* Só o mestre recebe estes dois. */
   z.object({ ...Visto, tipo: z.literal("teste_pedido"), dados: z.object({ pedido: PedidoTeste }) }),
   z.object({ ...Visto, tipo: z.literal("pv_criatura"), dados: DadosPvCriatura }),
+  /* Só o mestre e quem controla o personagem recebem estes. */
+  z.object({ ...Visto, tipo: z.literal("ficha_alterada"), dados: DadosFichaAlterada }),
+  z.object({ ...Visto, tipo: z.literal("ficha_desfeita"), dados: DadosFichaDesfeita }),
+  z.object({ ...Visto, tipo: z.literal("personagem_ligado"), dados: DadosPersonagemLigado }),
 ]);
 export type EventoVisto = z.infer<typeof EventoVisto>;
 

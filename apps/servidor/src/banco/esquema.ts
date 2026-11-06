@@ -5,6 +5,8 @@ export const campanhas = sqliteTable("campanhas", {
   nome: text().notNull(),
   codigo: text().notNull(),
   criadaEm: text("criada_em").notNull(),
+  opcoes: text().notNull().default("{}"),
+  pacotes: text().notNull().default('["base"]'),
 });
 
 export const participantes = sqliteTable(
@@ -31,6 +33,36 @@ export const dispositivos = sqliteTable("dispositivos", {
   tokenHash: text("token_hash").notNull().unique(),
   criadoEm: text("criado_em").notNull(),
 });
+
+/* O personagem é da campanha: participante_id é só quem o controla agora, e pode ficar vazio. */
+export const personagens = sqliteTable(
+  "personagens",
+  {
+    id: text().primaryKey(),
+    campanhaId: text("campanha_id")
+      .notNull()
+      .references(() => campanhas.id),
+    participanteId: text("participante_id").references(() => participantes.id),
+    situacao: text({ enum: ["rascunho", "ativo"] }).notNull(),
+    ficha: text().notNull(),
+    criadoEm: text("criado_em").notNull(),
+    alteradoEm: text("alterado_em").notNull(),
+  },
+  (t) => [index("personagens_campanha").on(t.campanhaId)],
+);
+
+export const kits = sqliteTable(
+  "kits",
+  {
+    id: text().primaryKey(),
+    campanhaId: text("campanha_id")
+      .notNull()
+      .references(() => campanhas.id),
+    nome: text().notNull(),
+    itens: text().notNull(),
+  },
+  (t) => [index("kits_campanha").on(t.campanhaId)],
+);
 
 /* Só recebe linhas novas: desfazer, nas fases seguintes, é um evento novo. */
 export const eventos = sqliteTable(

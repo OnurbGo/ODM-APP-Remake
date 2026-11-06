@@ -1,0 +1,91 @@
+.acoes {
+  display: flex;
+  gap: var(--esp-1);
+}
+
+.coluna {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-1);
+  margin-bottom: var(--esp-2);
+}
+
+.personagem {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-1) var(--esp-2);
+  width: 100%;
+  min-height: 44px;
+  padding: var(--esp-1);
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  background: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.personagem:hover,
+.personagem:focus-visible {
+  border-color: var(--cor-destaque);
+}
+
+.nome {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.nota {
+  font-size: var(--texto-s);
+  color: var(--cor-texto-suave);
+}
+
+.gerenciar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-3);
+}
+
+.linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-2);
+}
+
+.linha > span {
+  flex: 1;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-1);
+}
+
+.campo select {
+  min-height: 44px;
+  padding-inline: var(--esp-2);
+  font: inherit;
+  color: inherit;
+  background: var(--cor-fundo-campo, transparent);
+  border: 1px solid var(--cor-borda-forte);
+}
+
+.campo option {
+  color: #000;
+}
+
+.marca {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  min-height: 44px;
+}
+
+.achados {
+  display: flex;
+  flex-direction: column;
+}

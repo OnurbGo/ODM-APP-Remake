@@ -30,7 +30,11 @@ export function useTrocaDeTela() {
 
   useEffect(() => {
     const lista = timers.current;
-    return () => lista.forEach(clearTimeout);
+    /* No StrictMode o efeito desmonta e monta de novo: sem soltar aqui, a tela ficaria presa. */
+    return () => {
+      lista.forEach(clearTimeout);
+      ocupado.current = false;
+    };
   }, []);
 
   const soltar = useCallback(() => {

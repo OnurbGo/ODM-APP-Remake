@@ -1,6 +1,6 @@
 /* Separado do resto: a web precisa destes valores, mas não leva o Zod no pacote inicial. */
 
-export const VERSAO_PROTOCOLO = 2;
+export const VERSAO_PROTOCOLO = 3;
 
 /* Nesta ordem, como nos livros. */
 export const ATRIBUTOS = ["brutalidade", "agilidade", "fibra", "intelecto", "astucia", "presenca"] as const;

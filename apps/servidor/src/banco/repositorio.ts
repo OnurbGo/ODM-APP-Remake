@@ -1,13 +1,21 @@
 import { randomUUID } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
-import { EventoCompleto, type Papel } from "@odm/protocolo";
+import { EventoCompleto, FichaDados, Kit, OpcoesCampanha, type Papel, type Personagem, type SituacaoPersonagem } from "@odm/protocolo";
 import { and, asc, desc, eq, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-sqlite";
 import { migrate } from "drizzle-orm/node-sqlite/migrator";
-import { campanhas, dispositivos, eventos, participantes } from "./esquema";
+import { z } from "zod";
+import { campanhas, dispositivos, eventos, kits, participantes, personagens } from "./esquema";
 
 export type Campanha = typeof campanhas.$inferSelect;
 export type ParticipanteBanco = typeof participantes.$inferSelect;
+export type PersonagemBanco = Personagem & { campanhaId: string };
+
+const ListaDePacotes = z.array(z.string());
+
+function lerPersonagem(l: typeof personagens.$inferSelect): PersonagemBanco {
+  return { id: l.id, campanhaId: l.campanhaId, participanteId: l.participanteId, situacao: l.situacao, ficha: FichaDados.parse(JSON.parse(l.ficha)) };
+}
 
 /* Único ponto que conhece o node:sqlite, ainda em release candidate no Node 24:
    se a API dele mudar, o ajuste fica aqui. */
@@ -31,7 +39,7 @@ export class Repositorio {
   }
 
   criarCampanha(nome: string, codigo: string, nomeMestre: string, agora: string) {
-    const campanha: Campanha = { id: randomUUID(), nome, codigo, criadaEm: agora };
+    const campanha: Campanha = { id: randomUUID(), nome, codigo, criadaEm: agora, opcoes: JSON.stringify(OpcoesCampanha.parse({})), pacotes: '["base"]' };
     return this.db.transaction((tx) => {
       tx.insert(campanhas).values(campanha).run();
       tx.insert(participantes)
@@ -104,6 +112,70 @@ export class Repositorio {
 
   restaurar(participanteId: string) {
     this.db.update(participantes).set({ revogadoEm: null }).where(eq(participantes.id, participanteId)).run();
+  }
+
+  opcoesDa(campanha: Campanha): OpcoesCampanha {
+    return OpcoesCampanha.parse(JSON.parse(this.db.select({ opcoes: campanhas.opcoes }).from(campanhas).where(eq(campanhas.id, campanha.id)).get()?.opcoes ?? campanha.opcoes));
+  }
+
+  pacotesDa(campanha: Campanha): string[] {
+    return ListaDePacotes.parse(JSON.parse(campanha.pacotes));
+  }
+
+  salvarOpcoes(campanhaId: string, opcoes: OpcoesCampanha) {
+    this.db.update(campanhas).set({ opcoes: JSON.stringify(opcoes) }).where(eq(campanhas.id, campanhaId)).run();
+  }
+
+  personagensDa(campanhaId: string): PersonagemBanco[] {
+    return this.db.select().from(personagens).where(eq(personagens.campanhaId, campanhaId)).orderBy(asc(personagens.criadoEm)).all().map(lerPersonagem);
+  }
+
+  personagem(id: string): PersonagemBanco | undefined {
+    const linha = this.db.select().from(personagens).where(eq(personagens.id, id)).get();
+    return linha ? lerPersonagem(linha) : undefined;
+  }
+
+  criarPersonagem(campanhaId: string, p: Personagem, agora: string) {
+    this.db
+      .insert(personagens)
+      .values({ id: p.id, campanhaId, participanteId: p.participanteId, situacao: p.situacao, ficha: JSON.stringify(p.ficha), criadoEm: agora, alteradoEm: agora })
+      .run();
+  }
+
+  salvarPersonagem(id: string, mudanca: { ficha?: FichaDados; situacao?: SituacaoPersonagem; participanteId?: string | null }, agora: string) {
+    const { ficha, ...resto } = mudanca;
+    this.db
+      .update(personagens)
+      .set({ ...resto, ...(ficha ? { ficha: JSON.stringify(ficha) } : {}), alteradoEm: agora })
+      .where(eq(personagens.id, id))
+      .run();
+  }
+
+  apagarPersonagem(id: string) {
+    this.db.delete(personagens).where(eq(personagens.id, id)).run();
+  }
+
+  kitsDa(campanhaId: string): Kit[] {
+    return this.db
+      .select()
+      .from(kits)
+      .where(eq(kits.campanhaId, campanhaId))
+      .orderBy(asc(kits.nome))
+      .all()
+      .map((l) => Kit.parse({ id: l.id, nome: l.nome, itens: JSON.parse(l.itens) }));
+  }
+
+  salvarKit(campanhaId: string, kit: Kit) {
+    const itens = JSON.stringify(kit.itens);
+    this.db
+      .insert(kits)
+      .values({ id: kit.id, campanhaId, nome: kit.nome, itens })
+      .onConflictDoUpdate({ target: kits.id, set: { nome: kit.nome, itens } })
+      .run();
+  }
+
+  apagarKit(campanhaId: string, id: string) {
+    this.db.delete(kits).where(and(eq(kits.id, id), eq(kits.campanhaId, campanhaId))).run();
   }
 
   acrescentarEvento(campanhaId: string, evento: EventoCompleto) {

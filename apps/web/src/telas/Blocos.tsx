@@ -6,7 +6,7 @@ import css from "./Blocos.module.css";
 
 const horaCurta = (iso: string) => new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
-function LinhaEvento({ evento }: { evento: EventoVisto }) {
+function LinhaEvento({ evento, desfeito, podeDesfazer }: { evento: EventoVisto; desfeito: boolean; podeDesfazer: boolean }) {
   let conteudo: ReactNode = null;
 
   if (evento.tipo === "rolagem") {
@@ -28,12 +28,34 @@ function LinhaEvento({ evento }: { evento: EventoVisto }) {
     conteudo = <span className={css.linhaSistema}>{evento.dados.nome} entrou na mesa</span>;
   } else if (evento.tipo === "participante_revogado") {
     conteudo = <span className={css.linhaSistema}>{evento.dados.nome} saiu da mesa</span>;
+  } else if (evento.tipo === "ficha_alterada") {
+    const { personagemNome, rotulo, subiuPara } = evento.dados;
+    conteudo = (
+      <span className={`${css.linhaTexto} ${desfeito ? css.desfeito : ""}`}>
+        <strong className={css.autor}>{personagemNome}</strong> {rotulo}
+        {subiuPara && <span className={css.conta}>Subiu para o nível {subiuPara}</span>}
+      </span>
+    );
+  } else if (evento.tipo === "ficha_desfeita") {
+    conteudo = (
+      <span className={css.linhaSistema}>
+        {evento.autorNome ?? "Mesa"} desfez: {evento.dados.rotulo}
+      </span>
+    );
+  } else if (evento.tipo === "personagem_ligado") {
+    const { personagemNome, participanteNome } = evento.dados;
+    conteudo = <span className={css.linhaSistema}>{participanteNome ? `${participanteNome} agora controla ${personagemNome}` : `${personagemNome} ficou sem jogador`}</span>;
   }
 
   if (!conteudo) return null;
   return (
     <li className={css.linha}>
       {conteudo}
+      {podeDesfazer && !desfeito && (
+        <button type="button" className={css.desfazer} onClick={() => acoes.desfazerFicha(evento.id)}>
+          Desfazer
+        </button>
+      )}
       <time className={css.hora} dateTime={evento.criadoEm}>
         {horaCurta(evento.criadoEm)}
       </time>
@@ -43,15 +65,30 @@ function LinhaEvento({ evento }: { evento: EventoVisto }) {
 
 export function Registro({ className }: { className?: string }) {
   const eventos = useLoja((e) => e.eventos);
-  const recentes = [...eventos].reverse();
+  const limpasAte = useLoja((e) => e.rolagensLimpasAte);
+  const eu = useLoja((e) => e.eu);
+  const recentes = eventos.filter((e) => e.tipo !== "rolagem" || e.n > limpasAte).reverse();
+  const desfeitos = new Set(eventos.flatMap((e) => (e.tipo === "ficha_desfeita" ? [e.dados.eventoId] : [])));
+  const temRolagem = recentes.some((e) => e.tipo === "rolagem");
+  const pode = (e: EventoVisto) => e.tipo === "ficha_alterada" && (eu?.papel === "mestre" || e.autorId === eu?.id);
   return (
-    <Cartao titulo="Registro" className={`${css.registro} ${className ?? ""}`}>
+    <Cartao
+      titulo="Registro"
+      className={`${css.registro} ${className ?? ""}`}
+      extra={
+        temRolagem && (
+          <Botao variante="fantasma" onClick={acoes.limparRolagens}>
+            Limpar rolagens
+          </Botao>
+        )
+      }
+    >
       {recentes.length === 0 ? (
         <p className={css.vazio}>Nada aconteceu ainda.</p>
       ) : (
         <ol className={css.lista} role="log" aria-label="Registro da sessão">
           {recentes.map((e) => (
-            <LinhaEvento key={e.id} evento={e} />
+            <LinhaEvento key={e.id} evento={e} desfeito={desfeitos.has(e.id)} podeDesfazer={pode(e)} />
           ))}
         </ol>
       )}

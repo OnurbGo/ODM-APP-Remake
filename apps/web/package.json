@@ -8,8 +8,10 @@
     "build": "vite build"
   },
   "dependencies": {
+    "@odm/conteudo": "*",
     "@odm/estilo": "*",
     "@odm/protocolo": "*",
+    "@odm/regras": "*",
     "qrcode": "1.5.4",
     "react": "19.3.1",
     "react-dom": "19.3.1",

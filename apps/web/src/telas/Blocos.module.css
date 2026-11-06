@@ -108,3 +108,21 @@
   font-size: var(--texto-s);
   text-align: center;
 }
+
+.desfazer {
+  flex: none;
+  padding: 0 var(--esp-1);
+  font-family: var(--fonte-rotulo);
+  font-size: var(--texto-s);
+  letter-spacing: var(--rotulo-espaco);
+  text-transform: var(--rotulo-caixa);
+  color: var(--cor-destaque);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.desfeito {
+  color: var(--cor-texto-suave);
+  text-decoration: line-through;
+}

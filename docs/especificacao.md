@@ -1,6 +1,6 @@
 # ODM App Remake — Especificação
 
-Versão de 05/11/2026. Substitui o ODM-App antigo (OnurbGo/ODM-App), que fica só como histórico.
+Versão de 06/11/2026. Substitui o ODM-App antigo (OnurbGo/ODM-App), que fica só como histórico.
 
 ## Como ler este documento
 
@@ -166,7 +166,7 @@ Nada é marcado no Markdown dos livros.
 
 ### 4.4 Camada mecânica
 
-O texto do livro não muda. Ao lado dele vai um bloco mecânico, em arquivos próprios no repositório dos livros (`livros/jogador/dados/app/efeitos-mecanica.yml` e `livros/mestre/dados/app/ataques-mecanica.yml`), que o build dos livros ignora e o exportador usa.
+O texto do livro não muda. Ao lado dele vai um bloco mecânico, em arquivos próprios no repositório dos livros (`livros/*/dados/app/*-mecanica.yml`), que o build dos livros ignora e o exportador usa. São: efeitos e ataques de criatura (fase 3) e regras, classes, fichas de classe, habilidades, origens, talentos e itens (fase 4).
 
 **Revisão:** cada item desses arquivos tem o campo `situacao` (`proposta`, `aprovado` ou `lacuna`), e esses YAML são a fonte. O relatório em `revisao/` é gerado a partir deles, e aprovação nunca fica em arquivo regenerado. Só item `aprovado` leva mecânica ao pacote; os outros vão só como texto.
 
@@ -177,12 +177,12 @@ efeito.hemorragia:
   acumulos: { max: 3 }
   gatilhos:
     - quando: inicio_do_turno
-      faz: { dano: "1d4", por_acumulo: true, tipo: indefinido }
+      faz: { perde_pv: "1d4", por_acumulo: true }  # perda direta: ignora RD, PV temporários absorvem
     - quando: fim_do_turno
       oferece: { teste: { atributo: fibra, dt: 15 }, sucesso: { remover_acumulo: 1 } }
   acoes:
-    - nome: "Bandagem"
-      custo: { pa: 1, item: trapos_ou_bandagem }
+    - nome: "Tratar com bandagens ou Trapos"
+      custo: { pa: 1, item: trapos, ou: improviso_aceito_pelo_mestre }
       alvo: si_mesmo_ou_adjacente
       faz: { remover_acumulo: 1 }
 ```
@@ -207,6 +207,7 @@ Nível de automação por tipo de conteúdo:
 | Habilidades | Gastar PA, fichas e usos ("uma vez por descanso curto/cena"); aplicar o que estiver estruturado; o resto fica como texto |
 | Itens | Botão **Usar**: gasta o item e aplica o efeito (cura, remover acúmulo…) |
 | Efeitos que dependem do mestre (Alucinado, Enfeitiçado…) | Só texto + lembrete; nada automático |
+| Usos limitados | "x vezes por dia" volta no descanso longo; "por combate" volta ao fim do combate; sessão, semana e 7 dias o mestre marca à mão |
 
 Habilidades também recebem **marcações de situação** (ex.: `reage_a: teste_resistencia.agilidade`), para o app sugerir a habilidade certa no momento certo (seção 8).
 
@@ -222,10 +223,10 @@ O mestre pode criar criaturas, NPCs, itens e efeitos próprios por formulários 
 
 Funções puras que recebem ficha + conteúdo + estado e devolvem valores calculados:
 
-- Defesa, PV máximo, deslocamento, RD;
+- Defesa, PV máximo, deslocamento, RD. Sem armadura, a Defesa é 10 + Agilidade; habilidades como Armadura Muscular (Brutamonte: 10 + Brutalidade + Fibra, e escudo não anula) substituem essa conta. Deslocamento base: 6 m para todos (decidido em 06/11/2026; o Livro do Jogador não traz os dois valores);
 - bônus de proficiência (tabela de "Bônus de Proficiência", Jogador, Progressão);
 - carga e Sobrecarregado (seção de Carga do Jogador);
-- Exaustão (tabela de 6 níveis), Morrendo progressivo;
+- Exaustão (tabela de 6 níveis), Morrendo progressivo (entram na fase 5, com o estado do combate);
 - Estresse máximo por Intelecto (só se a campanha ativar);
 - penalidades e vantagens de condições nos testes.
 
@@ -239,6 +240,7 @@ Toda mudança é um evento: rolagem, dano, cura, efeito aplicado, PA gasto, item
 - **Permissões:** o mestre desfaz qualquer evento; o jogador desfaz só os próprios, até o fim do turno dele.
 - O registro aparece para todos, filtrado pelo que cada um pode ver.
 - Efeitos podem ser encerrados antes, ter acúmulos e duração editados ou ser adicionados à mão.
+- **Limpar a tela:** um botão tira as rolagens da tela sem apagar o histórico, porque o desfazer depende dele.
 
 ---
 
@@ -250,7 +252,11 @@ O personagem pertence à campanha. O mestre liga e troca a qualquer momento qual
 
 ### 6.1 Criação de personagem
 
-Assistente em passos, seguindo a ordem de "Criando um personagem" do Livro do Jogador, com as escolhas filtradas pelos pacotes ativos na campanha. A ficha pode ser salva a qualquer momento como rascunho.
+Assistente em passos, com as escolhas filtradas pelos pacotes ativos na campanha. A ficha pode ser salva a qualquer momento como rascunho.
+
+- **Passos (proposta):** Conceito, Origem, Classe, Atributos, Perícias e proficiências, Redenção, Revisão. "Criando um personagem" dá só Origem e Classe como pilares, sem ordem numerada.
+- **Equipamento inicial (decidido em 06/11/2026):** os livros não têm lista por classe nem dinheiro inicial. A criação não tem esse passo, e o mestre entrega os itens pelo app. O pacote já prevê o campo: se o livro ganhar a lista, o passo aparece.
+- **Kits:** para ajudar o mestre, um clique entrega um conjunto de itens. Os sugeridos vêm do equipamento dos personagens do Fast Play, após revisão; o mestre também monta e salva os próprios na campanha.
 
 ### 6.2 Ficha
 
@@ -288,6 +294,8 @@ Regras de "A Evolução do Personagem" (Jogador, Progressão) e "Sistema de Pres
 
 **Polivalência (regra opcional, pacote A Ordem no Caos)**
 
+Na fase 4 a opção aparece na loja, bloqueada com o motivo. A regra entra na fase 8, junto com o pacote.
+
 - O mestre liga ou desliga na campanha.
 - Com ela ligada, ao gastar Prestígio o jogador escolhe entre aprofundar a classe principal ou subir a classe secundária.
 - Requisitos que o app confere sozinho: nível 10 na classe principal e os pré-requisitos da nova classe (atributos e proficiências da tabela). A "justificativa narrativa" fica com o mestre, que aprova o pedido.
@@ -319,9 +327,16 @@ Regras de "A Evolução do Personagem" (Jogador, Progressão) e "Sistema de Pres
 ### 7.1 Escudo do Mestre — combate
 
 - Iniciativa por baralho, seguindo "Iniciativa" (Jogador, Combate): cada criatura engajada compra uma carta, e o app ordena, desempata e registra quem usou o efeito de uma carta especial.
+- **Empates da iniciativa:** o último desempate é opção da campanha (naipe ou nova compra), como no livro. Dois Coringas: nova compra mantendo o Coringa, e a segunda carta maior vai primeiro. A troca do Coringa acontece antes de ir para o fim.
 - Turnos (jogadores, criaturas, NPCs), com avanço de turno disparando os gatilhos dos efeitos.
 - Criaturas do bestiário com PV, efeitos e ações clicáveis (rola acerto e dano; pede teste de resistência).
-- **Horda** (regra do Zumbi): formar, somar PV, remover integrante a cada 10 de dano, recalcular o bônus.
+- **Horda** (regra do Zumbi): formar, somar PV, remover integrante a cada 10 de dano, recalcular o bônus. Decidido em 06/11/2026:
+  - cada integrante entra com os PV atuais (Elite com o bônus dele); com 2 integrantes ou menos, a Horda se desfaz;
+  - ataque à escolha (Pancada ou Mordida), com Bônus de Horda no acerto e no dano; uma jogada contra a Defesa de cada alvo, dano rolado por alvo;
+  - Pressão de Massa é dano indefensável;
+  - Ameaça de Massa: −1 em todas as reações, inclusive Bloqueio; sem Combo;
+  - uma carta de iniciativa, descartando as dos Zumbis.
+- **Recarga X–Y (Mestre, "Como criar uma criatura?"):** no início de cada turno da criatura, rolar 1d6; se cair na faixa, a habilidade volta.
 - Pedido de teste por tipo (habilidade, resistência, passivo ou contestado), para um ou vários jogadores, com ajuste por jogador (seção 8).
 - Fichas dos jogadores ao vivo, em resumo.
 
@@ -364,8 +379,8 @@ Conforme "Testes de Habilidade" e "Testes Passivos" (Jogador, Progressão) e "Es
 |---|---|---|---|
 | **Habilidade** | Atributo ou perícia, e a DT | 1d20 + modificador contra a DT | Pop-up e rolagem |
 | **Resistência** | Atributo e DT | 1d20 + modificador contra a DT | Pop-up, ou rola sozinho se o automático estiver ligado (8.4) |
-| **Passivo** | Atributo ou perícia, e a DT | Sem rolagem: 10 + modificadores aplicáveis; vantagem +5, desvantagem −5 | **Nada.** O livro usa o passivo para "não entregar que há algo escondido"; o jogador não é avisado, e só o mestre vê os valores contra a DT |
-| **Contestado** (sugestão) | O teste do personagem e o teste da criatura ou NPC, como Furtividade contra Percepção ativa | Rolagem do personagem contra a rolagem do oponente | A própria rolagem. O resultado do oponente segue a mesma regra de visibilidade da DT |
+| **Passivo** | Atributo ou perícia, e a DT | Sem rolagem: 10 + modificadores aplicáveis; vantagem no máximo +5, desvantagem −5; as duas se anulam | **Nada.** O livro usa o passivo para "não entregar que há algo escondido"; o jogador não é avisado, e só o mestre vê os valores contra a DT |
+| **Contestado** (sugestão) | O teste do personagem e o teste da criatura ou NPC, como Furtividade contra Percepção ativa | Rolagem do personagem contra a rolagem do oponente. Contra grupo, o oponente rola uma vez. Percepção ativa de criatura = passiva − 10 | A própria rolagem. O resultado do oponente segue a mesma regra de visibilidade da DT |
 
 **Em todos:** um ou vários jogadores de uma vez e ajuste por jogador (DT, bônus ou penalidade, vantagem ou desvantagem).
 
@@ -392,7 +407,9 @@ Conforme "Testes de Habilidade" e "Testes Passivos" (Jogador, Progressão) e "Es
 - **Automático ligado (só teste de resistência):** o app rola, aplica e registra. Se houver uma habilidade disponível marcada para aquela situação, ele **pausa e pergunta** antes de rolar.
 - **Automático desligado, e sempre nos testes de habilidade e contestado:** abre um pop-up com o teste, a DT (se visível), um campo de bônus ou penalidade, vantagem ou desvantagem, as habilidades que servem para a situação (disponíveis e usadas) e o botão **Rolar**.
 - **Por que o automático não vale para habilidade:** esses testes têm decisões do jogador que o livro prevê, como Fazer com Calma, Tentar até Conseguir e Forçar a Rolagem. A resistência é uma reação, que costuma vir em série no combate, com o mestre esperando.
-- **Nos dois modos**, o app aplica o que o livro manda e mostra a conta: Envenenado (desvantagem), Exaustão (−2 a −6), Impedido (desvantagem em Agilidade), Atordoado e Inconsciente (falha automática em Brutalidade e Agilidade).
+- **Recusar rolagem:** o pop-up não fecha sem resposta, mas tem o botão **Recusar rolagem**, e o mestre é avisado. O teste fica como "Recusado" no cartão dele, com Sucesso, Falha, Rolar por ele e Cancelar teste. Nada é aplicado até ele escolher.
+- **Forçar a Rolagem** vale só em teste de habilidade.
+- **Nos dois modos**, o app aplica o que o livro manda e mostra a conta: Envenenado (desvantagem), Exaustão (−2 a −6), Impedido (desvantagem em Agilidade), Atordoado e Inconsciente (falha automática em Brutalidade e Agilidade). Inconsciente e Caído de perto são duas fontes de vantagem: 3d20 nos Dados Extras; nas Cartas, 2 cartas usando o maior, como está no livro. Vantagem e desvantagem se anulam também nas Cartas.
 - **Modelo de vantagem:** o mestre escolhe na campanha entre Dados Extras e Cartas, como em "Vantagem e Desvantagem" (Jogador, Progressão). O app segue o modelo escolhido na rolagem e no pop-up.
 
 ### 8.5 Animação da rolagem
@@ -427,7 +444,7 @@ Os componentes base (botão, cartão, aba, marcador de PA, ficha de classe, pop-
 |---|---|
 | Olho da Morte (padrão) | Paleta dos livros: tinta, pergaminho, sangue, ferrugem, ouro velho; fontes EB Garamond, IM Fell English e Grenze Gotisch |
 | A Ordem no Caos | Fundo roxo muito escuro, quase preto, com roxo forte como cor predominante (as cores da introdução do livro); moldura lunar, círculo arcano |
-| A Arte da Guerra | A definir junto com a capa do complemento |
+| A Arte da Guerra | As cores da capa, já pronta no repositório dos livros (`livros/guerra`). O tema é feito na fase 8 |
 
 - Cada tema vem no pacote do complemento, com tokens, ornamentos e as próprias animações de abertura e transição.
 - O tema é escolhido por pessoa, no dispositivo dela. O mestre pode definir um tema sugerido para a campanha.
@@ -437,7 +454,7 @@ Os componentes base (botão, cartão, aba, marcador de PA, ficha de classe, pop-
 
 | Momento | Ideias para testar |
 |---|---|
-| Abertura do app | Olho se abrindo sobre o pergaminho e título em Grenze Gotisch; poeira e vento; cerca de 2 s, pulável |
+| Abertura do app | Olho se abrindo sobre o pergaminho e título em Grenze Gotisch; poeira e vento; cerca de 2 s, pulável. Toca uma vez por abertura do app |
 | Troca de tela | Portas de saloon; poeira varrendo; página de jornal virando; cartaz de "Procurado" sendo pregado |
 | Carregando | Tambor de revólver girando; ferradura balançando; ampulheta de areia |
 | Botões | Pressão com efeito de carimbo ou couro; brilho de ouro velho no foco |
@@ -489,8 +506,8 @@ Antes de abandonar o ODM-App, exportar da campanha de playtest o que não existe
 | 0. Dados antigos ✔ | Exportação da seção 12 | Feito em 05/11/2026 |
 | 1. Protótipos ✔ | Combate do jogador (celular e desktop), Escudo do Mestre, Ficha, abertura, transições, rolagem, cartas | Feito em 05/11/2026; o aprovado está em `docs/decisoes-visuais.md` |
 | 2. Fundação ✔ | Monorepo, `estilo` com o tema padrão, Electron + servidor + WebSocket, entrada na mesa | Feito em 06/11/2026: computador e celular na mesma mesa vendo uma rolagem ao vivo |
-| 3. Conteúdo base | Exportador no repositório dos livros + camada mecânica dos efeitos e dos ataques de criatura (para sua revisão) | `odm-base-1.0.json` validado |
-| 4. Ficha | Criação, ficha, motor de regras com a conta de cada valor | Personagem completo de qualquer classe da base |
+| 3. Conteúdo base ✔ | Exportador no repositório dos livros + camada mecânica dos efeitos e dos ataques de criatura (para sua revisão) | Feito em 06/11/2026: `odm-base-1.0.json` validado, com 690 itens |
+| 4. Ficha ✔ | Camada mecânica de ficha no exportador, criação, ficha, progressão, loja de prestígio, motor de regras com a conta de cada valor | Feito em 06/11/2026: um personagem completo de cada uma das 6 classes da base no nível 1, e um personagem no nível 11 ou mais usando a loja de prestígio |
 | 5. Combate | Iniciativa, turnos, PA, efeitos automáticos, registro e desfazer, aba Combate, testes, pedido de teste | Um combate com zumbis (incluindo Horda) jogado do início ao fim |
 | 6. Mestre | Encontros, missões e linha do tempo, modificadores de mundo, Jogo do 21, comércio, NPCs, notas, mostrar para os jogadores | Uma sessão inteira de playtest só com o app |
 | 7. Acabamento | Animações finais, backup, instalador com a regra de firewall (seção 3.2), APK do Android (seção 3.6), testes nos fluxos principais | Instalador e APK para os apoiadores |
@@ -509,33 +526,47 @@ Antes de abandonar o ODM-App, exportar da campanha de playtest o que não existe
 - **Mestre no celular:** só PC na 1.0. O Escudo do Mestre é desenhado para desktop.
 - **Sons:** entram (dados rolando, sino de "seu turno", tiro em ataque com arma de fogo), curtos, com volume próprio e opção de desligar. Ligados por padrão.
 
+### Decididas em 06/11/2026
+
+- **Cartas do Destino:** opção da campanha, ligada por padrão.
+- **"x vezes por dia":** recupera no descanso longo.
+- **Pop-up de teste:** seção 8.4.
+- **Abertura:** uma vez por abertura do app.
+- **Teste contestado:** contra grupo, o oponente rola uma vez. Percepção ativa de criatura = passiva − 10.
+- **Teste passivo:** vantagem no máximo +5; vantagem e desvantagem se anulam.
+- **Forçar a Rolagem:** só em teste de habilidade.
+- **Recarga X–Y de criatura:** no início de cada turno da criatura, rolar 1d6; na faixa, a habilidade volta. Está no Mestre, em "Como criar uma criatura?". O campo "Recarga:" de armas e ataques especiais é outra coisa e fica como está.
+- **Alucinado e Enfeitiçado:** dependem do mestre; ficam só como texto.
+- **Bêbado:** a regra de doses vale para todos.
+- **Iniciativa:** seção 7.1.
+- **"Força":** é tipo de dano (energia genérica, não elemental). Montarias têm atributos próprios, incluindo Força.
+- **Efeitos:**
+  - Hemorragia é perda direta: ignora RD, mas PV temporários absorvem. Remove acúmulo com bandagens, Trapos (componente de `16-criacao.md`) ou um improviso aceito pelo mestre.
+  - Queimadura causa dano só no início do turno da própria criatura; os testes de Fibra e de Agilidade são de habilidade; quem ajuda precisa estar adjacente, salvo meio à distância (balde de água); rolar no chão custa 1 PA, deixa Caído e apaga sem teste.
+  - Amedrontado dá desvantagem e −1 PA enquanto o efeito durar, sem marcador de "vê a fonte".
+  - Incapacitado pode gastar PA só para se mover.
+  - Exposto não acumula com Vulnerabilidade; imunidade prevalece.
+  - Fragilidade: −2 no ataque com arma de fogo, no turno de quem sofre.
+  - Loucura Frenética usa o nível do personagem; criatura usa ND.
+  - Exaustão Glacial: botão "Me aqueci" para o próprio jogador encerrar.
+- **Defesa e deslocamento base:** seção 5.1.
+- **Equipamento inicial:** seção 6.1.
+- **Usos por combate, sessão, semana e 7 dias:** "por combate" volta ao fim do combate; os outros três o mestre marca à mão.
+- **Fichas de Olho da Morte:** voltam todas no descanso longo, além do que o livro já dá em combate. Muitos Olhares soma +2 ao máximo.
+- **Fichas que se acumulam:** Franco Atirador, Atirador Afiado, Notória, Agarrão, Caixão e Vela Preta e Eficiência Medicinal ficam até serem gastas. Pragmático também começa sem fichas.
+- **Ficha de Combatente:** máximo 3.
+- **Fichas de Sentença:** valem só dentro de Juiz, Júri e executor; não são ficha de classe.
+- **Loucura Frenética:** quem tem mais de um tipo de ficha escolhe qual perde.
+- **Corpo Incansável (Caçador):** entra no nível 9, embora o título no livro diga "(NV1)".
+
 ### Suas decisões
 
-1. **Cor e identidade do tema de A Arte da Guerra:** decidir junto com a capa do complemento (antes da fase 8).
-2. **Cartas do Destino:** regra opcional (Jogador, "Cartas do Destino"). Viram opção da campanha? O protótipo tem só um aviso na Redenção (antes da fase 4).
-3. **Pop-up de teste do jogador:** hoje dá para fechar sem responder. A recomendação é só fechar respondendo, porque o mestre fica esperando (antes da fase 5).
-4. **Abertura:** a recomendação é tocar uma vez por abertura do app, não a cada troca de tela (antes da fase 7).
-5. **Empate no teste contestado (antes da fase 5):** "Esconder-se" (Jogador, Ações) dá "igual ou maior" só contra a Percepção passiva. O teste contestado não tem regra de empate.
-6. **Teste passivo com duas ou mais fontes (antes da fase 5):** "Testes Passivos" (Jogador, Progressão) diz "com vantagem, adicione 5". Falta definir se duas fontes somam ou valem uma vez, e se vantagem e desvantagem se anulam aqui como nos modelos de Dados Extras e Cartas.
-7. **Forçar a Rolagem (antes da fase 5):** o texto (Jogador, Progressão) diz "um teste". Falta definir se vale para resistência e contestado; Fazer com Calma exclui resistência de forma expressa, e Forçar a Rolagem não.
-8. **Percepção ativa de criatura (antes da fase 5):** as fichas de `criaturas.yml` e `ameacas.yml` trazem só "Percepção passiva N". Usar N − 10 como bônus da rolagem é dedução da fórmula 10 + modificadores, não texto do livro.
-9. **Contestado em grupo (antes da fase 5):** com vários jogadores, o inimigo rola uma vez contra todos ou uma vez por jogador?
+1. **Assinatura do app (antes da fase 7):** sem certificado pago. O commit "chore - preparar code signing Windows" do ODM-App antigo não assina nada: deixa a assinatura opcional, ligada só se houver certificado, e o documento dele termina com o certificado pendente e diz que certificado próprio não passa pelo Smart App Control. Na fase 7, avaliar a SignPath Foundation, já que este repositório é público. O Smart App Control pode barrar um executável sem assinatura, como aconteceu nesta máquina em 06/11/2026.
+2. **Fast Play como pacote grátis (futuro, aprovado em 06/11/2026):** reservado em `tools/exportar/pacotes.yml` como `odm-fastplay`, sem geração por enquanto. O livro já traz seis personagens prontos e a missão *Cheiro de Fuligem*, então o pacote depende da ficha (fase 4). Os efeitos dele repetem o texto do Livro do Jogador e usariam os mesmos ids da base, para quem passar de um para o outro não perder a ficha.
+3. **Empate no teste contestado (antes da fase 5):** continua em aberto. "Esconder-se" (Jogador, Ações) dá "igual ou maior" só contra a Percepção passiva, e o teste contestado não tem regra de empate.
 
-10. **Assinatura do app (antes da fase 7):** o Smart App Control do Windows 11 pode barrar um executável sem assinatura digital, como aconteceu nesta máquina em 06/11/2026. Falta decidir se o instalador terá certificado de assinatura de código, que é pago, para não exigir nenhum passo técnico de quem instala.
+### Regras já definidas antes da fase 3
 
-11. **Fast Play como pacote grátis (futuro, aprovado em 06/11/2026):** reservado em `tools/exportar/pacotes.yml` como `odm-fastplay`, sem geração por enquanto. O livro já traz seis personagens prontos e a missão *Cheiro de Fuligem*, então o pacote depende da ficha (fase 4). Os efeitos dele repetem o texto do Livro do Jogador e usariam os mesmos ids da base, para quem passar de um para o outro não perder a ficha.
-
-### Lacunas de regra (para resolver ao escrever a camada mecânica)
-
-Vou levantar cada caso com a citação do livro durante a fase 3. Já encontrei:
-
-- **Termo "recarga":** em habilidade de personagem, o app mostra "uma vez por descanso curto/longo/cena", conforme cada uma. Em habilidade de criatura, "Recarga X–Y" existe em `criaturas.yml` (ex.: Rajada Elemental, "1 PA, Recarga 3–6"), mas o livro não define a regra: **lacuna do Bruno a decidir**, e nada é suposto até lá. O campo "Recarga:" das armas e dos ataques especiais é outra coisa e fica como está.
-- **Alucinado e Enfeitiçado:** dependem do mestre; ficam só como texto.
-- **Bêbado:** a regra de doses vale "para personagens comuns". Falta definir quem não é comum (raça, habilidade).
-- **Empate final na iniciativa:** depois da Agilidade, o livro aceita naipe ou nova compra, "o método que sua mesa preferir". Falta decidir se vira opção da campanha; o protótipo usa naipe.
-- **Dois Coringas com a mesma Agilidade:** Coringa não tem naipe, então esse desempate não se aplica.
-- **Troca do Coringa:** o livro diz que a troca é imediata, mas quem usa o efeito vai para o fim. Falta confirmar a ordem; o protótipo move primeiro e troca depois.
-- **`22-carga.md`, linha 14:** cita "modificador de Força" para montaria, e Força não é atributo do sistema. Perguntar antes de corrigir.
 - **Críticos (decidido em 05/11/2026):** 20 natural no d20 de ataque acerta automaticamente e o dano rola o dobro dos dados; "falha crítica" é 1 natural. Em teste de resistência, 20 e 1 têm só destaque visual, e o resultado é sempre o total contra a DT.
 - **XP → Prestígio (decidido em 05/11/2026):** 1 Ponto de Prestígio a cada nível da tabela de XP alcançado entre 11 e 20 (10 pontos no total). É o que indicam as tabelas de classe ("Ponto de prestígio" nos níveis 11 a 20) e o exemplo da Polivalência (Brutamonte 10 / Bélico 5).
 - **Comprar atributo com Prestígio (decidido em 05/11/2026):** é o talento **Treinamento Pesado** (Jogador, Talentos): 1 ponto de atributo à escolha, repetível, mínimo −1 e máximo 5. Comprado como "Talento" (1 Ponto de Prestígio). Se o ponto for em Fibra depois do nível 10, o app aplica a "Nota Especial sobre a Fibra": +1 PV máximo por nível de classe (até 10). Sugestão para a 1.1 do livro, sem aplicar agora: citar o Treinamento Pesado na própria nota da Fibra.

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TAMANHO_CODIGO_MESA, TAMANHO_MAXIMO_NOME } from "./constantes";
 import { EventoVisto } from "./eventos";
+import { FichaRascunho, Kit, OpcoesCampanha, Operacao, Personagem } from "./ficha";
 import { PedidoTeste, RespostaTeste } from "./testes";
 
 const Nome = z.string().trim().min(1).max(TAMANHO_MAXIMO_NOME);
@@ -36,9 +37,18 @@ export const MensagemCliente = z.discriminatedUnion("t", [
     rotulo: z.string().trim().max(60).optional(),
     bonus: z.number().int().min(-99).max(99).default(0),
   }),
-  /* O personagem é da campanha: o mestre troca quem o controla a qualquer momento (null = sem jogador).
-     Formato já definido; o servidor responde "indisponivel" até a fase 4. */
+  /* O personagem é da campanha: o mestre troca quem o controla a qualquer momento (null = sem jogador). */
   z.object({ t: z.literal("ligar_personagem"), personagemId: Id, participanteId: Id.nullable() }),
+  z.object({ t: z.literal("personagem_criar") }),
+  z.object({ t: z.literal("personagem_salvar"), personagemId: Id, ficha: FichaRascunho }),
+  z.object({ t: z.literal("personagem_concluir"), personagemId: Id }),
+  z.object({ t: z.literal("personagem_apagar"), personagemId: Id }),
+  z.object({ t: z.literal("ficha_operar"), personagemId: Id, operacao: Operacao }),
+  z.object({ t: z.literal("ficha_desfazer"), eventoId: Id }),
+  z.object({ t: z.literal("opcoes_campanha"), opcoes: OpcoesCampanha }),
+  z.object({ t: z.literal("kit_salvar"), kit: Kit }),
+  z.object({ t: z.literal("kit_apagar"), kitId: Id }),
+  z.object({ t: z.literal("kit_entregar"), personagemId: Id, kitId: Id }),
   /* Formato já definido; o servidor responde "indisponivel" até a fase 5. */
   z.object({ t: z.literal("pedir_teste"), pedido: PedidoTeste }),
   z.object({ t: z.literal("responder_teste"), resposta: RespostaTeste }),
@@ -90,6 +100,7 @@ export const CodigoErro = z.enum([
   "codigo_incorreto",
   "muitas_tentativas",
   "indisponivel",
+  "recusado",
 ]);
 export type CodigoErro = z.infer<typeof CodigoErro>;
 
@@ -98,9 +109,10 @@ export const MensagemServidor = z.discriminatedUnion("t", [
   z.object({
     t: z.literal("bem_vindo"),
     eu: Participante,
-    mesa: z.object({ nome: z.string() }),
+    mesa: z.object({ nome: z.string(), opcoes: OpcoesCampanha, conteudo: z.boolean() }),
     participantes: z.array(Participante),
     eventos: z.array(EventoVisto),
+    personagens: z.array(Personagem),
   }),
   /* Só o mestre recebe estas duas: o que o jogador nunca pode ver vai numa mensagem à parte. */
   z.object({ t: z.literal("sem_mesa") }),
@@ -110,6 +122,7 @@ export const MensagemServidor = z.discriminatedUnion("t", [
     pedidos: z.array(PedidoEntrada),
     jogadores: z.array(JogadorConhecido),
     rede: RedeMestre,
+    kits: z.array(Kit),
   }),
   z.object({ t: z.literal("entrada_aguardando"), pedidoId: z.string(), segredo: z.string() }),
   z.object({ t: z.literal("entrada_aprovada"), token: z.string() }),
@@ -117,6 +130,10 @@ export const MensagemServidor = z.discriminatedUnion("t", [
   z.object({ t: z.literal("acesso_revogado") }),
   z.object({ t: z.literal("presenca"), participantes: z.array(Participante) }),
   z.object({ t: z.literal("evento"), evento: EventoVisto }),
+  /* Personagem novo ou alterado. Cada um recebe só os que pode ver. */
+  z.object({ t: z.literal("personagem"), personagem: Personagem }),
+  z.object({ t: z.literal("personagem_removido"), personagemId: z.string() }),
+  z.object({ t: z.literal("opcoes_campanha"), opcoes: OpcoesCampanha }),
   z.object({ t: z.literal("erro"), codigo: CodigoErro, mensagem: z.string() }),
 ]);
 export type MensagemServidor = z.infer<typeof MensagemServidor>;
