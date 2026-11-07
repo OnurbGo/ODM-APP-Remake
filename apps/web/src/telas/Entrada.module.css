@@ -48,3 +48,13 @@
 .acao {
   margin-top: var(--esp-3);
 }
+
+.conferir {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-1);
+  margin-block: var(--esp-2);
+  padding-inline-start: var(--esp-4);
+  color: var(--cor-texto-suave);
+  list-style: disc;
+}

@@ -8,6 +8,12 @@
       "port": 5173
     },
     {
+      "name": "odm-teste",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "set ODM_PASTA_DADOS=%LOCALAPPDATA%\\ODM-teste&& set ODM_CONTEUDO=%LOCALAPPDATA%\\ODM-dev\\conteudo-previa&& set ODM_TOKEN_MESTRE=token-local-so-para-testar-na-tela&& npm run dev"],
+      "port": 5173
+    },
+    {
       "name": "prototipos",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "prototipos"],

@@ -5,10 +5,23 @@ import { FaixaConexao, NomeParticipante, Registro, Rolar } from "./Blocos";
 import css from "./MesaJogador.module.css";
 import { useTelaLarga } from "./useLargura";
 
-/* A ficha só baixa quando alguém abre um personagem. */
+/* A ficha e a aba Combate só baixam quando alguém abre um personagem. */
 const AreaFicha = lazy(() => import("./ficha/AreaFicha"));
+const JogoDoPersonagem = lazy(() => import("./combate/JogoDoPersonagem"));
+/* O pop-up de teste baixa no primeiro pedido que chegar a este aparelho. */
+const CamadaTestes = lazy(() => import("./testes/CamadaTestes"));
 
-/* Mesa provisória da fase 2: prova a conexão ao vivo. A fase 5 traz a aba Combate. */
+function Testes() {
+  const pediram = useLoja((e) => e.eventos.some((x) => x.tipo === "teste_pedido_visto"));
+  if (!pediram) return null;
+  return (
+    <Suspense fallback={null}>
+      <CamadaTestes />
+    </Suspense>
+  );
+}
+
+/* Mesa e personagens. Com um personagem pronto, a tela principal é a aba Combate dele (especificação 6.3). */
 
 function Personagens({ aoAbrir }: { aoAbrir: (id: string) => void }) {
   const personagens = useLoja((e) => e.personagens);
@@ -115,15 +128,50 @@ function Desktop({ aoAbrir }: { aoAbrir: (id: string) => void }) {
 
 export function MesaJogador() {
   const larga = useTelaLarga();
-  const [aberto, abrir] = useState<string | null>(null);
+  const [aberto, abrirFicha] = useState<string | null>(null);
+  const [mesa, verMesa] = useState(false);
+  const [jogando, jogar] = useState<string | null>(null);
   const erro = useLoja((e) => e.erro);
-  const existe = useLoja((e) => e.personagens.some((p) => p.id === aberto));
+  const personagens = useLoja((e) => e.personagens);
+  const existe = personagens.some((p) => p.id === aberto);
+  const ativos = personagens.filter((p) => p.situacao === "ativo");
+  const doJogo = ativos.find((p) => p.id === jogando) ?? ativos[0];
+
+  /* Personagem pronto abre a aba Combate; rascunho abre o assistente. */
+  const abrir = (id: string) => {
+    if (ativos.some((p) => p.id === id)) {
+      jogar(id);
+      verMesa(false);
+    } else abrirFicha(id);
+  };
+
+  if (doJogo && !mesa && !aberto) {
+    return (
+      <>
+        {erro && (
+          <p className={css.erro} role="alert">
+            {erro}
+            <Botao variante="fantasma" onClick={acoes.limparErro}>
+              Fechar
+            </Botao>
+          </p>
+        )}
+        <Suspense fallback={<Carregando rotulo="Abrindo o personagem" />}>
+          <JogoDoPersonagem personagemId={doJogo.id} aoAbrirMesa={() => verMesa(true)} />
+        </Suspense>
+        <Testes />
+      </>
+    );
+  }
 
   if (aberto && existe) {
     return (
-      <Suspense fallback={<Carregando rotulo="Abrindo a ficha" />}>
-        <AreaFicha personagemId={aberto} aoVoltar={() => abrir(null)} />
-      </Suspense>
+      <>
+        <Suspense fallback={<Carregando rotulo="Abrindo a ficha" />}>
+          <AreaFicha personagemId={aberto} aoVoltar={() => abrirFicha(null)} />
+        </Suspense>
+        <Testes />
+      </>
     );
   }
   return (
@@ -137,6 +185,7 @@ export function MesaJogador() {
         </p>
       )}
       {larga ? <Desktop aoAbrir={abrir} /> : <Celular aoAbrir={abrir} />}
+      <Testes />
     </>
   );
 }

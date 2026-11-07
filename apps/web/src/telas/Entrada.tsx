@@ -1,8 +1,11 @@
 import { Botao, Carregando, CampoTexto, Cartao } from "@odm/estilo";
 import { TAMANHO_CODIGO_MESA, TAMANHO_MAXIMO_NOME } from "@odm/protocolo/constantes";
-import { useState, type FormEvent, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { acoes, useLoja } from "../conexao/loja";
 import css from "./Entrada.module.css";
+
+/* O jogador nunca baixa a lista de campanhas do mestre. */
+const Campanhas = lazy(() => import("./mestre/Campanhas"));
 
 function codigoDoEndereco() {
   const url = new URL(location.href);
@@ -27,8 +30,11 @@ function Formulario() {
   const mesaAberta = useLoja((e) => e.mesaAberta);
   const erro = useLoja((e) => e.erro);
   const aviso = useLoja((e) => e.aviso);
+  const deOutraCampanha = useLoja((e) => e.deOutraCampanha);
   const [nome, definirNome] = useState("");
   const [codigo, definirCodigo] = useState(codigoDoEndereco);
+  /* Quem leu o QR code desta campanha quer entrar nela, mesmo tendo lugar em outra. */
+  const [pedindo, definirPedindo] = useState(codigo !== "");
 
   const pronto = nome.trim().length > 0 && codigo.trim().length === TAMANHO_CODIGO_MESA;
 
@@ -42,6 +48,16 @@ function Formulario() {
       <Cartao titulo="Mesa fechada">
         <p className={css.texto}>O mestre ainda não abriu a mesa. Esta tela atualiza sozinha quando abrir.</p>
       </Cartao>
+    );
+  }
+
+  if (deOutraCampanha && !pedindo) {
+    return (
+      <Mensagem
+        titulo="Mesa fechada"
+        texto="O mestre abriu outra campanha. Esta tela atualiza sozinha quando a sua abrir."
+        acao={<Botao onClick={() => definirPedindo(true)}>Pedir para entrar nesta campanha</Botao>}
+      />
     );
   }
 
@@ -76,38 +92,50 @@ function Formulario() {
   );
 }
 
-function CriarMesa() {
-  const erro = useLoja((e) => e.erro);
-  const [nome, definirNome] = useState("");
-
-  const enviar = (e: FormEvent) => {
-    e.preventDefault();
-    if (nome.trim()) acoes.criarMesa(nome.trim());
-  };
-
-  return (
-    <form onSubmit={enviar} className={css.formulario}>
-      <CampoTexto
-        rotulo="Nome da mesa"
-        value={nome}
-        onChange={(e) => definirNome(e.target.value)}
-        maxLength={TAMANHO_MAXIMO_NOME}
-        autoComplete="off"
-        erro={erro}
-      />
-      <Botao type="submit" variante="primario" grande largo disabled={!nome.trim()}>
-        Abrir a mesa
-      </Botao>
-    </form>
-  );
-}
-
 function Mensagem({ titulo, texto, acao }: { titulo: string; texto: string; acao?: ReactNode }) {
   return (
     <Cartao titulo={titulo}>
       <p className={css.texto}>{texto}</p>
       {acao && <div className={css.acao}>{acao}</div>}
     </Cartao>
+  );
+}
+
+const ESPERA_ANTES_DO_ERRO_MS = 8000;
+
+/* Girar para sempre faz o jogador desistir. Depois da espera, explica o que conferir e segue tentando.
+   O app Android usa esta mesma tela (especificação, 3.6). */
+function ProcurandoMesa() {
+  const reconectando = useLoja((e) => e.reconectando);
+  const [demorou, definirDemorou] = useState(false);
+
+  useEffect(() => {
+    const id = window.setTimeout(() => definirDemorou(true), ESPERA_ANTES_DO_ERRO_MS);
+    return () => clearTimeout(id);
+  }, []);
+
+  if (demorou) {
+    return (
+      <Cartao titulo="Não achamos a mesa">
+        <div role="alert">
+          <p className={css.texto}>A página abriu, mas a mesa do mestre não respondeu. Continuamos tentando sozinhos.</p>
+          <ul className={css.conferir}>
+            <li>Confira se o mestre está com a mesa aberta.</li>
+            <li>Use o mesmo Wi-Fi do mestre, sem os dados móveis.</li>
+            <li>Peça ao mestre para abrir “Ninguém conseguiu entrar?” no painel dele.</li>
+          </ul>
+        </div>
+        <div className={css.espera}>
+          <Carregando decorativo />
+        </div>
+      </Cartao>
+    );
+  }
+  return (
+    <div className={css.espera}>
+      <Carregando rotulo="Procurando a mesa" />
+      <p className={css.texto}>{reconectando ? "Sem resposta do mestre. Tentando de novo…" : "Procurando a mesa…"}</p>
+    </div>
   );
 }
 
@@ -121,12 +149,7 @@ export function Entrada() {
     case "dentro":
       return (
         <Moldura>
-          <div className={css.espera}>
-            <Carregando rotulo="Procurando a mesa" />
-            <p className={css.texto}>
-              {reconectando ? "Sem resposta do mestre. Tentando de novo…" : "Procurando a mesa…"}
-            </p>
-          </div>
+          <ProcurandoMesa />
         </Moldura>
       );
     case "aguardando":
@@ -175,11 +198,11 @@ export function Entrada() {
           <Mensagem titulo="Sem permissão" texto={erro ?? "Esta janela não tem acesso de mestre."} />
         </Moldura>
       );
-    case "criar_mesa":
+    case "campanhas":
       return (
-        <Moldura>
-          <CriarMesa />
-        </Moldura>
+        <Suspense fallback={<Carregando rotulo="Abrindo as campanhas" />}>
+          <Campanhas />
+        </Suspense>
       );
     case "visitante":
       return (

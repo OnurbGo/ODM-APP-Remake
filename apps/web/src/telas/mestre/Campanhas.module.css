@@ -1,0 +1,94 @@
+.pagina {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--esp-6);
+  min-height: 100dvh;
+  padding: var(--esp-6) var(--esp-4);
+}
+
+.titulo {
+  font-family: var(--fonte-gotica);
+  font-size: clamp(var(--texto-2xl), 11vw, var(--texto-3xl));
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+  color: var(--cor-destaque);
+}
+
+.corpo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-3);
+  width: 100%;
+  max-width: 640px;
+}
+
+.lista {
+  display: flex;
+  flex-direction: column;
+}
+
+.campanha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-2) var(--esp-4);
+  padding-block: var(--esp-3);
+  border-top: 1px solid var(--cor-borda-forte);
+}
+
+.campanha:first-child {
+  border-top: 0;
+}
+
+.dados {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+
+.nome {
+  font-family: var(--fonte-titulo);
+  font-size: var(--texto-l);
+  overflow-wrap: anywhere;
+}
+
+.detalhe {
+  font-size: var(--texto-s);
+  color: var(--cor-texto-suave);
+  overflow-wrap: anywhere;
+}
+
+.formulario {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-4);
+}
+
+.grupo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-2);
+  min-width: 0;
+  padding: 0;
+  border: 0;
+}
+
+.pacote {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  min-height: 44px;
+}
+
+.acoes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--esp-2);
+}
+
+.erro {
+  color: var(--cor-perigo, var(--cor-destaque));
+}

@@ -159,7 +159,7 @@ function CabecalhoClasse({ ficha }: { ficha: FichaVista }) {
   );
 }
 
-function ConteudoCelular({ aba, ficha, aoEscolher, aoAbrirLoja }: { aba: string; ficha: FichaVista; aoEscolher: () => void; aoAbrirLoja: () => void }) {
+export function ConteudoCelular({ aba, ficha, aoEscolher, aoAbrirLoja }: { aba: string; ficha: FichaVista; aoEscolher: () => void; aoAbrirLoja: () => void }) {
   if (aba === "habilidades") return <BlocoHabilidades ficha={ficha} />;
   if (aba === "notas") return <BlocoNotas ficha={ficha} />;
   if (aba === "inventario") {
@@ -285,6 +285,8 @@ function Desktop({ ficha, aoEscolher, aoVoltar, temPendencia }: { ficha: FichaVi
     </div>
   );
 }
+
+export { AvisoNivel, CabecalhoClasse, Escolha };
 
 export function TelaFicha({ personagem, ctx, aoVoltar }: { personagem: Personagem; ctx: ContextoFicha; aoVoltar: () => void }) {
   const larga = useTelaLarga();

@@ -1,0 +1,146 @@
+.sinal {
+  display: inline-block;
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--cor-texto-suave);
+  border-radius: 50%;
+}
+
+.criatura {
+  border-radius: 0;
+  transform: rotate(45deg);
+  border-color: var(--cor-perigo);
+}
+
+.npc {
+  border-radius: 0;
+  border-color: var(--cor-destaque);
+}
+
+.conta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-1);
+}
+
+.conta li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--esp-3);
+  padding-block: var(--esp-1);
+  border-bottom: 1px solid var(--cor-borda);
+}
+
+.pips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.pip {
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--cor-destaque);
+  border-radius: 50%;
+}
+
+.cheio {
+  background: var(--cor-destaque);
+}
+
+.linhaFicha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-2);
+  min-height: 36px;
+}
+
+.acoesPa {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
+  margin-top: var(--esp-2);
+}
+
+.vazio {
+  color: var(--cor-texto-suave);
+  font-size: var(--texto-s);
+}
+
+.iniciativa {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-3);
+}
+
+.cartas {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--esp-3);
+  padding-block: var(--esp-2);
+}
+
+.escolher {
+  padding: 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-1);
+}
+
+.campo select {
+  min-height: 44px;
+  padding-inline: var(--esp-2);
+  font: inherit;
+  color: inherit;
+  background: var(--cor-fundo-campo, transparent);
+  border: 1px solid var(--cor-borda-forte);
+}
+
+.campo option {
+  color: #000;
+}
+
+.efeitoTexto {
+  white-space: pre-line;
+  color: var(--cor-texto-suave);
+}
+
+.semCombate {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-1);
+}
+
+.alvoAtaque {
+  width: 100%;
+  min-height: var(--alvo-toque);
+  margin-bottom: var(--esp-2);
+  padding-inline: var(--esp-2);
+  background: var(--cor-superficie-alta);
+  border: 1px solid var(--cor-borda-forte);
+  border-radius: var(--raio-m);
+  color: var(--cor-texto);
+  font: inherit;
+}
+
+.reacao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-2);
+}
+
+/* Bônus e vantagem dos testes rápidos: valem para o próximo toque. */
+.ajusteRapido {
+  display: grid;
+  gap: var(--esp-2);
+  margin-block: var(--esp-3) var(--esp-2);
+}

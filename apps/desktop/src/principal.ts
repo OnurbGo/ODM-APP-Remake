@@ -4,7 +4,7 @@ import { extname, join, normalize, sep } from "node:path";
 import { app, BrowserWindow, ipcMain, protocol, session, utilityProcess, type IpcMainInvokeEvent, type UtilityProcess } from "electron";
 import { lerConfiguracoes, salvarConfiguracoes } from "./configuracoes";
 import { origemDaMesa, origemDe, portaValida } from "./endereco";
-import { consultarFirewall, liberarFirewall } from "./firewall";
+import { consultarFirewall, liberarFirewall } from "@odm/servidor/firewall";
 import type { MensagemFilho } from "./servidorFilho";
 
 /* Pasta própria: "ODM" é a do app antigo, que continua instalado como histórico. */
@@ -76,11 +76,12 @@ function aoSairFilho(processo: UtilityProcess, porta: number) {
       console.error("O servidor caiu repetidas vezes; não será reiniciado de novo.");
       return;
     }
-    void subirServidor(porta);
+    void subirServidor(porta, true);
   });
 }
 
-function subirServidor(porta: number) {
+/* Retomar só depois de uma queda: abrir o app sempre começa pela lista de campanhas. */
+function subirServidor(porta: number, retomar = false) {
   return new Promise<Resultado>((resolver) => {
     const processo = utilityProcess.fork(join(__dirname, "servidorFilho.cjs"), [], {
       serviceName: "ODM Servidor",
@@ -92,6 +93,7 @@ function subirServidor(porta: number) {
         ODM_PASTA_WEB: pastaWeb,
         ODM_PASTA_MIGRACOES: pastaMigracoes,
         ODM_TOKEN_MESTRE: tokenMestre,
+        ODM_RETOMAR: retomar ? "1" : "0",
       },
     });
     filho = processo;

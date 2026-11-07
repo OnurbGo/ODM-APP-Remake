@@ -22,6 +22,7 @@ export default defineConfig({
     proxy: {
       "/ws": { target: "ws://127.0.0.1:47821", ws: true },
       "/api": "http://127.0.0.1:47821",
+      "/teste": "http://127.0.0.1:47821",
     },
   },
 });

@@ -1,6 +1,7 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { Icone } from "./Icone";
 import css from "./PopUp.module.css";
+import { usarVoltar } from "./usarVoltar";
 
 type Props = {
   aberto: boolean;
@@ -27,6 +28,7 @@ export function PopUp({ aberto, titulo, subtitulo, aoFechar, variante = "folha",
   fechar.current = aoFechar;
   const preso = useRef(obrigatorio);
   preso.current = obrigatorio;
+  usarVoltar(aberto, aoFechar, obrigatorio);
 
   useEffect(() => {
     if (!aberto) return;

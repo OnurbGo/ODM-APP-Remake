@@ -6,7 +6,7 @@ export type MensagemFilho =
   | { tipo: "porta_ocupada"; porta: number }
   | { tipo: "falha"; mensagem: string };
 
-const { ODM_PORTA, ODM_PASTA_DADOS, ODM_PASTA_WEB, ODM_PASTA_MIGRACOES, ODM_TOKEN_MESTRE } = process.env;
+const { ODM_PORTA, ODM_PASTA_DADOS, ODM_PASTA_WEB, ODM_PASTA_MIGRACOES, ODM_TOKEN_MESTRE, ODM_RETOMAR } = process.env;
 const pai = process.parentPort;
 const avisar = (mensagem: MensagemFilho) => pai.postMessage(mensagem);
 
@@ -26,6 +26,7 @@ async function subir() {
       pastaMigracoes: ODM_PASTA_MIGRACOES ?? "",
       tokenMestre: ODM_TOKEN_MESTRE ?? "",
       pacotes: pacotesDaPasta(),
+      retomar: ODM_RETOMAR === "1",
     });
     avisar({ tipo: "pronto", porta: servidor.porta });
   } catch (erro) {

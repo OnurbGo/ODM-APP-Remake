@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { EstadoVivo, estadoVivoNovo } from "./combate";
 
 /* A ficha guarda ids e escolhas, nunca valor calculado (especificação, 5.1). Nível, PV e Defesa saem do motor de regras. */
 
@@ -84,6 +85,8 @@ export const Personagem = z.object({
   participanteId: z.string().nullable(),
   situacao: SituacaoPersonagem,
   ficha: FichaDados,
+  /* PV, fichas, efeitos e o resto que muda em jogo (especificação 6.3). */
+  vivo: EstadoVivo.default(estadoVivoNovo),
 });
 export type Personagem = z.infer<typeof Personagem>;
 

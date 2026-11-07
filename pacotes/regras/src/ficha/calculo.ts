@@ -199,7 +199,10 @@ export type FichaCalculada = {
   estresseMaximo: ValorContado | null;
   fichasDeClasse: FichaDeClasseCalculada[];
   dadoDeVida: string | null;
+  dadosDeVida: number;
 };
+
+export const dadosDeVida = (niveisDeClasse: number) => (niveisDeClasse < 1 ? 0 : 1 + Math.floor((niveisDeClasse - 1) / 2));
 
 function somarParcelas(soma: readonly ParcelaDeSoma[], atributos: Record<Atributo, ValorContado>, proficiencia: number): Parcela[] {
   return soma.map((s) =>
@@ -278,7 +281,22 @@ function fichasDeClasse(ficha: FichaDados, ctx: ContextoFicha, nivel: number, at
   });
 }
 
-export function calcularFicha(ficha: FichaDados, ctx: ContextoFicha): FichaCalculada {
+/* O que o estado vivo muda na ficha (Exaustão, efeitos, Crise). O motor de combate monta; a ficha só soma,
+   e cada parcela aparece na conta do valor. */
+export type SituacaoDaFicha = {
+  parcelas?: Partial<Record<"defesa" | "rd" | "deslocamento" | "pvMaximo", Parcela[]>>;
+  pvMaximoMetade?: string | null;
+  deslocamentoFixo?: { valor: number; motivo: string } | null;
+  deslocamentoMetade?: string | null;
+  deslocamentoMinimo?: number;
+};
+
+function cortarEmZero(valor: ValorContado, rotulo: string): ValorContado {
+  if (valor.valor >= 0) return valor;
+  return { ...valor, conta: [...valor.conta, { rotulo, valor: -valor.valor }], valor: 0 };
+}
+
+export function calcularFicha(ficha: FichaDados, ctx: ContextoFicha, situacao: SituacaoDaFicha = {}): FichaCalculada {
   const nivel = nivelDoXp(ficha.xp, ctx.regras);
   const proficiencia = bonusDeProficiencia(nivel, ctx.regras);
   const mecanica = mecanicaDaClasse(ficha, ctx);
@@ -323,17 +341,24 @@ export function calcularFicha(ficha: FichaDados, ctx: ContextoFicha): FichaCalcu
   const compradas = ficha.compras.filter((c) => c.tipo === "vitalidade_aprimorada").length;
   if (compradas) parcelasPv.push({ rotulo: `Vitalidade Aprimorada (${compradas} × ${vitalidade})`, valor: compradas * vitalidade });
   parcelasPv.push(...modificadores("pv_maximo", sem, fontes));
+  parcelasPv.push(...(situacao.parcelas?.pvMaximo ?? []));
+  if (situacao.pvMaximoMetade) {
+    const soma = parcelasPv.reduce((s, p) => s + p.valor, 0);
+    parcelasPv.push({ rotulo: situacao.pvMaximoMetade, valor: Math.floor(soma / 2) - soma });
+  }
   const pvMaximo = contar("pv_maximo", parcelasPv, ficha);
 
   const parcelasDefesa = defesaBase(ctx, atributos, proficiencia, itens, fontes);
   const escudo = itens.find((i) => i.mecanica.protecao?.categoria === "escudo");
   if (escudo?.mecanica.protecao?.bonus_defesa) parcelasDefesa.push({ rotulo: escudo.nome, valor: escudo.mecanica.protecao.bonus_defesa });
   parcelasDefesa.push(...modificadores("defesa", sem, fontes));
+  parcelasDefesa.push(...(situacao.parcelas?.defesa ?? []));
   const defesa = contar("defesa", parcelasDefesa, ficha);
 
   const parcelasRd: Parcela[] = itens.flatMap((i) => (i.mecanica.protecao?.rd ? [{ rotulo: i.nome, valor: i.mecanica.protecao.rd }] : []));
   parcelasRd.push(...modificadores("rd", sem, fontes));
-  const rd = contar("rd", parcelasRd, ficha);
+  parcelasRd.push(...(situacao.parcelas?.rd ?? []));
+  const rd = cortarEmZero(contar("rd", parcelasRd, ficha), "RD não fica abaixo de 0");
 
   const { base, por_fibra, minimo } = ctx.regras.carga.limite_kg;
   const parcelasCarga: Parcela[] = [{ rotulo: "Base", valor: base }, { rotulo: `${por_fibra} × Fibra`, valor: por_fibra * fibra }];
@@ -357,6 +382,14 @@ export function calcularFicha(ficha: FichaDados, ctx: ContextoFicha): FichaCalcu
   const semCarga = parcelasDesloc.reduce((s, p) => s + p.valor, 0);
   if (condicao === "sobrecarregado") parcelasDesloc.push({ rotulo: "Sobrecarregado (metade)", valor: Math.ceil(semCarga / 2) - semCarga });
   if (condicao === "imobilizado") parcelasDesloc.push({ rotulo: "Imobilizado", valor: -semCarga });
+  parcelasDesloc.push(...(situacao.parcelas?.deslocamento ?? []));
+  const antesDosEfeitos = parcelasDesloc.reduce((s, p) => s + p.valor, 0);
+  if (situacao.deslocamentoMinimo !== undefined && antesDosEfeitos < situacao.deslocamentoMinimo && condicao !== "imobilizado") {
+    parcelasDesloc.push({ rotulo: "Mínimo", valor: situacao.deslocamentoMinimo - antesDosEfeitos });
+  }
+  const somaDesloc = parcelasDesloc.reduce((s, p) => s + p.valor, 0);
+  if (situacao.deslocamentoFixo) parcelasDesloc.push({ rotulo: situacao.deslocamentoFixo.motivo, valor: situacao.deslocamentoFixo.valor - somaDesloc });
+  else if (situacao.deslocamentoMetade) parcelasDesloc.push({ rotulo: situacao.deslocamentoMetade, valor: Math.max(1, Math.floor(somaDesloc / 2)) - somaDesloc });
   const deslocamento = contar("deslocamento", parcelasDesloc, ficha);
 
   const percepcao = pericias.find((p) => p.id === "pericia.percepcao");
@@ -395,6 +428,8 @@ export function calcularFicha(ficha: FichaDados, ctx: ContextoFicha): FichaCalcu
     carga: { limite, atual, condicao },
     estresseMaximo,
     fichasDeClasse: fichasDeClasse(ficha, ctx, nivel, atributos, proficiencia),
-    dadoDeVida: mecanica ? `${niveis}${mecanica.dado_de_vida}` : null,
+    /* Jogador, Contextualização: 1 Dado de Vida no 1º nível e mais 1 a cada dois níveis (3º, 5º, 7º...). */
+    dadoDeVida: mecanica ? `${dadosDeVida(niveis)}${mecanica.dado_de_vida}` : null,
+    dadosDeVida: mecanica ? dadosDeVida(niveis) : 0,
   };
 }

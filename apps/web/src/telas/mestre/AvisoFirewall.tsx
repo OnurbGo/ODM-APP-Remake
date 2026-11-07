@@ -1,6 +1,6 @@
 import { Botao, Icone } from "@odm/estilo";
-import { useCallback, useEffect, useRef, useState } from "react";
 import css from "./PainelMestre.module.css";
+import type { Firewall } from "./usarFirewall";
 
 const TEXTO: Partial<Record<EstadoFirewall, string>> = {
   bloqueado: "O Windows está impedindo os jogadores de entrar na mesa.",
@@ -13,40 +13,11 @@ const FALHA: Record<MotivoFalha, string> = {
   falhou: "O Windows não aplicou a liberação. Feche o app, abra de novo e tente outra vez.",
 };
 
-/* Só no app instalado: é o Electron que sabe consultar e liberar. Liberado ou sem resposta, nada aparece. */
-export function AvisoFirewall() {
-  const ponte = window.odmDesktop?.firewall;
-  const [estado, definirEstado] = useState<EstadoFirewall | null>(null);
-  const [liberando, definirLiberando] = useState(false);
-  const [falha, definirFalha] = useState<MotivoFalha | null>(null);
-  const atual = useRef<EstadoFirewall | null>(null);
-  atual.current = estado;
-
-  const consultar = useCallback(() => {
-    void ponte?.estado().then(definirEstado, () => undefined);
-  }, [ponte]);
-
-  /* A pessoa pode ter respondido à janela do próprio Windows: ao voltar para o app, confere de novo. */
-  useEffect(() => {
-    consultar();
-    const aoVoltar = () => {
-      if (atual.current !== "liberado") consultar();
-    };
-    window.addEventListener("focus", aoVoltar);
-    return () => window.removeEventListener("focus", aoVoltar);
-  }, [consultar]);
-
+/* Liberado ou sem resposta, nada aparece. */
+export function AvisoFirewall({ firewall }: { firewall: Firewall }) {
+  const { noApp, estado, liberando, falha, liberar } = firewall;
   const texto = estado ? TEXTO[estado] : undefined;
-  if (!ponte || !texto) return null;
-
-  const liberar = async () => {
-    definirLiberando(true);
-    definirFalha(null);
-    const resultado = await ponte.liberar().catch(() => null);
-    definirLiberando(false);
-    if (resultado) definirEstado(resultado.estado);
-    definirFalha(resultado ? resultado.motivo : "falhou");
-  };
+  if (!noApp || !texto) return null;
 
   return (
     <div className={css.alerta} role="alert">

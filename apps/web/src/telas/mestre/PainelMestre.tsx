@@ -1,14 +1,18 @@
-import { Botao, Carregando, Cartao, Etiqueta, Icone, PopUp } from "@odm/estilo";
+import { Abas, Botao, Carregando, Cartao, Etiqueta, PopUp } from "@odm/estilo";
 import type { EnderecoRede, JogadorConhecido, Participante, PedidoEntrada, RedeMestre, TipoRede } from "@odm/protocolo";
-import { lazy, Suspense, useEffect, useId, useState } from "react";
+import { lazy, Suspense, useId, useState } from "react";
 import { acoes, useLoja } from "../../conexao/loja";
 import { FaixaConexao, NomeParticipante, Registro, Rolar } from "../Blocos";
 import css from "./PainelMestre.module.css";
+import { AjudaConexao } from "./AjudaConexao";
 import { AvisoFirewall } from "./AvisoFirewall";
+import { BotaoCopiar } from "./BotaoCopiar";
 import { QrEndereco } from "./QrEndereco";
+import { usarFirewall } from "./usarFirewall";
 
 const AreaFicha = lazy(() => import("../ficha/AreaFicha"));
 const Personagens = lazy(() => import("./Personagens"));
+const Escudo = lazy(() => import("./escudo/Escudo"));
 
 const NOME_REDE: Record<TipoRede, string> = {
   lan: "Rede local",
@@ -16,32 +20,6 @@ const NOME_REDE: Record<TipoRede, string> = {
   radmin: "Radmin",
   outra: "Outra rede",
 };
-
-async function copiar(texto: string) {
-  try {
-    await navigator.clipboard.writeText(texto);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function BotaoCopiar({ texto, rotulo }: { texto: string; rotulo: string }) {
-  const [estado, definirEstado] = useState<"parado" | "copiado" | "falhou">("parado");
-
-  useEffect(() => {
-    if (estado === "parado") return;
-    const id = window.setTimeout(() => definirEstado("parado"), 2000);
-    return () => clearTimeout(id);
-  }, [estado]);
-
-  return (
-    <Botao variante="fantasma" aria-label={rotulo} onClick={async () => definirEstado((await copiar(texto)) ? "copiado" : "falhou")}>
-      <Icone nome="copiar" tamanho={18} />
-      <span aria-live="polite">{estado === "copiado" ? "Copiado" : estado === "falhou" ? "Copie à mão" : "Copiar"}</span>
-    </Botao>
-  );
-}
 
 function LinhaEndereco({ endereco, porta, codigo }: { endereco: EnderecoRede; porta: number; codigo: string }) {
   const [qr, definirQr] = useState(false);
@@ -67,6 +45,7 @@ function LinhaEndereco({ endereco, porta, codigo }: { endereco: EnderecoRede; po
 }
 
 function Convite({ codigo, rede }: { codigo: string; rede: RedeMestre }) {
+  const firewall = usarFirewall();
   return (
     <Cartao titulo="Convidar jogadores">
       <div className={css.codigoBloco}>
@@ -80,7 +59,7 @@ function Convite({ codigo, rede }: { codigo: string; rede: RedeMestre }) {
         </div>
       </div>
 
-      <AvisoFirewall />
+      <AvisoFirewall firewall={firewall} />
 
       {rede.enderecos.length === 0 ? (
         <p className={css.vazio}>Nenhuma rede encontrada. Conecte este computador ao Wi-Fi, Hamachi ou Radmin.</p>
@@ -92,10 +71,7 @@ function Convite({ codigo, rede }: { codigo: string; rede: RedeMestre }) {
         </ul>
       )}
 
-      <p className={css.nota}>
-        Se o jogador não conseguir abrir o endereço, a rede pode estar isolando os dispositivos, como em Wi-Fi de escritório ou
-        de visitantes. Nesse caso, use Hamachi, Radmin ou o roteador do celular.
-      </p>
+      <AjudaConexao rede={rede} firewall={firewall} />
     </Cartao>
   );
 }
@@ -238,6 +214,9 @@ export default function PainelMestre() {
   const mestre = useLoja((e) => e.mestre);
   const erro = useLoja((e) => e.erro);
   const [aberto, abrir] = useState<string | null>(null);
+  const [trocando, definirTrocando] = useState(false);
+  const [area, definirArea] = useState("mesa");
+  const emCombate = useLoja((e) => !!e.combate);
   const existe = useLoja((e) => e.personagens.some((p) => p.id === aberto));
 
   if (aberto && existe) {
@@ -254,6 +233,18 @@ export default function PainelMestre() {
       <header className={css.topo}>
         <h1 className={css.titulo}>{mesa?.nome}</h1>
         <Etiqueta tom="destaque">Mestre</Etiqueta>
+        <Abas
+          rotuloGrupo="Áreas do mestre"
+          itens={[
+            { id: "mesa", rotulo: "Mesa" },
+            { id: "escudo", rotulo: "Escudo", aviso: emCombate && area !== "escudo" },
+          ]}
+          ativa={area}
+          aoEscolher={definirArea}
+        />
+        <Botao variante="fantasma" className={css.trocarCampanha} onClick={() => definirTrocando(true)}>
+          Trocar de campanha
+        </Botao>
       </header>
       {erro && (
         <p className={css.erro} role="alert">
@@ -263,6 +254,13 @@ export default function PainelMestre() {
           </Botao>
         </p>
       )}
+      {area === "escudo" ? (
+        <div className={css.area}>
+          <Suspense fallback={<Carregando rotulo="Abrindo o Escudo" />}>
+            <Escudo />
+          </Suspense>
+        </div>
+      ) : (
       <main className={css.colunas}>
         <div className={css.coluna}>{mestre && <Convite codigo={mestre.codigo} rede={mestre.rede} />}</div>
         <div className={css.coluna}>
@@ -276,6 +274,21 @@ export default function PainelMestre() {
           <Registro className={css.preenche} />
         </div>
       </main>
+      )}
+      <PopUp
+        aberto={trocando}
+        titulo={`Fechar ${mesa?.nome ?? "a campanha"}?`}
+        subtitulo="Os jogadores voltam para a tela de espera e entram sozinhos quando ela abrir de novo. Nada se perde."
+        variante="central"
+        aoFechar={() => definirTrocando(false)}
+      >
+        <div className={css.confirmar}>
+          <Botao onClick={() => definirTrocando(false)}>Cancelar</Botao>
+          <Botao variante="primario" onClick={acoes.fecharCampanha}>
+            Fechar e ver campanhas
+          </Botao>
+        </div>
+      </PopUp>
     </div>
   );
 }

@@ -2,11 +2,12 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import fastifyStatic from "@fastify/static";
 import type { PacoteConteudo } from "@odm/conteudo";
-import { PORTA_PADRAO, VERSAO_PROTOCOLO } from "@odm/protocolo";
+import { PORTA_PADRAO, VERSAO_PROTOCOLO, type RedeMestre } from "@odm/protocolo";
 import type { Aleatorio } from "@odm/regras";
 import Fastify from "fastify";
 import { Repositorio } from "./banco/repositorio";
 import { Mesa } from "./mesa/mesa";
+import { PAGINA_TESTE, SCRIPT_TESTE } from "./paginaTeste";
 import { listarEnderecos } from "./rede";
 import { ligarWebSocket } from "./transporte";
 
@@ -22,6 +23,11 @@ export type OpcoesServidor = {
   pacotes?: readonly PacoteConteudo[];
   aleatorio?: Aleatorio;
   agora?: () => number;
+  /* Reinício em plena sessão: a campanha que estava aberta continua aberta. */
+  retomar?: boolean;
+  /* Só em desenvolvimento, em que o Vite serve a página aos jogadores em outra porta. */
+  portaWeb?: number;
+  firewallDev?: () => RedeMestre["firewallDev"];
 };
 
 export class PortaOcupada extends Error {
@@ -54,7 +60,8 @@ export async function iniciarServidor(opcoes: OpcoesServidor) {
     aleatorio: opcoes.aleatorio,
     agora: opcoes.agora,
     pacotes: opcoes.pacotes,
-    rede: () => ({ porta: portaAberta, enderecos: listarEnderecos() }),
+    retomar: opcoes.retomar,
+    rede: () => ({ porta: opcoes.portaWeb ?? portaAberta, enderecos: listarEnderecos(), firewallDev: opcoes.firewallDev?.() ?? null }),
   });
 
   const app = Fastify({ logger: false });
@@ -66,6 +73,23 @@ export async function iniciarServidor(opcoes: OpcoesServidor) {
   });
 
   app.get("/api/saude", async () => ({ ok: true, protocolo: VERSAO_PROTOCOLO }));
+
+  app.get("/teste", async (_pedido, resposta) => {
+    return resposta.header("Cache-Control", "no-store").type("text/html; charset=utf-8").send(PAGINA_TESTE);
+  });
+  app.get("/teste.js", async (_pedido, resposta) => {
+    return resposta.header("Cache-Control", "no-store").type("text/javascript; charset=utf-8").send(SCRIPT_TESTE);
+  });
+
+  /* Bestiário e efeitos: só o mestre, só da máquina dele. O jogador nunca recebe a ficha de criatura. */
+  app.get("/api/conteudo-mestre", async (pedido, resposta) => {
+    const token = pedido.headers.authorization?.replace(/^Bearer /, "") ?? "";
+    const local = pedido.ip === "127.0.0.1" || pedido.ip === "::1" || pedido.ip === "::ffff:127.0.0.1";
+    const conteudo = mesa.conteudoDoMestre(token, local);
+    if (conteudo === undefined) return resposta.code(401).send({ erro: "nao_autorizado" });
+    if (conteudo === null) return resposta.code(404).send({ erro: "sem_conteudo" });
+    return conteudo;
+  });
 
   /* Só a parte de ficha, e só para quem está na mesa: criaturas e encontros ficam aqui (especificação, 3.1). */
   app.get("/api/conteudo-ficha", async (pedido, resposta) => {

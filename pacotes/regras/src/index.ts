@@ -7,3 +7,4 @@ export * from "./ficha/loja";
 export * from "./ficha/operacoes";
 export * from "./ficha/progressao";
 export * from "./ficha/rotulos";
+export * from "./combate";

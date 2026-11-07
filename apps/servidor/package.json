@@ -6,10 +6,12 @@
   "main": "src/index.ts",
   "types": "src/index.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./firewall": "./src/firewall.ts"
   },
   "scripts": {
-    "dev": "tsx watch src/cli.ts",
+    "dev": "tsx watch src/cli.ts --porta-web=5173",
+    "firewall:liberar": "tsx src/liberarFirewall.ts",
     "migracao": "drizzle-kit generate"
   },
   "dependencies": {

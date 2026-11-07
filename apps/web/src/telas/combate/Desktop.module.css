@@ -1,0 +1,752 @@
+.tela {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Três colunas de altura fixa: cada uma rola sozinha e a mesa nunca sai da tela. */
+.grade {
+  display: grid;
+  flex: 1;
+  grid-template-areas: "ficha combate registro";
+  grid-template-columns: 300px minmax(0, 1fr) 320px;
+  min-height: 0;
+}
+
+/* Janela estreita: a ficha sobe para a lateral e o registro continua visível embaixo dela. */
+@media (max-width: 1279px) {
+  .grade {
+    grid-template-areas:
+      "combate ficha"
+      "combate registro";
+    grid-template-columns: minmax(0, 1fr) 300px;
+    grid-template-rows: minmax(0, 1fr) 220px;
+  }
+
+  .ficha.ficha {
+    border-right: 0;
+    border-left: 1px solid var(--cor-borda);
+  }
+
+  .registro.registro {
+    border-top: 1px solid var(--cor-borda);
+  }
+
+  /* Sem a coluna da ficha para alinhar, o turno cede espaço aos nomes da iniciativa. */
+  .faixa.faixa {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: var(--esp-3);
+    padding-inline: var(--esp-3);
+  }
+
+  .combatente.combatente {
+    gap: 6px;
+    padding: 6px var(--esp-2);
+  }
+
+  .seuTurno.seuTurno {
+    font-size: var(--texto-xl);
+  }
+}
+
+/* Janela bem estreita: a iniciativa ganha uma segunda linha em vez de cortar os nomes. */
+@media (max-width: 1023px) {
+  .ordem.ordem {
+    flex-wrap: wrap;
+  }
+
+  .combatente.combatente {
+    flex: none;
+  }
+
+  .morrendo.morrendo {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--esp-3);
+  }
+
+  .morrendo.morrendo > button {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Faixa da mesa */
+
+.faixa {
+  display: grid;
+  flex: none;
+  grid-template-columns: 300px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--esp-4);
+  min-height: 72px;
+  padding: var(--esp-2) var(--esp-4);
+  background: var(--cor-fundo-faixa);
+  border-bottom: 1px solid var(--cor-borda-forte);
+}
+
+.faixaAtiva {
+  border-bottom-color: var(--cor-destaque);
+}
+
+.turno {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-3);
+  min-width: 0;
+}
+
+.seuTurno {
+  font-family: var(--fonte-gotica);
+  font-size: var(--texto-2xl);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--cor-destaque);
+}
+
+.turnoDe {
+  overflow: hidden;
+  font-family: var(--fonte-titulo);
+  font-size: var(--texto-xl);
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.depois {
+  font-size: var(--texto-s);
+  line-height: 1.2;
+  color: var(--cor-texto-suave);
+}
+
+.ordem {
+  display: flex;
+  gap: var(--esp-1);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.combatente {
+  display: flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: var(--esp-2);
+  min-width: 0;
+  padding: var(--esp-2) var(--esp-3);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-m);
+  font-size: var(--texto-s);
+  color: var(--cor-texto-suave);
+}
+
+.combatenteNome {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.voce {
+  color: var(--cor-texto);
+  border-color: var(--cor-borda-forte);
+}
+
+.davez {
+  background: var(--cor-destaque);
+  border-color: var(--cor-destaque-forte);
+  color: var(--cor-sobre-destaque);
+}
+
+/* A mesma regra do celular: círculo é jogador, losango é criatura. */
+.sinal {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+}
+
+.sinalCriatura {
+  border-color: var(--cor-perigo);
+  border-radius: 0;
+  transform: rotate(45deg);
+}
+
+.davez .sinalCriatura {
+  border-color: currentColor;
+}
+
+.rodada {
+  color: var(--cor-texto-suave);
+  white-space: nowrap;
+}
+
+/* Ficha */
+
+.ficha {
+  display: flex;
+  grid-area: ficha;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--cor-fundo-faixa);
+  border-right: 1px solid var(--cor-borda);
+}
+
+.fichaTopo {
+  flex: none;
+  padding: var(--esp-3) var(--esp-4) var(--esp-2);
+}
+
+.nome {
+  font-family: var(--fonte-titulo);
+  font-size: var(--texto-xl);
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.classe {
+  font-size: var(--texto-s);
+  color: var(--cor-texto-suave);
+}
+
+.classe a {
+  color: var(--cor-destaque);
+}
+
+.inventario {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-3);
+}
+
+.fichaCorpo {
+  flex: 1;
+  min-height: 0;
+  padding: var(--esp-3) var(--esp-4);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.ataque {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-3);
+  width: 100%;
+  min-height: 56px;
+  padding: var(--esp-2) var(--esp-3);
+  background: var(--cor-superficie-alta);
+  border: 1px solid var(--cor-borda-forte);
+  border-radius: var(--raio-m);
+  text-align: left;
+  transition: transform var(--dur-rapida) var(--curva-carimbo);
+}
+
+.ataque:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.ataque:disabled,
+.teste:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ataqueRotulo {
+  display: block;
+  color: var(--cor-perigo);
+}
+
+.ataqueArma {
+  display: block;
+  line-height: 1.15;
+}
+
+.ataqueValores {
+  display: flex;
+  flex: none;
+  align-items: baseline;
+  gap: var(--esp-3);
+  font-size: var(--texto-xl);
+}
+
+.ataqueDano {
+  font-size: var(--texto-l);
+  color: var(--cor-texto-suave);
+}
+
+.tabela {
+  margin-top: var(--esp-3);
+}
+
+.tabelaTopo,
+.tabelaLinha {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 56px 56px;
+  align-items: center;
+  gap: var(--esp-1);
+}
+
+.tabelaTopo {
+  padding-bottom: var(--esp-1);
+  color: var(--cor-texto-suave);
+}
+
+.tabelaTopo span + span {
+  text-align: center;
+}
+
+.tabelaLinha {
+  min-height: 38px;
+  border-top: 1px solid var(--cor-borda);
+}
+
+.teste {
+  min-width: 48px;
+  min-height: 32px;
+  border: 1px solid transparent;
+  border-radius: var(--raio-m);
+  font-size: var(--texto-l);
+  color: var(--cor-destaque);
+  transition: transform var(--dur-rapida) var(--curva-carimbo);
+}
+
+.teste:hover:not(:disabled) {
+  background: var(--cor-superficie-alta);
+  border-color: var(--cor-borda-forte);
+}
+
+.teste:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+.subtitulo {
+  margin-top: var(--esp-4);
+  padding-bottom: var(--esp-1);
+  color: var(--cor-texto-suave);
+}
+
+.pericia {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 36px;
+  border-top: 1px solid var(--cor-borda);
+}
+
+.nota {
+  margin-top: var(--esp-1);
+  font-size: var(--texto-s);
+  color: var(--cor-texto-suave);
+}
+
+/* Mesa */
+
+.combate {
+  grid-area: combate;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.mesa {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-3);
+  max-width: 1040px;
+  margin-inline: auto;
+  padding: var(--esp-3) var(--esp-4);
+}
+
+.linhaVida {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: var(--esp-3);
+}
+
+.linhaListas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: var(--esp-3);
+}
+
+/* Vida */
+
+.vida {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-2);
+}
+
+.tremor {
+  animation: tremer calc(320ms * var(--fator-animacao)) linear;
+}
+
+@keyframes tremer {
+  20% {
+    transform: translateX(-5px);
+  }
+  40% {
+    transform: translateX(5px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(2px);
+  }
+}
+
+.vidaTopo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-3);
+}
+
+/* Em cartão estreito a etiqueta de PV temporário desce, em vez de invadir Defesa. */
+.pvBloco {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-1) var(--esp-3);
+  min-width: 0;
+}
+
+.pv {
+  display: flex;
+  align-items: baseline;
+  gap: var(--esp-1);
+  border-radius: var(--raio-m);
+}
+
+.pvAtual {
+  font-size: var(--texto-4xl);
+}
+
+.pvMax {
+  font-size: var(--texto-2xl);
+  color: var(--cor-texto-suave);
+}
+
+.pvRotulo {
+  margin-left: var(--esp-1);
+  font-size: var(--texto-l);
+  color: var(--cor-perigo);
+}
+
+.salto {
+  position: absolute;
+  top: 12px;
+  left: 76px;
+}
+
+.minis {
+  display: flex;
+  flex: none;
+  gap: var(--esp-2);
+}
+
+.mini {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 68px;
+  min-height: 64px;
+  padding: var(--esp-1);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-m);
+  color: var(--cor-texto-suave);
+}
+
+.mini span:first-child {
+  font-size: var(--texto-xl);
+  color: var(--cor-texto);
+}
+
+.nivel {
+  display: grid;
+  grid-template-columns: 76px 1fr 22px;
+  align-items: center;
+  gap: var(--esp-2);
+  color: var(--cor-texto-suave);
+}
+
+.marcas {
+  display: flex;
+  gap: 3px;
+}
+
+.marca {
+  flex: 1;
+  height: 8px;
+  background: var(--cor-fundo-inset);
+  border: 1px solid var(--cor-borda);
+  border-radius: 1px;
+}
+
+.marcaCheia {
+  background: var(--cor-tecnica);
+  border-color: var(--cor-tecnica);
+}
+
+.nivelValor {
+  text-align: right;
+  color: var(--cor-texto);
+}
+
+/* Morrendo */
+
+.morrendo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--esp-6);
+  border-color: var(--cor-perigo);
+}
+
+.morrendoTitulo {
+  font-family: var(--fonte-gotica);
+  font-size: var(--texto-3xl);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--cor-perigo);
+}
+
+.contagens {
+  display: grid;
+  gap: var(--esp-2);
+}
+
+.contagem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-4);
+}
+
+.contagemMarcas {
+  display: flex;
+  gap: var(--esp-2);
+}
+
+.contagemMarca {
+  width: 18px;
+  height: 18px;
+  background: var(--cor-fundo-inset);
+  border: 1px solid var(--cor-borda-forte);
+  transform: rotate(45deg);
+}
+
+.sucesso {
+  background: var(--cor-sucesso);
+  border-color: var(--cor-sucesso);
+}
+
+.perigo {
+  background: var(--cor-perigo);
+  border-color: var(--cor-perigo);
+}
+
+/* PA */
+
+.blocoPA {
+  display: flex;
+  flex-direction: column;
+}
+
+.resumo {
+  font-size: var(--texto-s);
+  color: var(--cor-texto-suave);
+  text-align: right;
+}
+
+.marcadores {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: var(--esp-2);
+}
+
+/* Fichas */
+
+.fichas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  gap: var(--esp-1) var(--esp-6);
+}
+
+/* Listas */
+
+.lista {
+  display: flex;
+  flex-direction: column;
+}
+
+.lista > li + li {
+  border-top: 1px solid var(--cor-borda);
+}
+
+.linha {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  width: 100%;
+  min-height: 40px;
+  padding: var(--esp-1) 0;
+  border-radius: var(--raio-s);
+  text-align: left;
+}
+
+.seta {
+  display: grid;
+  flex: none;
+  color: var(--cor-texto-fraco);
+  transition: transform var(--dur-rapida) var(--curva-padrao);
+}
+
+.aberta .seta {
+  transform: rotate(90deg);
+}
+
+.linhaNome {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.15;
+}
+
+.linhaDados {
+  display: flex;
+  flex: none;
+  gap: var(--esp-1);
+}
+
+.tom-perigo {
+  color: var(--cor-perigo);
+}
+
+.tom-sucesso {
+  color: var(--cor-sucesso);
+}
+
+.habTextos {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.habDetalhe {
+  font-size: var(--texto-s);
+  line-height: 1.2;
+  color: var(--cor-texto-suave);
+}
+
+.usada .linhaNome {
+  color: var(--cor-texto-fraco);
+}
+
+.usada .habDetalhe {
+  font-style: italic;
+}
+
+.detalhe {
+  padding: var(--esp-1) 0 var(--esp-3);
+  animation: abrirDetalhe var(--dur-media) var(--curva-saida);
+}
+
+@keyframes abrirDetalhe {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+.textoLivro {
+  font-size: var(--texto-s);
+  font-style: italic;
+  color: var(--cor-texto-suave);
+}
+
+.acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
+  margin-top: var(--esp-2);
+}
+
+/* Registro: um livro-caixa, sempre aberto */
+
+.registro {
+  display: flex;
+  grid-area: registro;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--cor-fundo-faixa);
+  border-left: 1px solid var(--cor-borda);
+}
+
+.registroTitulo {
+  flex: none;
+  padding: var(--esp-3) var(--esp-4) var(--esp-2);
+  border-bottom: 1px solid var(--cor-borda-forte);
+  font-family: var(--fonte-titulo);
+  font-size: var(--texto-l);
+  font-weight: 400;
+}
+
+.registroLista {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 0 var(--esp-4);
+  overflow-y: auto;
+  list-style: none;
+  scrollbar-width: thin;
+}
+
+.evento {
+  padding: var(--esp-2) 0;
+  border-bottom: 1px dashed var(--cor-borda);
+  font-size: var(--texto-s);
+  line-height: 1.25;
+  animation: entrarEvento var(--dur-media) var(--curva-saida);
+}
+
+@keyframes entrarEvento {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+}
+
+.eventoTeste {
+  font-family: var(--fonte-epigrafe);
+  color: var(--cor-destaque);
+}
+
+.desfeita {
+  color: var(--cor-texto-fraco);
+  text-decoration: line-through;
+}
+
+.desfazer {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-1);
+  min-height: 32px;
+  margin-top: var(--esp-1);
+  padding: 0 var(--esp-2) 0 0;
+  border-radius: var(--raio-s);
+  font-family: var(--fonte-rotulo);
+  font-size: calc(var(--texto-s) * var(--rotulo-escala));
+  letter-spacing: var(--rotulo-espaco);
+  text-transform: var(--rotulo-caixa);
+  color: var(--cor-destaque);
+}

@@ -4,6 +4,7 @@ import { calcularFicha, kitsDoPacote, nivelDoXp, pontosDePrestigio, type Context
 import { useState } from "react";
 import { useContextoFicha, type EstadoDoContexto } from "../../conexao/conteudo";
 import { acoes, useLoja } from "../../conexao/loja";
+import { CamposOpcoes } from "./CamposOpcoes";
 import css from "./Personagens.module.css";
 
 function BuscaCatalogo({ ctx, rotulo, aoEscolher }: { ctx: ContextoFicha; rotulo: string; aoEscolher: (id: string, nome: string) => void }) {
@@ -181,34 +182,9 @@ function Kits({ ctx, conteudo, aoFechar }: { ctx: ContextoFicha; conteudo: Conte
 }
 
 function OpcoesDaCampanha({ opcoes, aoFechar }: { opcoes: OpcoesCampanha; aoFechar: () => void }) {
-  const alternar = (chave: "cartasDoDestino" | "estresse") => acoes.definirOpcoes({ ...opcoes, [chave]: !opcoes[chave] });
   return (
     <PopUp aberto titulo="Opções da campanha" variante="central" aoFechar={aoFechar}>
-      <div className={css.gerenciar}>
-        <label className={css.marca}>
-          <input type="checkbox" checked={opcoes.cartasDoDestino} onChange={() => alternar("cartasDoDestino")} />
-          Cartas do Destino
-        </label>
-        <label className={css.marca}>
-          <input type="checkbox" checked={opcoes.estresse} onChange={() => alternar("estresse")} />
-          Estresse
-        </label>
-        <label className={css.campo}>
-          <span className="odm-rotulo">Modelo de vantagem</span>
-          <select value={opcoes.modeloVantagem} onChange={(e) => acoes.definirOpcoes({ ...opcoes, modeloVantagem: e.target.value as OpcoesCampanha["modeloVantagem"] })}>
-            <option value="dados_extras">Dados Extras</option>
-            <option value="cartas">Cartas</option>
-          </select>
-        </label>
-        <label className={css.campo}>
-          <span className="odm-rotulo">Empate final da iniciativa</span>
-          <select value={opcoes.empateIniciativa} onChange={(e) => acoes.definirOpcoes({ ...opcoes, empateIniciativa: e.target.value as OpcoesCampanha["empateIniciativa"] })}>
-            <option value="naipe">Naipe</option>
-            <option value="nova_compra">Nova compra</option>
-          </select>
-        </label>
-        <p className={css.nota}>Polivalência entra com o pacote A Ordem no Caos.</p>
-      </div>
+      <CamposOpcoes opcoes={opcoes} aoMudar={acoes.definirOpcoes} />
     </PopUp>
   );
 }

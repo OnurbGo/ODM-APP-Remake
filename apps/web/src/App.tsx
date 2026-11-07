@@ -3,6 +3,7 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { acoes, useLoja, type EventoRolagem, type Fase } from "./conexao/loja";
 import { Entrada } from "./telas/Entrada";
 import { MesaJogador } from "./telas/MesaJogador";
+import { paraRolagem, rolagemDeCombate } from "./telas/testes/comum";
 
 /* O jogador nunca baixa o painel do mestre nem o gerador de QR code. */
 const PainelMestre = lazy(() => import("./telas/mestre/PainelMestre"));
@@ -23,12 +24,15 @@ function paraDadosRolagem(evento: EventoRolagem): DadosRolagem {
 
 /* De onde a pessoa vem decide a transição: quem acabou de ser aprovado passa pelas portas;
    quem só recarregou a página cai direto na mesa. */
-const FASES_DE_ENTRADA = new Set<Fase>(["visitante", "aguardando", "criar_mesa"]);
+const FASES_DE_ENTRADA = new Set<Fase>(["visitante", "aguardando", "campanhas"]);
 
 export function App() {
   const fase = useLoja((e) => e.fase);
   const papel = useLoja((e) => e.eu?.papel);
   const rolagem = useLoja((e) => e.rolagem);
+  const resultadoTeste = useLoja((e) => e.resultadoTeste);
+  const ataque = useLoja((e) => e.rolagemCombate);
+  const rapida = useLoja((e) => e.rolagemRapida);
   const { trocar, camada } = useTrocaDeTela();
 
   const dentro = fase === "dentro";
@@ -47,6 +51,8 @@ export function App() {
   }, [dentro, naMesa, trocar]);
 
   const dados = useMemo(() => (rolagem ? paraDadosRolagem(rolagem) : null), [rolagem]);
+  const dadosTeste = useMemo(() => (resultadoTeste ? paraRolagem(resultadoTeste) : null), [resultadoTeste]);
+  const dadosAtaque = useMemo(() => (ataque ? rolagemDeCombate(ataque.id, ataque.rolagem) : null), [ataque]);
 
   return (
     <>
@@ -59,7 +65,12 @@ export function App() {
       ) : (
         <MesaJogador />
       )}
-      {dados && <RolagemD20 rolagem={dados} aoFechar={acoes.fecharRolagem} />}
+      {dados && <RolagemD20 rolagem={dados} rapida={rapida} aoFechar={acoes.fecharRolagem} />}
+      {/* Rolagem automática fecha sozinha: a resistência costuma vir em série (especificação 8.4). */}
+      {dadosTeste && !dados && (
+        <RolagemD20 rolagem={dadosTeste} rapida={rapida} fecharSozinhoMs={resultadoTeste?.dados.automatico ? 2500 : undefined} aoFechar={acoes.fecharResultadoTeste} />
+      )}
+      {dadosAtaque && !dados && !dadosTeste && <RolagemD20 rolagem={dadosAtaque} rapida={rapida} aoFechar={acoes.fecharRolagemCombate} />}
       {camada}
     </>
   );

@@ -1,0 +1,163 @@
+.formulario {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-4);
+}
+
+.geral {
+  display: grid;
+  gap: var(--esp-3);
+}
+
+.campo {
+  display: grid;
+  gap: var(--esp-1);
+}
+
+.rotulo {
+  color: var(--cor-texto-suave);
+}
+
+.linhaGeral {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--esp-6);
+}
+
+.tabelaTopo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.jogadores {
+  border-bottom: 1px solid var(--cor-borda);
+}
+
+.jogador {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--esp-3);
+  min-height: 60px;
+  padding: var(--esp-1) 0;
+  border-top: 1px solid var(--cor-borda);
+}
+
+.desmarcado {
+  color: var(--cor-texto-suave);
+}
+
+.marcar {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  min-height: var(--alvo-toque);
+  cursor: pointer;
+}
+
+.marcar input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--cor-destaque);
+}
+
+.nome {
+  display: block;
+  line-height: 1.15;
+}
+
+.condicoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-1);
+  margin-top: 2px;
+}
+
+.condicoes:empty {
+  display: none;
+}
+
+.ajustes {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--esp-3);
+}
+
+/* ---------- Acréscimos da fase 5: os quatro tipos ---------- */
+
+.nota {
+  font-size: var(--texto-s);
+  color: var(--cor-texto-suave);
+}
+
+.linhaDupla {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--esp-3);
+  align-items: end;
+}
+
+.select,
+.texto {
+  min-height: var(--alvo-toque);
+  padding: 0 var(--esp-2);
+  border: 1px solid var(--cor-borda-forte);
+  border-radius: var(--raio-m);
+  background: var(--cor-superficie-alta);
+  color: var(--cor-texto);
+  font: inherit;
+}
+
+.escala {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-1);
+}
+
+.degrau {
+  min-height: var(--alvo-toque);
+  padding: 0 var(--esp-2);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-m);
+  background: transparent;
+  color: var(--cor-texto-suave);
+  font: inherit;
+  cursor: pointer;
+}
+
+.degrauAtivo {
+  border-color: var(--cor-destaque);
+  color: var(--cor-texto);
+}
+
+.oponente {
+  display: grid;
+  gap: var(--esp-3);
+  margin: 0;
+  padding: var(--esp-3);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-m);
+}
+
+@media (max-width: 700px) {
+  .jogador {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ajustes {
+    grid-template-columns: auto auto;
+  }
+
+  .ajustes > :last-child {
+    grid-column: 1 / -1;
+  }
+
+  .linhaGeral {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

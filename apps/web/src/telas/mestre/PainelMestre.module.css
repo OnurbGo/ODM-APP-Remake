@@ -230,3 +230,54 @@
   height: auto;
   border-radius: var(--raio-s);
 }
+
+.trocarCampanha {
+  margin-inline-start: auto;
+}
+
+.ajuda {
+  margin-top: var(--esp-3);
+  padding-top: var(--esp-2);
+  border-top: 1px solid var(--cor-borda);
+}
+
+.ajudaTitulo {
+  padding-block: var(--esp-2);
+  font-family: var(--fonte-titulo);
+  font-size: var(--texto-m);
+  color: var(--cor-destaque);
+  cursor: pointer;
+}
+
+.ajudaLista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-2);
+  padding-inline-start: var(--esp-4);
+  font-size: var(--texto-s);
+  list-style: decimal;
+}
+
+.ajudaTeste {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-2);
+  margin-top: var(--esp-3);
+  font-size: var(--texto-s);
+}
+
+.linhaTeste {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-1) var(--esp-2);
+  overflow-wrap: anywhere;
+}
+
+.area {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}

@@ -20,7 +20,7 @@ import { opcoesPadrao, type OpcoesCampanha } from "@odm/protocolo";
 /* A parte do pacote que a ficha usa. É também o que o jogador recebe: criaturas e encontros ficam com o servidor. */
 export type ConteudoFicha = Pick<
   Conteudo,
-  "origens" | "talentos" | "classes" | "especializacoes" | "habilidades" | "recursos" | "pericias" | "tabelas" | "regras" | "itens"
+  "origens" | "talentos" | "classes" | "especializacoes" | "habilidades" | "recursos" | "pericias" | "tabelas" | "regras" | "itens" | "efeitos"
 >;
 
 type Esquemas = typeof MecanicaRegras;
@@ -99,5 +99,7 @@ export function recortarConteudoFicha(conteudo: Conteudo): ConteudoFicha {
     tabelas: conteudo.tabelas.filter((t) => usadas.has(t.id)),
     regras: conteudo.regras,
     itens: conteudo.itens,
+    /* Texto e mecânica dos efeitos: o jogador vê o que o aflige e a conta que ele muda. */
+    efeitos: conteudo.efeitos,
   };
 }

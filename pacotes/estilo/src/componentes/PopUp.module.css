@@ -99,6 +99,8 @@
 }
 
 .corpo {
+  /* Sem isto, conteúdo comprido passa do painel e some da tela em vez de rolar. */
+  min-height: 0;
   overflow-y: auto;
   padding: var(--esp-2) var(--esp-4) var(--esp-4);
 }

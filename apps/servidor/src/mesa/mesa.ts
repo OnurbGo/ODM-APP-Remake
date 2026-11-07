@@ -10,6 +10,7 @@ import {
   type MensagemServidor,
   type Participante,
   type OpcoesCampanha,
+  type PacoteDisponivel,
   type PedidoEntrada,
   type Personagem,
   type RedeMestre,
@@ -18,6 +19,10 @@ import type { PacoteConteudo } from "@odm/conteudo";
 import { rolarD20, totalDaRolagem, type Aleatorio, type Modificador } from "@odm/regras";
 import type { Campanha, ParticipanteBanco, Repositorio } from "../banco/repositorio";
 import { LimiteTentativas } from "./limite";
+import { Combates, projetarCombate } from "./combate";
+import { Acoes } from "./acoes";
+import { Testes } from "./testes";
+import { Vida } from "./vida";
 import { Personagens } from "./personagens";
 import { projetarEvento, type Espectador } from "./visibilidade";
 
@@ -37,6 +42,8 @@ type Estado =
 
 type Conexao = { canal: Canal; estado: Estado };
 
+type Contagem = { vistos: number; vistosDe?: string };
+
 type PedidoPendente = {
   id: string;
   segredoHash: string;
@@ -54,10 +61,13 @@ export type OpcoesMesa = {
   agora?: () => number;
   rede?: () => RedeMestre;
   pacotes?: readonly PacoteConteudo[];
+  /* Volta à campanha que estava aberta. Só para reinício em plena sessão: abrir o app mostra a lista. */
+  retomar?: boolean;
 };
 
-const SEM_REDE: RedeMestre = { porta: 0, enderecos: [] };
+const SEM_REDE: RedeMestre = { porta: 0, enderecos: [], firewallDev: null };
 const NOME_MESTRE = "Mestre";
+const PACOTE_BASE = "base";
 const ROTULO_ROLAGEM = "Rolagem de d20";
 /* Sem 0/O e 1/I/L, que se confundem ao ditar o código na mesa. */
 const ALFABETO_CODIGO = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
@@ -80,7 +90,7 @@ const MENSAGEM: Record<CodigoErro, string> = {
   acesso_revogado: "O mestre removeu seu acesso à mesa.",
   pedido_inexistente: "Esse pedido de entrada não existe mais.",
   sem_mesa: "O mestre ainda não abriu a mesa.",
-  mesa_ja_existe: "A mesa já foi criada.",
+  mesa_ja_existe: "Já há uma campanha aberta. Feche-a antes de abrir outra.",
   codigo_incorreto: "Código da mesa incorreto.",
   muitas_tentativas: "Muitas tentativas. Espere um minuto e tente de novo.",
   indisponivel: "Isso ainda não está disponível nesta versão.",
@@ -112,6 +122,10 @@ export class Mesa {
   private readonly agora: () => number;
   private campanha: Campanha | undefined;
   readonly personagens: Personagens;
+  readonly combates: Combates;
+  readonly testes: Testes;
+  readonly acoes: Acoes;
+  readonly vida: Vida;
 
   constructor(
     private readonly repo: Repositorio,
@@ -119,7 +133,7 @@ export class Mesa {
   ) {
     this.aleatorio = opcoes.aleatorio ?? ((minimo, maximo) => randomInt(minimo, maximo + 1));
     this.agora = opcoes.agora ?? Date.now;
-    this.campanha = repo.campanhaAtual();
+    this.campanha = opcoes.retomar ? repo.campanhaAberta() : undefined;
     this.personagens = new Personagens(repo, opcoes.pacotes ?? [], {
       campanha: () => this.campanha,
       registrar: (evento) => this.registrar(evento),
@@ -129,6 +143,51 @@ export class Mesa {
       avisarOpcoes: (o) => this.avisarOpcoes(o),
       avisarMestre: () => this.avisarMestre(),
     }, this.aleatorio);
+    this.combates = new Combates(repo, {
+      campanha: () => this.campanha,
+      conteudo: () => this.personagens.conteudoCompleto(),
+      contextoFicha: () => this.personagens.contexto(),
+      registrar: (evento) => this.registrar(evento),
+      novoEvento: (quem, corpo) => this.eventoDe(quem.id, corpo),
+      enviarPersonagem: (personagem, antigoDono) => this.enviarPersonagem(personagem, antigoDono),
+      enviarCombate: () => this.enviarCombate(),
+    }, this.aleatorio);
+    this.testes = new Testes(repo, {
+      campanha: () => this.campanha,
+      combates: this.combates,
+      contextoFicha: () => this.personagens.contexto(),
+      registrar: (evento) => this.registrar(evento),
+      novoEvento: (quem, corpo) => this.eventoDe(quem.id, corpo),
+      enviarPersonagem: (personagem, antigoDono) => this.enviarPersonagem(personagem, antigoDono),
+      ameacaDeMassa: (combatenteId) => this.acoes.ameacaDeMassaEm(combatenteId),
+    }, this.aleatorio);
+    this.acoes = new Acoes({
+      conteudo: () => this.personagens.conteudoCompleto(),
+      contextoFicha: () => this.personagens.contexto(),
+      combates: this.combates,
+      registrar: (evento) => this.registrar(evento),
+      novoEvento: (quem, corpo) => this.eventoDe(quem.id, corpo),
+      pedirTeste: (pedido, quem) => this.testes.pedirPeloSistema(pedido, quem),
+      operarFicha: (personagemId, op, quem) => this.personagens.operarPeloSistema(personagemId, op, quem),
+      donoDe: (personagemId) => repo.personagem(personagemId)?.participanteId ?? null,
+      personagem: (id) => repo.personagem(id),
+    }, this.aleatorio);
+    this.combates.ganchoDoTurno = (c, momento, ctx, recargas) => this.acoes.efeitosDoTurno(c, momento, ctx, recargas);
+    this.vida = new Vida({
+      combates: this.combates,
+      contextoFicha: () => this.personagens.contexto(),
+      personagem: (id) => repo.personagem(id),
+      podeAgirPor: (p, quem) => quem.papel === "mestre" || p.participanteId === quem.id,
+      campanhaId: () => this.campanha?.id ?? null,
+    }, this.aleatorio);
+    this.combates.paPorTurnoDe = (c) => (c.horda ? (this.acoes.hordaDe(c)?.regras.paPorTurno ?? null) : null);
+  }
+
+  /* Pedido HTTP do conteúdo do mestre: criaturas, ameaças e efeitos. Só da máquina do mestre. */
+  conteudoDoMestre(token: string, local: boolean) {
+    if (!local || !iguais(token, this.opcoes.tokenMestre)) return undefined;
+    const c = this.personagens.conteudoCompleto();
+    return c ? { criaturas: c.criaturas, ameacas: c.ameacas, efeitos: c.efeitos, regras: c.regras, tabelas: c.tabelas } : null;
   }
 
   /* Pedido HTTP do conteúdo da ficha: vale o token de quem está na mesa. */
@@ -179,14 +238,21 @@ export class Mesa {
       return;
     }
     const { estado } = conexao;
-    if (estado.fase !== "dentro" && !(mensagem.t === "criar_mesa" && this.ehMestreSemMesa(conexao))) {
+    const escolhendo = (mensagem.t === "criar_campanha" || mensagem.t === "abrir_campanha") && this.ehMestreSemMesa(conexao);
+    if (estado.fase !== "dentro" && !escolhendo) {
       this.erro(conexao.canal, "nao_identificado");
       return;
     }
 
     switch (mensagem.t) {
-      case "criar_mesa":
-        this.criarMesa(conexao, mensagem.nome);
+      case "criar_campanha":
+        this.responder(conexao, this.criarCampanha(conexao, mensagem));
+        return;
+      case "abrir_campanha":
+        this.responder(conexao, this.abrirCampanha(conexao, mensagem.campanhaId));
+        return;
+      case "fechar_campanha":
+        if (this.exigirMestre(conexao)) this.fecharCampanha();
         return;
       case "rolar":
         this.rolar(conexao, mensagem.rotulo, mensagem.bonus);
@@ -226,11 +292,54 @@ export class Mesa {
           this.responder(conexao, this.personagens.entregarKit(mensagem.personagemId, mensagem.kitId, estado.quem));
         }
         return;
-      case "pedir_teste":
-        if (this.exigirMestre(conexao)) this.erro(conexao.canal, "indisponivel");
+      case "combate_criar":
+      case "iniciativa_comprar":
+      case "iniciativa_escolher_carta":
+      case "iniciativa_efeito":
+      case "iniciativa_desempatar":
+      case "combate_comecar":
+      case "turno_encerrar":
+      case "rodada_nova":
+      case "pa_gastar":
+      case "combate_encerrar":
+      case "combate_desfazer":
+        if (estado.fase === "dentro") this.responder(conexao, this.combates.receber(mensagem, estado.quem));
         return;
+      case "pedir_teste":
       case "responder_teste":
-        this.erro(conexao.canal, "indisponivel");
+      case "recusar_teste":
+      case "decidir_teste":
+      case "forcar_rolagem":
+      case "rolar_de_novo":
+      case "teste_rapido":
+      case "automatico":
+      case "carta_do_destino":
+        if (estado.fase === "dentro") this.responder(conexao, this.testes.receber(mensagem, estado.quem));
+        return;
+      case "atacar":
+      case "reagir":
+      case "ataque_seguir":
+      case "ataque_cancelar":
+      case "dano_aplicar":
+      case "pv_ajustar":
+      case "efeito_aplicar":
+      case "efeito_editar":
+      case "efeito_encerrar":
+      case "efeito_acao":
+      case "rolar_livre":
+      case "horda_formar":
+      case "horda_area":
+      case "recarga_usar":
+        if (estado.fase === "dentro") this.responder(conexao, this.acoes.receber(mensagem, estado.quem));
+        return;
+      case "teste_de_morte":
+      case "estabilizar":
+      case "atitude_imprudente":
+      case "estresse_ajustar":
+      case "ficha_classe_ajustar":
+      case "habilidade_usar":
+      case "descanso":
+        if (estado.fase === "dentro") this.responder(conexao, this.vida.receber(mensagem, estado.quem));
         return;
     }
   }
@@ -255,8 +364,8 @@ export class Mesa {
 
   /* Vai para o dono atual e o mestre; quem deixou de controlar vê o personagem sair. */
   private enviarPersonagem(personagem: Personagem, antigoDono: string | null) {
-    const { id, participanteId, situacao, ficha } = personagem;
-    const mensagem = { t: "personagem", personagem: { id, participanteId, situacao, ficha } } as const;
+    const { id, participanteId, situacao, ficha, vivo } = personagem;
+    const mensagem = { t: "personagem", personagem: { id, participanteId, situacao, ficha, vivo } } as const;
     for (const c of this.conexoes) {
       if (c.estado.fase !== "dentro") continue;
       const { quem } = c.estado;
@@ -269,6 +378,14 @@ export class Mesa {
     for (const c of this.conexoes) {
       if (c.estado.fase !== "dentro") continue;
       if (c.estado.quem.papel === "mestre" || c.estado.quem.id === donoId) c.canal.enviar({ t: "personagem_removido", personagemId });
+    }
+  }
+
+  /* Cada um recebe o combate como pode ver: o jogador, sem PV de criatura nem baralho. */
+  private enviarCombate() {
+    const combate = this.combates.combate();
+    for (const c of this.conexoes) {
+      if (c.estado.fase === "dentro") c.canal.enviar({ t: "combate", combate: projetarCombate(combate, c.estado.quem) });
     }
   }
 
@@ -298,13 +415,13 @@ export class Mesa {
     switch (credencial.tipo) {
       case "visitante":
         conexao.estado = { fase: "visitante" };
-        conexao.canal.enviar({ t: "visitante", mesaAberta: !!this.campanha });
+        conexao.canal.enviar({ t: "visitante", mesaAberta: !!this.campanha, deOutraCampanha: false });
         return;
       case "mestre":
-        this.olaMestre(conexao, credencial.token, mensagem.vistos);
+        this.olaMestre(conexao, credencial.token, mensagem);
         return;
       case "jogador":
-        this.olaJogador(conexao, credencial.token, mensagem.vistos);
+        this.olaJogador(conexao, credencial.tokens, mensagem);
         return;
       case "pedido":
         this.olaPedido(conexao, credencial.pedidoId, credencial.segredo);
@@ -312,7 +429,7 @@ export class Mesa {
     }
   }
 
-  private olaMestre(conexao: Conexao, token: string, vistos: number) {
+  private olaMestre(conexao: Conexao, token: string, contagem: Contagem) {
     /* O token só vale de dentro da máquina do mestre: nunca passa pela rede. */
     if (!conexao.canal.local || !iguais(token, this.opcoes.tokenMestre)) {
       this.erro(conexao.canal, "nao_autorizado");
@@ -322,20 +439,28 @@ export class Mesa {
     this.mestreConectado.add(conexao);
     if (!this.campanha) {
       conexao.estado = { fase: "visitante" };
-      conexao.canal.enviar({ t: "sem_mesa" });
+      conexao.canal.enviar({ t: "campanhas", lista: this.repo.resumoDasCampanhas(), pacotes: this.pacotesDisponiveis() });
       return;
     }
     const mestre = this.repo.mestreDa(this.campanha.id);
-    if (mestre) this.entrar(conexao, mestre, vistos);
+    if (mestre) this.entrar(conexao, mestre, contagem);
   }
 
-  private olaJogador(conexao: Conexao, token: string, vistos: number) {
-    const participante = this.repo.participantePorToken(hash(token));
-    if (!participante || participante.campanhaId !== this.campanha?.id) {
-      this.erro(conexao.canal, "token_invalido");
+  /* Aprovado em outra campanha continua aprovado: espera a campanha dele abrir, sem perder o token. */
+  private olaJogador(conexao: Conexao, tokens: readonly string[], contagem: Contagem) {
+    const participantes = tokens.map((token) => this.repo.participantePorToken(hash(token)));
+    const indice = participantes.findIndex((p) => p && p.campanhaId === this.campanha?.id);
+    const participante = participantes[indice];
+    if (participante) {
+      this.entrar(conexao, participante, contagem, indice);
       return;
     }
-    this.entrar(conexao, participante, vistos);
+    if (participantes.some(Boolean)) {
+      conexao.estado = { fase: "visitante" };
+      conexao.canal.enviar({ t: "visitante", mesaAberta: !!this.campanha, deOutraCampanha: true });
+      return;
+    }
+    this.erro(conexao.canal, "token_invalido");
   }
 
   private olaPedido(conexao: Conexao, pedidoId: string, segredo: string) {
@@ -360,10 +485,11 @@ export class Mesa {
     conexao.canal.enviar({ t: "entrada_aguardando", pedidoId, segredo });
   }
 
-  private entrar(conexao: Conexao, participante: ParticipanteBanco, vistos: number) {
+  private entrar(conexao: Conexao, participante: ParticipanteBanco, contagem: Contagem, tokenIndice: number | null = null) {
     const campanha = this.campanha;
     if (!campanha) return;
     const quem: Espectador = { id: participante.id, papel: participante.papel };
+    const vistos = contagem.vistosDe && contagem.vistosDe !== participante.id ? 0 : contagem.vistos;
 
     /* Refaz o registro de quem chegou: a posição "n" é própria de cada espectador. */
     const proprios: EventoVisto[] = [];
@@ -376,11 +502,13 @@ export class Mesa {
     conexao.canal.enviar({
       t: "bem_vindo",
       eu: { id: participante.id, nome: participante.nome, papel: participante.papel, online: true },
-      mesa: { nome: campanha.nome, opcoes: this.repo.opcoesDa(campanha), conteudo: this.personagens.conteudo() !== null },
+      mesa: { id: campanha.id, nome: campanha.nome, opcoes: this.repo.opcoesDa(campanha), conteudo: this.personagens.conteudo() !== null },
+      tokenIndice,
       participantes: this.listaParticipantes(campanha.id),
       eventos: proprios.filter((e) => e.n > vistos).slice(-MAX_EVENTOS_NA_CHEGADA),
-      personagens: this.personagens.visiveisPara(quem).map(({ id, participanteId, situacao, ficha }) => ({ id, participanteId, situacao, ficha })),
+      personagens: this.personagens.visiveisPara(quem).map(({ id, participanteId, situacao, ficha, vivo }) => ({ id, participanteId, situacao, ficha, vivo })),
     });
+    conexao.canal.enviar({ t: "combate", combate: projetarCombate(this.combates.combate(), quem) });
     if (participante.papel === "mestre") this.enviarEstadoMestre(conexao);
     this.avisarPresenca();
   }
@@ -513,21 +641,65 @@ export class Mesa {
     this.avisarMestre();
   }
 
-  private criarMesa(conexao: Conexao, nome: string) {
-    if (this.campanha) {
-      this.erro(conexao.canal, "mesa_ja_existe");
+  private pacotesDisponiveis(): PacoteDisponivel[] {
+    return (this.opcoes.pacotes ?? []).map(({ manifesto: { id, nome, versao, dependencias } }) => ({ id, nome, versao, dependencias: dependencias.map((d) => d.id) }));
+  }
+
+  /* Sem pacote instalado a campanha nasce com a base marcada: o conteúdo entra quando o pacote chegar. */
+  private validarPacotes(pedidos: readonly string[]): { ativos: string[] } | { recusado: string } {
+    const disponiveis = this.pacotesDisponiveis();
+    const ativos = pedidos.length ? [...new Set(pedidos)] : [PACOTE_BASE];
+    if (!disponiveis.length) return { ativos };
+    for (const id of ativos) {
+      const pacote = disponiveis.find((p) => p.id === id);
+      if (!pacote) return { recusado: "Esse pacote de conteúdo não está instalado." };
+      const falta = pacote.dependencias.find((d) => !ativos.includes(d));
+      if (falta) return { recusado: `${pacote.nome} precisa do pacote ${disponiveis.find((p) => p.id === falta)?.nome ?? falta}.` };
+    }
+    return { ativos };
+  }
+
+  private criarCampanha(conexao: Conexao, pedido: Extract<MensagemClienteLida, { t: "criar_campanha" }>) {
+    if (!this.ehMestreSemMesa(conexao)) {
+      this.erro(conexao.canal, this.campanha ? "mesa_ja_existe" : "nao_autorizado");
       return;
     }
-    this.campanha = this.repo.criarCampanha(
-      nome,
-      gerarCodigo(this.aleatorio),
-      NOME_MESTRE,
-      new Date(this.agora()).toISOString(),
-    );
-    const mestre = this.repo.mestreDa(this.campanha.id);
-    if (mestre) this.entrar(conexao, mestre, 0);
+    const pacotes = this.validarPacotes(pedido.pacotes);
+    if ("recusado" in pacotes) return pacotes;
+    const agora = new Date(this.agora()).toISOString();
+    const nova = this.repo.criarCampanha(pedido.nome, gerarCodigo(this.aleatorio), NOME_MESTRE, agora, { pacotes: pacotes.ativos, opcoes: pedido.opcoes });
+    this.ativar(conexao, nova.id, agora);
+  }
+
+  private abrirCampanha(conexao: Conexao, campanhaId: string) {
+    if (!this.ehMestreSemMesa(conexao)) {
+      this.erro(conexao.canal, this.campanha ? "mesa_ja_existe" : "nao_autorizado");
+      return;
+    }
+    if (!this.repo.campanha(campanhaId)) return { recusado: "Essa campanha não existe mais." };
+    this.ativar(conexao, campanhaId, new Date(this.agora()).toISOString());
+  }
+
+  private ativar(conexao: Conexao, campanhaId: string, agora: string) {
+    this.campanha = this.repo.abrirCampanha(campanhaId, agora);
+    const mestre = this.repo.mestreDa(campanhaId);
+    if (mestre) this.entrar(conexao, mestre, { vistos: 0 });
+    this.avisarMudancaDeMesa(conexao);
+  }
+
+  /* Ninguém fica preso: quem estava na mesa volta a esperar, e quem esperava descobre se a campanha é a sua. */
+  private fecharCampanha() {
+    this.repo.fecharCampanhas();
+    this.campanha = undefined;
+    this.pedidos.clear();
+    this.avisarMudancaDeMesa();
+  }
+
+  private avisarMudancaDeMesa(exceto?: Conexao) {
     for (const outra of this.conexoes) {
-      if (outra.estado.fase === "visitante") outra.canal.enviar({ t: "visitante", mesaAberta: true });
+      if (outra === exceto) continue;
+      outra.estado = { fase: "novo" };
+      outra.canal.enviar({ t: "mesa_mudou" });
     }
   }
 
@@ -607,7 +779,7 @@ export class Mesa {
     });
   }
 
-  private avisarMestre() {
+  avisarMestre() {
     for (const c of this.conexoes) {
       if (c.estado.fase === "dentro" && c.estado.quem.papel === "mestre") this.enviarEstadoMestre(c);
     }

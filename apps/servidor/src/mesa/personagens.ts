@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
-import type { PacoteConteudo } from "@odm/conteudo";
+import { Conteudo, type PacoteConteudo } from "@odm/conteudo";
 import {
+  estadoVivoNovo,
   FichaRascunho,
   fichaVazia,
   type EventoCompleto,
@@ -70,6 +71,7 @@ export function juntarConteudo(pacotes: readonly PacoteConteudo[], ativos: reado
     tabelas: juntar("tabelas"),
     regras: juntar("regras"),
     itens: juntar("itens"),
+    efeitos: juntar("efeitos"),
   };
 }
 
@@ -86,7 +88,19 @@ export class Personagens {
     return campanha ? juntarConteudo(this.pacotes, this.repo.pacotesDa(campanha)) : null;
   }
 
-  private contexto(): ContextoFicha | null {
+  /* Tudo dos pacotes ativos, para o combate e para o mestre: criaturas e efeitos ficam aqui no servidor. */
+  conteudoCompleto(): Conteudo | null {
+    const campanha = this.host.campanha();
+    if (!campanha) return null;
+    const ativos = this.repo.pacotesDa(campanha);
+    const escolhidos = this.pacotes.filter((p) => ativos.includes(p.manifesto.id));
+    if (!escolhidos.length) return null;
+    const junto: Record<string, unknown[]> = {};
+    for (const p of escolhidos) for (const [chave, lista] of Object.entries(p.conteudo)) junto[chave] = [...(junto[chave] ?? []), ...lista];
+    return Conteudo.parse(junto);
+  }
+
+  contexto(): ContextoFicha | null {
     const campanha = this.host.campanha();
     const conteudo = this.conteudo();
     if (!campanha || !conteudo) return null;
@@ -136,6 +150,7 @@ export class Personagens {
       participanteId: quem.papel === "mestre" ? null : quem.id,
       situacao: "rascunho",
       ficha: fichaVazia(),
+      vivo: estadoVivoNovo(),
     };
     this.repo.criarPersonagem(campanha.id, novo, new Date().toISOString());
     this.host.enviarPersonagem(novo, null);
@@ -190,6 +205,11 @@ export class Personagens {
       default:
         return null;
     }
+  }
+
+  /* Usado pelas ações de efeito que gastam item (Usar Trapos): vale como operação de quem agiu, com desfazer. */
+  operarPeloSistema(id: string, op: Operacao, quem: Espectador): Recusa | void {
+    return this.operar(id, op, quem);
   }
 
   private operar(id: string, op: Operacao, quem: Espectador): Recusa | void {

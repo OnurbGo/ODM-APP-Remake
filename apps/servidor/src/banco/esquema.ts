@@ -7,6 +7,9 @@ export const campanhas = sqliteTable("campanhas", {
   criadaEm: text("criada_em").notNull(),
   opcoes: text().notNull().default("{}"),
   pacotes: text().notNull().default('["base"]'),
+  ultimaSessaoEm: text("ultima_sessao_em"),
+  /* Uma por vez. Só serve para retomar a mesma campanha quando o servidor reinicia em plena sessão. */
+  aberta: integer({ mode: "boolean" }).notNull().default(false),
 });
 
 export const participantes = sqliteTable(
@@ -45,6 +48,8 @@ export const personagens = sqliteTable(
     participanteId: text("participante_id").references(() => participantes.id),
     situacao: text({ enum: ["rascunho", "ativo"] }).notNull(),
     ficha: text().notNull(),
+    /* PV, fichas, efeitos: o que muda em jogo (EstadoVivo). */
+    estado: text().notNull().default("{}"),
     criadoEm: text("criado_em").notNull(),
     alteradoEm: text("alterado_em").notNull(),
   },
@@ -62,6 +67,21 @@ export const kits = sqliteTable(
     itens: text().notNull(),
   },
   (t) => [index("kits_campanha").on(t.campanhaId)],
+);
+
+/* Um combate por vez; o encerrado fica guardado. */
+export const combates = sqliteTable(
+  "combates",
+  {
+    id: text().primaryKey(),
+    campanhaId: text("campanha_id")
+      .notNull()
+      .references(() => campanhas.id),
+    estado: text().notNull(),
+    criadoEm: text("criado_em").notNull(),
+    encerradoEm: text("encerrado_em"),
+  },
+  (t) => [index("combates_campanha").on(t.campanhaId)],
 );
 
 /* Só recebe linhas novas: desfazer, nas fases seguintes, é um evento novo. */

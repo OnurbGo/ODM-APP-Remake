@@ -1,20 +1,28 @@
 import { randomUUID } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
-import { EventoCompleto, FichaDados, Kit, OpcoesCampanha, type Papel, type Personagem, type SituacaoPersonagem } from "@odm/protocolo";
+import { EstadoCombate, EstadoVivo, EventoCompleto, FichaDados, Kit, OpcoesCampanha, type Papel, type Personagem, type ResumoCampanha, type SituacaoPersonagem } from "@odm/protocolo";
 import { and, asc, desc, eq, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-sqlite";
 import { migrate } from "drizzle-orm/node-sqlite/migrator";
 import { z } from "zod";
-import { campanhas, dispositivos, eventos, kits, participantes, personagens } from "./esquema";
+import { campanhas, combates, dispositivos, eventos, kits, participantes, personagens } from "./esquema";
 
 export type Campanha = typeof campanhas.$inferSelect;
 export type ParticipanteBanco = typeof participantes.$inferSelect;
 export type PersonagemBanco = Personagem & { campanhaId: string };
 
 const ListaDePacotes = z.array(z.string());
+const NOME_EM_BRANCO = "Sem nome";
 
 function lerPersonagem(l: typeof personagens.$inferSelect): PersonagemBanco {
-  return { id: l.id, campanhaId: l.campanhaId, participanteId: l.participanteId, situacao: l.situacao, ficha: FichaDados.parse(JSON.parse(l.ficha)) };
+  return {
+    id: l.id,
+    campanhaId: l.campanhaId,
+    participanteId: l.participanteId,
+    situacao: l.situacao,
+    ficha: FichaDados.parse(JSON.parse(l.ficha)),
+    vivo: EstadoVivo.parse(JSON.parse(l.estado)),
+  };
 }
 
 /* Único ponto que conhece o node:sqlite, ainda em release candidate no Node 24:
@@ -34,12 +42,36 @@ export class Repositorio {
     this.cliente.close();
   }
 
-  campanhaAtual(): Campanha | undefined {
-    return this.db.select().from(campanhas).orderBy(desc(campanhas.criadaEm)).limit(1).get();
+  campanhaAberta(): Campanha | undefined {
+    return this.db.select().from(campanhas).where(eq(campanhas.aberta, true)).get();
   }
 
-  criarCampanha(nome: string, codigo: string, nomeMestre: string, agora: string) {
-    const campanha: Campanha = { id: randomUUID(), nome, codigo, criadaEm: agora, opcoes: JSON.stringify(OpcoesCampanha.parse({})), pacotes: '["base"]' };
+  campanha(id: string): Campanha | undefined {
+    return this.db.select().from(campanhas).where(eq(campanhas.id, id)).get();
+  }
+
+  /* Da sessão mais recente para a mais antiga. */
+  resumoDasCampanhas(): ResumoCampanha[] {
+    const lista = this.db.select().from(campanhas).orderBy(desc(campanhas.ultimaSessaoEm), desc(campanhas.criadaEm)).all();
+    return lista.map((c) => ({
+      id: c.id,
+      nome: c.nome,
+      ultimaSessaoEm: c.ultimaSessaoEm,
+      personagens: this.personagensDa(c.id).map((p) => p.ficha.nome || NOME_EM_BRANCO),
+    }));
+  }
+
+  criarCampanha(nome: string, codigo: string, nomeMestre: string, agora: string, config: { pacotes: readonly string[]; opcoes: OpcoesCampanha }) {
+    const campanha: Campanha = {
+      id: randomUUID(),
+      nome,
+      codigo,
+      criadaEm: agora,
+      opcoes: JSON.stringify(config.opcoes),
+      pacotes: JSON.stringify(config.pacotes),
+      ultimaSessaoEm: agora,
+      aberta: false,
+    };
     return this.db.transaction((tx) => {
       tx.insert(campanhas).values(campanha).run();
       tx.insert(participantes)
@@ -47,6 +79,19 @@ export class Repositorio {
         .run();
       return campanha;
     });
+  }
+
+  /* Marca a sessão de agora: é a data que a lista de campanhas mostra. */
+  abrirCampanha(id: string, agora: string): Campanha | undefined {
+    this.db.transaction((tx) => {
+      tx.update(campanhas).set({ aberta: false }).run();
+      tx.update(campanhas).set({ aberta: true, ultimaSessaoEm: agora }).where(eq(campanhas.id, id)).run();
+    });
+    return this.campanha(id);
+  }
+
+  fecharCampanhas() {
+    this.db.update(campanhas).set({ aberta: false }).run();
   }
 
   trocarCodigo(campanhaId: string, codigo: string) {
@@ -138,15 +183,15 @@ export class Repositorio {
   criarPersonagem(campanhaId: string, p: Personagem, agora: string) {
     this.db
       .insert(personagens)
-      .values({ id: p.id, campanhaId, participanteId: p.participanteId, situacao: p.situacao, ficha: JSON.stringify(p.ficha), criadoEm: agora, alteradoEm: agora })
+      .values({ id: p.id, campanhaId, participanteId: p.participanteId, situacao: p.situacao, ficha: JSON.stringify(p.ficha), estado: JSON.stringify(p.vivo), criadoEm: agora, alteradoEm: agora })
       .run();
   }
 
-  salvarPersonagem(id: string, mudanca: { ficha?: FichaDados; situacao?: SituacaoPersonagem; participanteId?: string | null }, agora: string) {
-    const { ficha, ...resto } = mudanca;
+  salvarPersonagem(id: string, mudanca: { ficha?: FichaDados; vivo?: EstadoVivo; situacao?: SituacaoPersonagem; participanteId?: string | null }, agora: string) {
+    const { ficha, vivo, ...resto } = mudanca;
     this.db
       .update(personagens)
-      .set({ ...resto, ...(ficha ? { ficha: JSON.stringify(ficha) } : {}), alteradoEm: agora })
+      .set({ ...resto, ...(ficha ? { ficha: JSON.stringify(ficha) } : {}), ...(vivo ? { estado: JSON.stringify(vivo) } : {}), alteradoEm: agora })
       .where(eq(personagens.id, id))
       .run();
   }
@@ -176,6 +221,22 @@ export class Repositorio {
 
   apagarKit(campanhaId: string, id: string) {
     this.db.delete(kits).where(and(eq(kits.id, id), eq(kits.campanhaId, campanhaId))).run();
+  }
+
+  /* O combate em curso da campanha, se houver. */
+  combateAberto(campanhaId: string): EstadoCombate | null {
+    const linha = this.db.select().from(combates).where(and(eq(combates.campanhaId, campanhaId), isNull(combates.encerradoEm))).get();
+    return linha ? EstadoCombate.parse(JSON.parse(linha.estado)) : null;
+  }
+
+  /* Grava o estado do combate; "encerrar" marca a data e tira da lista de abertos (desfazer reabre). */
+  salvarCombate(campanhaId: string, estado: EstadoCombate, encerrado: boolean, agora: string) {
+    const valor = JSON.stringify(estado);
+    this.db
+      .insert(combates)
+      .values({ id: estado.id, campanhaId, estado: valor, criadoEm: agora, encerradoEm: encerrado ? agora : null })
+      .onConflictDoUpdate({ target: combates.id, set: { estado: valor, encerradoEm: encerrado ? agora : null } })
+      .run();
   }
 
   acrescentarEvento(campanhaId: string, evento: EventoCompleto) {

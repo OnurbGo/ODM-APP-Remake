@@ -68,6 +68,10 @@ App do mestre (Electron)
 - **Firewall (decidido em 06/11/2026):** o mestre não mexe em configuração do Windows nem usa terminal. O instalador cria uma regra de entrada só para o executável do app, só TCP, e a remove ao desinstalar. Se o Windows bloquear mesmo assim, o painel do mestre detecta e mostra o botão **Liberar acesso**: um clique e a confirmação do Windows.
 - A regra vale em redes privadas e públicas, porque rede nova costuma entrar como pública no Windows. O servidor só fica ligado com a mesa aberta, e entrar exige o código e a aprovação do mestre.
 - Redes que isolam os dispositivos (Wi-Fi de escritório ou de visitantes) bloqueiam fora do computador, e nenhum app resolve. O painel explica e indica Hamachi, Radmin ou o roteador do celular.
+- **Ninguém conseguiu entrar? (decidido em 06/11/2026):** bloco no cartão de convite do painel, em linguagem simples, com o que conferir: mesma rede Wi-Fi; rede de convidados ou isolamento de clientes no roteador; rede do Windows como Pública (não precisa mudar: a liberação vale para ela); firewall, com a situação e o botão Liberar acesso; endereço certo pelo QR code. Nada pede para o usuário mexer no Windows.
+- **Página de teste:** `http://IP:porta/teste`, texto puro, sem o app e sem nada da campanha, com um teste mínimo da conexão ao vivo. Se abre, a rede está boa e o problema é do app; se não abre, o problema é de rede. O painel mostra o endereço com copiar e QR code.
+- **Mesa sem resposta:** se a página abriu mas a mesa não responde em 8 segundos, o jogador vê o erro com o que conferir, e o app segue tentando sozinho.
+- **Em desenvolvimento (`npm run dev`):** quem recebe os jogadores é o `node.exe`. O terminal e o painel mostram a situação do firewall dele e avisam que o botão Liberar acesso só existe no app; `npm run firewall:liberar` abre a confirmação do Windows.
 - **Porta:** 47821, a mesma do app antigo. Se estiver ocupada, a tela do mestre avisa e deixa escolher outra, e a escolha fica salva. O app não troca de porta sozinho, porque a porta faz parte do endereço que os jogadores usam.
 - HTTP sem TLS (rede local ou virtual). O código da mesa e a aprovação do mestre evitam entradas indesejadas.
 
@@ -78,6 +82,10 @@ App do mestre (Electron)
 3. Na próxima vez, ele entra direto. O mestre pode revogar o acesso.
 4. **Associar (celular novo):** o botão abre a lista dos jogadores que já passaram pela mesa, com quem tem o mesmo nome no topo, já sugerido. O novo dispositivo volta como o jogador escolhido, com o mesmo nome ou não. Sem ninguém para associar, o botão fica desativado e a tela explica por quê. Tirar o jogador da mesa invalida todos os aparelhos dele, inclusive um celular perdido.
 5. **Personagem é da campanha (decidido em 06/11/2026):** o personagem pertence à campanha, não ao jogador nem ao aparelho. O mestre liga e troca a qualquer momento qual jogador controla qual personagem, inclusive de quem já foi aceito. Um personagem tem no máximo um jogador e pode ficar sem nenhum; um jogador pode ter mais de um, como ao cobrir quem faltou. A interface entra na fase 4, quando houver fichas; o protocolo já prevê a mensagem `ligar_personagem` (seção 6).
+6. **Campanhas (decidido em 06/11/2026):** "Abrir minha mesa" mostra a lista de campanhas do mestre, com nome, última sessão, personagens e **Continuar**, além de **Nova campanha** (nome, pacotes ativos e opções da campanha).
+   - **Uma campanha aberta por vez.** "Trocar de campanha" fecha a aberta, com confirmação, e volta à lista. Se o servidor reiniciar em plena sessão, a campanha aberta continua aberta; abrir o app de novo sempre começa pela lista.
+   - **Jogadores aprovados valem só na campanha deles.** O aparelho guarda um token por campanha. Com outra campanha aberta, o jogador vê "Mesa fechada", não perde o token e entra sozinho quando a dele abrir; se quiser, pode pedir entrada na campanha aberta, com o código e a aprovação do mestre.
+   - **Exportar e importar campanha** fica para o backup da fase 7.
 
 ### 3.4 Stack (proposta)
 
@@ -113,6 +121,7 @@ ODM-APP-Remake/
 - **Android:** um app Capacitor que embrulha a mesma interface web. Traz ícone, tela cheia, entrada por QR code, tela sempre acesa e vibração no "seu turno". É distribuído como APK.
 - **iPhone:** continua pelo navegador.
 - **HTTP em texto claro:** liberado só para a LAN e para Hamachi/Radmin.
+- **Sem resposta da mesa (decidido em 06/11/2026):** o app traz a interface dentro dele, então funciona mesmo quando não alcança o servidor. Em vez de carregar sem fim, mostra o erro com as instruções de "Ninguém conseguiu entrar?" (seção 3.2), na linguagem do jogador, e segue tentando.
 - **Por que não PWA:** um PWA instalável exige HTTPS, e a mesa roda em `http://IP`.
 - **Construção:** fase 7, junto do instalador. O ícone adaptativo sai do SVG-mestre em `pacotes/estilo/src/icone/`.
 
@@ -209,7 +218,9 @@ Nível de automação por tipo de conteúdo:
 | Efeitos que dependem do mestre (Alucinado, Enfeitiçado…) | Só texto + lembrete; nada automático |
 | Usos limitados | "x vezes por dia" volta no descanso longo; "por combate" volta ao fim do combate; sessão, semana e 7 dias o mestre marca à mão |
 
-Habilidades também recebem **marcações de situação** (ex.: `reage_a: teste_resistencia.agilidade`), para o app sugerir a habilidade certa no momento certo (seção 8).
+Habilidades também recebem **marcações de situação** (`reage_a`, em `livros/jogador/dados/app/situacoes-mecanica.yml`), para o app sugerir a habilidade certa no momento certo (seção 8).
+
+**Combate (lote 8 e 9, fase 5):** as regras de combate ficam em `combate-mecanica.yml`, as armas em `armas-mecanica.yml` e os ataques padrão das criaturas em `ataques-mecanica.yml`. Um item pode ter mecânica em mais de um arquivo (o peso e o ataque de uma arma); cada parte é aprovada sozinha, e as partes se somam no pacote.
 
 ### 4.5 Conteúdo do mestre
 
@@ -228,7 +239,8 @@ Funções puras que recebem ficha + conteúdo + estado e devolvem valores calcul
 - carga e Sobrecarregado (seção de Carga do Jogador);
 - Exaustão (tabela de 6 níveis), Morrendo progressivo (entram na fase 5, com o estado do combate);
 - Estresse máximo por Intelecto (só se a campanha ativar);
-- penalidades e vantagens de condições nos testes.
+- penalidades e vantagens de condições nos testes;
+- dano na ordem decidida em 06/11/2026: Imunidade, Vulnerabilidade ou Resistência, RD, PV temporários e PV; metade arredonda para baixo, mínimo 1.
 
 Cada valor calculado guarda a **conta** (ex.: "Defesa 14 = 10 + 2 Agilidade + 2 armadura"), que aparece ao tocar no número. O jogador pode pôr um **ajuste manual** em qualquer campo calculado; ele aparece marcado.
 
@@ -316,6 +328,7 @@ Na fase 4 a opção aparece na loja, bloqueada com o motivo. A regra entra na fa
 | Testes rápidos | Atributos, perícias, resistências, ataque com a arma equipada |
 | Habilidades | Disponíveis e usadas ("Usada — volta no descanso curto") |
 | Opção | "Rolar resistências automaticamente" |
+| Regras opcionais | Atitude Imprudente (falhas pendentes) e Carta do Destino, se a campanha usar (decidido em 06/11/2026) |
 
 - **Celular:** uma coluna, com a aba Combate como tela principal e navegação embaixo.
 - **Desktop:** ficha e combate lado a lado, com o registro da sessão visível.
@@ -329,9 +342,10 @@ Na fase 4 a opção aparece na loja, bloqueada com o motivo. A regra entra na fa
 - Iniciativa por baralho, seguindo "Iniciativa" (Jogador, Combate): cada criatura engajada compra uma carta, e o app ordena, desempata e registra quem usou o efeito de uma carta especial.
 - **Empates da iniciativa:** o último desempate é opção da campanha (naipe ou nova compra), como no livro. Dois Coringas: nova compra mantendo o Coringa, e a segunda carta maior vai primeiro. A troca do Coringa acontece antes de ir para o fim.
 - Turnos (jogadores, criaturas, NPCs), com avanço de turno disparando os gatilhos dos efeitos.
-- Criaturas do bestiário com PV, efeitos e ações clicáveis (rola acerto e dano; pede teste de resistência).
+- Criaturas do bestiário com PV, efeitos e ações clicáveis (rola acerto e dano; pede teste de resistência). Ação sem mecânica aprovada mostra o texto do livro e uma rolagem manual (acerto, dano e tipo).
+- **Reações (decidido em 06/11/2026):** ataque de criatura contra quem tem PA guardado pergunta antes da rolagem: Esquiva, Bloqueio, as habilidades marcadas para a situação ou Não reagir. O mestre vê "aguardando reação" e tem "Seguir sem reação". Sem PA guardado, rola e aplica na hora.
 - **Horda** (regra do Zumbi): formar, somar PV, remover integrante a cada 10 de dano, recalcular o bônus. Decidido em 06/11/2026:
-  - cada integrante entra com os PV atuais (Elite com o bônus dele); com 2 integrantes ou menos, a Horda se desfaz;
+  - cada integrante entra com os PV atuais (Elite com o bônus dele); com 2 integrantes ou menos, a Horda se desfaz, e os PV restantes são divididos igualmente entre quem sobra (para baixo), que age na carta da Horda;
   - ataque à escolha (Pancada ou Mordida), com Bônus de Horda no acerto e no dano; uma jogada contra a Defesa de cada alvo, dano rolado por alvo;
   - Pressão de Massa é dano indefensável;
   - Ameaça de Massa: −1 em todas as reações, inclusive Bloqueio; sem Combo;
@@ -380,7 +394,7 @@ Conforme "Testes de Habilidade" e "Testes Passivos" (Jogador, Progressão) e "Es
 | **Habilidade** | Atributo ou perícia, e a DT | 1d20 + modificador contra a DT | Pop-up e rolagem |
 | **Resistência** | Atributo e DT | 1d20 + modificador contra a DT | Pop-up, ou rola sozinho se o automático estiver ligado (8.4) |
 | **Passivo** | Atributo ou perícia, e a DT | Sem rolagem: 10 + modificadores aplicáveis; vantagem no máximo +5, desvantagem −5; as duas se anulam | **Nada.** O livro usa o passivo para "não entregar que há algo escondido"; o jogador não é avisado, e só o mestre vê os valores contra a DT |
-| **Contestado** (sugestão) | O teste do personagem e o teste da criatura ou NPC, como Furtividade contra Percepção ativa | Rolagem do personagem contra a rolagem do oponente. Contra grupo, o oponente rola uma vez. Percepção ativa de criatura = passiva − 10 | A própria rolagem. O resultado do oponente segue a mesma regra de visibilidade da DT |
+| **Contestado** | O teste do personagem e o teste da criatura ou NPC, como Furtividade contra Percepção ativa, e quem age (por padrão, o personagem) | Rolagem do personagem contra a rolagem do oponente; no empate, vence quem age. Contra grupo, o oponente rola uma vez. Percepção ativa de criatura = passiva − 10 | A própria rolagem. O resultado do oponente segue a mesma regra de visibilidade da DT |
 
 **Em todos:** um ou vários jogadores de uma vez e ajuste por jogador (DT, bônus ou penalidade, vantagem ou desvantagem).
 
@@ -508,7 +522,7 @@ Antes de abandonar o ODM-App, exportar da campanha de playtest o que não existe
 | 2. Fundação ✔ | Monorepo, `estilo` com o tema padrão, Electron + servidor + WebSocket, entrada na mesa | Feito em 06/11/2026: computador e celular na mesma mesa vendo uma rolagem ao vivo |
 | 3. Conteúdo base ✔ | Exportador no repositório dos livros + camada mecânica dos efeitos e dos ataques de criatura (para sua revisão) | Feito em 06/11/2026: `odm-base-1.0.json` validado, com 690 itens |
 | 4. Ficha ✔ | Camada mecânica de ficha no exportador, criação, ficha, progressão, loja de prestígio, motor de regras com a conta de cada valor | Feito em 06/11/2026: um personagem completo de cada uma das 6 classes da base no nível 1, e um personagem no nível 11 ou mais usando a loja de prestígio |
-| 5. Combate | Iniciativa, turnos, PA, efeitos automáticos, registro e desfazer, aba Combate, testes, pedido de teste | Um combate com zumbis (incluindo Horda) jogado do início ao fim |
+| 5. Combate ✔ | Iniciativa, turnos, PA, efeitos automáticos, registro e desfazer, aba Combate, testes, pedido de teste | Feito em 07/11/2026: combate com zumbis e Horda do início ao fim, com o mestre no PC e o jogador num celular de verdade (`docs/teste-fase5-celular.md`), e `npm run combate:aceite -- --previa`. As regras de combate ainda estão como proposta nos lotes 8 e 9 dos livros, para revisão |
 | 6. Mestre | Encontros, missões e linha do tempo, modificadores de mundo, Jogo do 21, comércio, NPCs, notas, mostrar para os jogadores | Uma sessão inteira de playtest só com o app |
 | 7. Acabamento | Animações finais, backup, instalador com a regra de firewall (seção 3.2), APK do Android (seção 3.6), testes nos fluxos principais | Instalador e APK para os apoiadores |
 | 8. Complementos | Pacote e tema de A Ordem no Caos (magia), depois A Arte da Guerra | Campanha com o complemento ativo |
@@ -563,7 +577,45 @@ Antes de abandonar o ODM-App, exportar da campanha de playtest o que não existe
 
 1. **Assinatura do app (antes da fase 7):** sem certificado pago. O commit "chore - preparar code signing Windows" do ODM-App antigo não assina nada: deixa a assinatura opcional, ligada só se houver certificado, e o documento dele termina com o certificado pendente e diz que certificado próprio não passa pelo Smart App Control. Na fase 7, avaliar a SignPath Foundation, já que este repositório é público. O Smart App Control pode barrar um executável sem assinatura, como aconteceu nesta máquina em 06/11/2026.
 2. **Fast Play como pacote grátis (futuro, aprovado em 06/11/2026):** reservado em `tools/exportar/pacotes.yml` como `odm-fastplay`, sem geração por enquanto. O livro já traz seis personagens prontos e a missão *Cheiro de Fuligem*, então o pacote depende da ficha (fase 4). Os efeitos dele repetem o texto do Livro do Jogador e usariam os mesmos ids da base, para quem passar de um para o outro não perder a ficha.
-3. **Empate no teste contestado (antes da fase 5):** continua em aberto. "Esconder-se" (Jogador, Ações) dá "igual ou maior" só contra a Percepção passiva, e o teste contestado não tem regra de empate.
+### Decididas para a fase 5 (06 e 07/11/2026)
+
+- **Carta especial "uma vez por combate" (07/11/2026):** vale por pessoa. Dois jogadores com Ás podem usar o efeito; a mesma pessoa não usa o mesmo efeito duas vezes no combate.
+- **Empate no teste contestado:** vence quem age, como no "igual ou maior" do passivo e da DT. Está no Livro do Jogador, em Esconder-se (livros e7cb2b1). Seção 8.1.
+- **Horda ao se desfazer:** os PV restantes são divididos igualmente entre os Zumbis que sobram, arredondando para baixo, e eles agem na carta da Horda. O mestre pode editar, com desfazer. Seção 7.1.
+- **Ordem do dano:** Imunidade, Vulnerabilidade ou Resistência, RD, PV temporários e PV. Metade arredonda para baixo, mínimo 1. Seção 5.1.
+- **Reações a ataque de criatura:** se o alvo tem PA guardado, recebe a pergunta antes da rolagem; o mestre vê "aguardando reação" e tem "Seguir sem reação". Sem PA guardado, o ataque rola e aplica na hora, como na parada 4. Seção 7.1.
+- **Bestiário:** os ataques no formato padrão das fichas viram proposta de mecânica (lote 9); o resto fica como texto, com rolagem manual no Escudo. Seção 4.4.
+- **Atitude Imprudente e Cartas do Destino:** entram na fase 5. Seção 6.3.
+- **Suposições da fase 5 aprovadas:** Dados de Vida no descanso longo arredondam para baixo, mínimo 1 (o livro cita uma "regra geral de arredondamento" que não define); o descanso longo também devolve usos "por descanso curto"; criatura a 0 PV vira "Derrotada" e sai da ordem, com desfazer; duração em turnos desconta no fim do turno da criatura afetada; um baralho por combate para a iniciativa e um baralho completo a cada teste com vantagem por cartas; ataque = d20 + atributo da arma + proficiência; Sequela Permanente com as penalidades como lembrete; o jogador desfaz uma reação fora do turno até o fim do próximo turno dele.
+
+### Decididas nas etapas 6 a 9 da fase 5 (aprovadas em 07/11/2026)
+
+- **Testes:**
+  - O resultado aparece no registro de todos, sem a DT oculta, sem o oponente oculto e sem nada do passivo; o pedido vai só a quem responde.
+  - Bônus e vantagem do mestre somam com os do jogador.
+  - A falha que é desfeita por Forçar ou Rolar de novo tira o efeito da falha, como um desfazer do mestre.
+  - A habilidade usada no pop-up gasta o custo e fica anotada; o efeito dela é combinado com o mestre.
+  - 20 e 1 naturais em teste de habilidade só têm destaque; o crítico com efeito de regra é o do ataque.
+- **Ataques:**
+  - O jogador não vê a animação nem o bônus de acerto de criatura, só o resultado no registro, com o nome da ação.
+  - Contra vários alvos, uma rolagem só, com os efeitos do primeiro alvo; cada alvo sofre o próprio dano.
+  - Criatura não abre janela de reação.
+  - Ações de efeito: o jogador usa nos próprios efeitos; as que pedem aprovação do mestre ficam com o mestre; as que custam PA valem só no turno, ou no fim da rodada com PA guardado. Usar Trapos tira 1 do inventário.
+- **Horda:**
+  - O Bônus de Horda soma em qualquer ataque da Horda.
+  - A Ameaça de Massa tira 1 do que a Esquiva e o Bloqueio somam na Defesa, porque aqui a reação não é rolagem.
+  - Formada no meio do combate, a Horda entra na ordem pela carta dela; não se forma na vez de um integrante.
+  - Sai primeiro o integrante com menos PV. Efeitos e habilidades gastas dos Zumbis não passam para a Horda nem voltam quando ela se desfaz.
+  - A Pressão de Massa vale uma vez por rodada por criatura, no início ou no fim do turno, o que vier primeiro.
+- **Morrendo, Estresse e descansos:**
+  - Violência rola o dano duas vezes e fica com o maior.
+  - A Atitude Imprudente vale só no próprio turno; Precisão, Potência e Violência valem no próximo ataque.
+  - Estabilizar é botão do mestre, que pede o teste à parte quando um aliado estabiliza.
+  - A cura do descanso curto a partir de 0 PV encerra o Morrendo.
+  - A aflição da Crise não derruba abaixo de 1 PV, e com 0 PV não causa dano.
+  - Com Exaustão 6, o registro diz "morreu"; o app não tira o personagem da mesa.
+- **PA de quem está inconsciente (07/11/2026, depois do teste no celular):** quem começa o turno Inconsciente perde todos os PA daquele turno; não há o que guardar, e a cura no meio da rodada não traz reação. O livro diz que PA não gasto fica guardado (Guardando Ações) e que Inconsciente bloqueia ações e reações, mas não diz o que vale depois da cura.
+- **Lote 8 (proposta para revisão):** o custo de 1 PA do ataque com arma ("Ação Padrão", Jogador, Combate, Seu Turno) entrou em `combate-mecanica.yml`, em `regra.seu-turno`.
 
 ### Regras já definidas antes da fase 3
 

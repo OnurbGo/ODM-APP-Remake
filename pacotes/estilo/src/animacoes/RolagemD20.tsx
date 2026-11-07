@@ -3,6 +3,7 @@ import { CartaBaralho, type Naipe } from "../componentes/CartaBaralho";
 import { Etiqueta } from "../componentes/Etiqueta";
 import { D20Plano } from "./D20Plano";
 import css from "./RolagemD20.module.css";
+import { usarVoltar } from "../componentes/usarVoltar";
 import { usePularAnimacao } from "./usePularAnimacao";
 import { useReduzirAnimacoes } from "./useReduzirAnimacoes";
 
@@ -125,6 +126,8 @@ function Cena({ rolagem, rapida, semTresD, fecharSozinhoMs, aoFechar }: Props) {
   }, [terminou, aoFechar, final]);
 
   usePularAnimacao(true, avancar);
+  /* Voltar do celular fecha a rolagem, em vez de sair da mesa. */
+  usarVoltar(true, aoFechar);
 
   const natural = rolagem.dados[rolagem.escolhido] ?? 0;
   const somaParcial =

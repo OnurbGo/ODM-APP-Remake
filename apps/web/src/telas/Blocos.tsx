@@ -1,8 +1,10 @@
 import { Botao, CampoNumero, Cartao, Etiqueta, prepararD20 } from "@odm/estilo";
 import type { EventoVisto, Participante } from "@odm/protocolo";
+import { aindaPodeDesfazer } from "@odm/regras/prazo";
 import { useState, type ReactNode } from "react";
 import { acoes, useLoja } from "../conexao/loja";
 import css from "./Blocos.module.css";
+import { contaDoResultado, textoDoSucesso } from "./testes/comum";
 
 const horaCurta = (iso: string) => new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
@@ -42,6 +44,62 @@ function LinhaEvento({ evento, desfeito, podeDesfazer }: { evento: EventoVisto; 
         {evento.autorNome ?? "Mesa"} desfez: {evento.dados.rotulo}
       </span>
     );
+  } else if (evento.tipo === "combate" || evento.tipo === "combate_visto") {
+    const rotulo = evento.tipo === "combate" ? (evento.dados.rotuloMestre ?? evento.dados.rotulo) : evento.dados.rotulo;
+    conteudo = (
+      <span className={`${css.linhaTexto} ${desfeito ? css.desfeito : ""}`}>
+        {evento.autorNome && <strong className={css.autor}>{evento.autorNome}</strong>} {rotulo}
+      </span>
+    );
+  } else if (evento.tipo === "combate_desfeito") {
+    conteudo = (
+      <span className={css.linhaSistema}>
+        {evento.autorNome ?? "Mesa"} desfez: {evento.dados.rotulo}
+      </span>
+    );
+  } else if (evento.tipo === "rolagem_livre") {
+    const { rotulo, formula, dados, total, oculta } = evento.dados;
+    conteudo = (
+      <>
+        <span className={css.linhaTexto}>
+          <strong className={css.autor}>{evento.autorNome ?? "Mestre"}</strong> {rotulo}
+          <span className={css.conta}>
+            {formula}
+            {dados.length > 0 && ` (${dados.join(", ")})`}
+            {oculta && " · só você vê"}
+          </span>
+        </span>
+        <span className={`${css.total} odm-numero`}>{total}</span>
+      </>
+    );
+  } else if (evento.tipo === "teste_pedido" || evento.tipo === "teste_pedido_visto") {
+    const { pedido } = evento.dados;
+    const rotulo = evento.tipo === "teste_pedido" ? evento.dados.rotulo : evento.dados.pedido.rotulo;
+    const quantos = pedido.personagens.length;
+    conteudo = (
+      <span className={css.linhaSistema}>
+        {evento.autorNome ?? "Mestre"} pediu {rotulo}
+        {evento.tipo === "teste_pedido" && ` a ${quantos} ${quantos === 1 ? "personagem" : "personagens"}`}
+        {evento.tipo === "teste_pedido" && pedido.tipo === "passivo" && " (passivo: só você vê)"}
+        {pedido.origem && ` · ${pedido.origem}`}
+      </span>
+    );
+  } else if (evento.tipo === "teste_resultado") {
+    const d = evento.dados;
+    const sucesso = textoDoSucesso(d);
+    conteudo = (
+      <>
+        <span className={css.linhaTexto}>
+          <strong className={css.autor}>{d.personagemNome}</strong> {d.rotulo}
+          <span className={css.conta}>
+            {contaDoResultado(d)}
+            {d.forcado && " · forçada"}
+            {d.automatico && " · automático"}
+          </span>
+        </span>
+        {sucesso && <Etiqueta tom={d.sucesso ? "sucesso" : "perigo"}>{sucesso}</Etiqueta>}
+      </>
+    );
   } else if (evento.tipo === "personagem_ligado") {
     const { personagemNome, participanteNome } = evento.dados;
     conteudo = <span className={css.linhaSistema}>{participanteNome ? `${participanteNome} agora controla ${personagemNome}` : `${personagemNome} ficou sem jogador`}</span>;
@@ -52,7 +110,11 @@ function LinhaEvento({ evento, desfeito, podeDesfazer }: { evento: EventoVisto; 
     <li className={css.linha}>
       {conteudo}
       {podeDesfazer && !desfeito && (
-        <button type="button" className={css.desfazer} onClick={() => acoes.desfazerFicha(evento.id)}>
+        <button
+          type="button"
+          className={css.desfazer}
+          onClick={() => (evento.tipo === "ficha_alterada" ? acoes.desfazerFicha(evento.id) : acoes.desfazerCombate(evento.id))}
+        >
           Desfazer
         </button>
       )}
@@ -68,9 +130,16 @@ export function Registro({ className }: { className?: string }) {
   const limpasAte = useLoja((e) => e.rolagensLimpasAte);
   const eu = useLoja((e) => e.eu);
   const recentes = eventos.filter((e) => e.tipo !== "rolagem" || e.n > limpasAte).reverse();
-  const desfeitos = new Set(eventos.flatMap((e) => (e.tipo === "ficha_desfeita" ? [e.dados.eventoId] : [])));
+  const combate = useLoja((e) => e.combate);
+  const desfeitos = new Set(eventos.flatMap((e) => (e.tipo === "ficha_desfeita" || e.tipo === "combate_desfeito" ? [e.dados.eventoId] : [])));
   const temRolagem = recentes.some((e) => e.tipo === "rolagem");
-  const pode = (e: EventoVisto) => e.tipo === "ficha_alterada" && (eu?.papel === "mestre" || e.autorId === eu?.id);
+  /* O mestre desfaz tudo; o jogador, o que ele mesmo fez, até o fim do turno dele (especificação 5.2). */
+  const pode = (e: EventoVisto) => {
+    if (e.tipo === "ficha_alterada") return eu?.papel === "mestre" || e.autorId === eu?.id;
+    if (e.tipo === "combate") return true;
+    if (e.tipo === "combate_visto") return e.autorId === eu?.id && aindaPodeDesfazer(e.dados.desfazivelAte, combate);
+    return false;
+  };
   return (
     <Cartao
       titulo="Registro"
