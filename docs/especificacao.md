@@ -41,7 +41,7 @@ Versão de 06/11/2026. Substitui o ODM-App antigo (OnurbGo/ODM-App), que fica s�
 2. **Automático, mas reversível.** Toda ação automática aparece no registro da sessão com **desfazer**.
 3. **Fiel aos termos do livro.** PA (sem "Ações Bônus"), DT, Brutalidade/Agilidade/Fibra/Intelecto/Astúcia/Presença, dano profano e dano psicológico, e, nas habilidades de personagem, "uma vez por descanso curto/longo/cena". "Recarga X–Y" só existe em habilidade de criatura (seção 14).
 4. **Leve.** Sem dependência pesada sem motivo; cada tela carrega só o próprio código.
-5. **Pequeno.** Meta de 15 a 25 mil linhas no núcleo (o antigo tinha cerca de 136 mil).
+5. **Pequeno e testado.** O antigo tinha cerca de 136 mil linhas. A meta inicial (15 a 25 mil no núcleo) era uma estimativa de antes do escopo crescer; ao fim da fase 6 o núcleo tem cerca de 37,5 mil linhas (código e estilo de `apps/` e `pacotes/`). O que vale é qualidade e testes (decisão de 07/11/2026): uma família só de mensagens para os cadastros do mestre, o motor puro e testado, e nada duplicado entre telas.
 
 ---
 
@@ -144,6 +144,8 @@ odm-arte-da-guerra-1.0.json   A Arte da Guerra
 Cada pacote tem: identificador, versão, dependências (os complementos dependem da base), conteúdo e o tema visual do complemento (seção 9).
 
 A lista de pacotes fica em `tools/exportar/pacotes.yml`, no repositório dos livros. Só a base é gerada por enquanto; os outros ficam reservados e desligados.
+
+**Imagens no pacote (fase 6):** a seção `imagens` leva, em WebP, o corpo e o rosto das criaturas e NPCs dos livros, as 4 silhuetas do retrato e o ícone dos itens do catálogo que têm arte (a arte inteira num quadrado). Os recortes ficam em `livros/mestre/dados/app/imagens.yml`. O pacote é privado: nenhuma imagem dos livros entra no repositório do app. O servidor só entrega ao jogador o que está liberado para ele (silhueta, ícone de item, rosto revelado na iniciativa, NPC conhecido, o que o mestre mostra).
 
 **Onde o app lê o pacote:** em desenvolvimento, em `%LOCALAPPDATA%\ODM-dev\conteudo`, fora dos dois repositórios, ou na pasta da variável `ODM_CONTEUDO`. Quem carrega o pacote é o servidor, e ele não vai para a pasta da interface: o jogador recebe só o que pode ver (seção 3.1). Como o pacote entra no instalador fica para a fase 7. O app confere o arquivo com `npm run conteudo:validar`.
 
@@ -272,7 +274,9 @@ Assistente em passos, com as escolhas filtradas pelos pacotes ativos na campanha
 
 ### 6.2 Ficha
 
-Abas propostas: **Combate**, Personagem (atributos, perícias, Honra, Redenção), Habilidades e talentos, Inventário (carga e dinheiro), Notas.
+Abas: **Combate**, Personagem (atributos, perícias, Honra, Redenção), Habilidades e talentos, Inventário, Notas e **Campanha** (missões, linha do tempo, lojas, pessoas, diário e o mundo agora).
+
+**Inventário = tela do personagem (fase 6):** retrato de corpo inteiro (silhueta do pacote ou foto do jogador) no centro, o equipamento em grupos dos dois lados (agrupamento visual, sem limite de slots), o resumo de combate (Defesa, armas equipadas com acerto e dano, Deslocamento) e o inventário com busca, filtros, ordem, grade ou lista e o detalhe de cada item. O ícone do item é a arte do catálogo, ou um ícone genérico do tipo; a borda leva a cor da raridade. No desktop do jogo, a aba abre a tela no centro.
 
 ### 6.2.1 Progressão
 
@@ -353,12 +357,16 @@ Na fase 4 a opção aparece na loja, bloqueada com o motivo. A regra entra na fa
 - **Recarga X–Y (Mestre, "Como criar uma criatura?"):** no início de cada turno da criatura, rolar 1d6; se cair na faixa, a habilidade volta.
 - Pedido de teste por tipo (habilidade, resistência, passivo ou contestado), para um ou vários jogadores, com ajuste por jogador (seção 8).
 - Fichas dos jogadores ao vivo, em resumo.
+- **Iniciativa oculta (fase 6, 07/11/2026):** o jogador vê "?" em cada posição até o primeiro turno de quem está nela, inclusive a própria; quem entra depois aparece como "?" no fim e vai para a posição certa na vez dele. Revelada, a posição mostra o rosto da criatura ou do NPC (arte do pacote). O mestre vê tudo; a regra da ordem não muda.
 
 ### 7.2 Encontros
 
-- Montador seguindo "Montando encontros" (Mestre): soma o XP, ajusta pelo tamanho do grupo (×0,75 / ×1,25 / ×1,5), sobe um grau se houver mais inimigos que personagens e usa o ND da versão Elite quando a ficha indicar.
-- Criaturas lendárias ficam fora do cálculo; o app mostra o contador de pistas (mínimo 3).
-- Ao fim do encontro: XP das criaturas derrotadas, dividido igualmente entre os participantes.
+- Montador seguindo "Montando encontros" (Mestre), no Escudo, sem combate: soma o XP, ajusta pelo tamanho do grupo (×0,75 / ×1,25 / ×1,5; nos outros tamanhos, 0,25 por jogador), sobe um grau se houver mais inimigos que personagens e usa o ND da versão Elite quando a ficha indicar. O grau tem a conta passo a passo num balão. O mestre pode digitar o XP de uma linha (perfis à parte, como o Cavaleiro Negro montado).
+- Encontros salvos na campanha (abrir, editar, apagar); "Montar combate" usa o `combate_criar` de sempre.
+- Criaturas lendárias ficam fora do cálculo; o app mostra o contador de pistas por lendária na campanha (recomendado: 3, não obrigatório), com o texto e a origem de cada pista.
+- Ao encerrar o combate: cartão "Fim do combate" com as criaturas agrupadas por ficha, quantas contam (derrotadas, capturadas ou postas em fuga, marcadas pelo mestre) e quem recebe. Cada um recebe a parte para baixo; a sobra se perde. Cada XP entra no registro com desfazer.
+- Os zumbis que saem da Horda pelo dano somem do estado do combate: o cartão usa o encontro montado neste aparelho para estimar quantos entraram, e o mestre ajusta.
+- Cadastros do mestre (encontros, pistas e, nas próximas etapas, missões, marcos, NPCs, lojas, notas e diário) usam uma família só de mensagens (`cadastro_salvar`, `cadastro_apagar`, `cadastros`). O servidor filtra o que cada jogador recebe.
 
 ### 7.3 Missões (substitui o gerador de missão)
 
@@ -369,17 +377,32 @@ Modelo que segue o "Fluxo das missões" (Mestre):
 3. Conflito (o preço)
 4. Desfecho (recompensas e consequências)
 
-Cada missão tem texto para os jogadores, notas do mestre, dificuldade e criaturas, NPCs e recompensas ligados. Ao concluir, o app calcula o XP de missão (metade da coluna de dificuldade) e sugere o dinheiro pela Tabela de Valor Gerado.
+Cada missão tem título, dificuldade, situação (rascunho, ativa, concluída ou falhou) e "visível". Cada uma das 4 etapas tem texto para os jogadores, notas do mestre e "visível". Há objetivos com marcar (cada um visível ou oculto), criaturas e encontros ligados (NPCs na etapa 10), recompensas (texto e itens do catálogo) e notas gerais do mestre. O mestre edita na área **Campanha → Missões**, com rascunho local e "Salvar".
 
-**Linha do tempo:** marcos por missão, visíveis ou ocultos para os jogadores, marcados quando acontecem. Era a melhor parte do app antigo e continua.
+**Concluir e entregar:** o app sugere o XP de missão (metade da coluna da dificuldade × o multiplicador do grupo) e o dinheiro da Tabela de Valor Gerado (× o mesmo multiplicador), pelo nível médio de quem participou. Os dois são editáveis e se dividem igualmente, com "Dividir de outro jeito". Os itens vão para quem o mestre escolher. Cada entrega entra no registro com desfazer, e a missão guarda que já foi entregue. "Falhou" não sugere nada.
+
+**O jogador** vê, na aba **Campanha** (barra inferior no celular, abas da ficha no desktop), as missões visíveis fora de rascunho: as etapas e os objetivos visíveis, a situação e a recompensa quando o Desfecho estiver visível. Nunca recebe notas, ligações, etapas ou objetivos ocultos (filtro no servidor).
+
+**Linha do tempo:** marcos com título, quando (texto livre), descrição, missão, marcadores, ordem, "visível" e "aconteceu", em lista vertical. O jogador vê só os visíveis que já aconteceram; a ligação com uma missão oculta não aparece para ele. Era a melhor parte do app antigo e continua.
+
+**Dividir de outro jeito** (combate, missão e dinheiro): o mestre muda a parte de cada participante, em % ou em valor. Começa da divisão igual e o total é o que a divisão igual entrega; a soma precisa fechar 100%, e o modal mostra quanto falta ou sobra. Vale só para aquela entrega.
 
 ### 7.4 Outras ferramentas
 
-- **Modificadores de mundo** (Lua de Sangue, Chuva, Neblina, Surto de Podridão Sangrenta, Enxame Migratório, Vendaval, Geada): cartas que o mestre ativa e todos veem, com o texto do livro e a parte mecânica quando houver.
-- **Jogo do 21** (busca de espólios): minijogo para mestre e jogador, seguindo a tabela de resultados do livro.
-- **Comércio:** lojas por cidade com itens dos catálogos e preços; o jogador compra e o dinheiro sai da ficha.
-- **NPCs**, **notas** e **diário de sessão**.
-- **Mostrar para os jogadores:** imagem ou texto que abre na tela de todos ou de alguns.
+- **Modificadores de mundo** (Lua de Sangue, Chuva, Neblina, Surto de Podridão Sangrenta, Enxame Migratório, Vendaval, Geada): cartas que o mestre liga na área **Campanha → Mundo** e todos veem (o jogador, em "O mundo agora", na aba Campanha). Ficam nas opções da campanha. Com mecânica aprovada (`mundo-mecanica.yml`):
+  - **Chuva:** +2 nos testes de Furtividade; **Neblina:** −2 na Percepção passiva. Entram na conta com o nome da carta.
+  - **Vendaval:** alcance efetivo e máximo das armas de fogo pela metade (para baixo, mínimo 1 m), no servidor e na prévia do Atacar. Com "Campo aberto" marcado pelo mestre na carta, −1 m de deslocamento para quem anda mais de 1 m. Tendas e abrigos ficam como texto.
+  - **Geada:** a Disparada de um personagem pede sozinha Acrobacia (DT 12), com Caído na falha; na criatura, o registro avisa o mestre.
+  - Lua de Sangue, Surto de Podridão Sangrenta e Enxame Migratório ficam só como texto.
+- **Jogo do 21** (busca de espólios): o mestre abre o jogo para um personagem (com "onde": baú, cofre). Baralho de 52 sem coringas, guardado no servidor. O jogador começa com 2 cartas, compra até parar ou estourar e escolhe o valor do Ás ao parar. O resultado sai pela tabela do livro e fica no registro de todos; o mestre entrega o item da faixa pelo "dar item". O jogo aberto vive só na memória do servidor.
+- **Comércio:** lojas da campanha (área **Campanha → Comércio**), copiadas da cidade do livro (`comercio-mecanica.yml`) ou montadas pelo mestre. Cada loja tem caixa, estoque (preço e quantidade por linha; linha sem preço é item que falta no catálogo; quantidade vazia é sem limite), serviços e notas do mestre.
+  - **Aberta:** o jogador vê, na aba Campanha, e compra na hora; o dinheiro sai da ficha, o item entra no inventário, o estoque cai e o caixa sobe.
+  - **Venda:** a loja paga metade do preço do catálogo, sobre o total vendido, arredondando uma vez no fim; só se tiver caixa. Item equipado não se vende. "Só compra coisas fora do comum" manda a venda para o mestre.
+  - **Desfazer:** cada compra, venda ou serviço é um evento só (operação `transacao`); só o mestre desfaz, no registro ou na lista da loja, e o estoque e o caixa voltam juntos.
+- **NPCs** (Campanha → NPCs): nome, cidade, afiliação, o que os jogadores sabem, objetivo, segredo e traço (cada um com "Rolar 1d8" nas tabelas de "Criando um NPC rapidamente"), notas, ficha do bestiário (para entrar no combate pelo Escudo) e imagem (arte do livro ou enviada). Com "Os jogadores conhecem", aparece em "Pessoas" na aba Campanha deles, só com nome, cidade, afiliação, resumo e imagem.
+- **Notas do mestre** (nunca saem dele) e **diário da sessão**: uma entrada por sessão; "Sugerir do registro" acrescenta combates, XP, compras e vendas, Jogo do 21 e marcos desde a sessão anterior (sem o que foi desfeito); com "Os jogadores leem", aparece em "Diário" para eles.
+- **Mostrar para os jogadores:** botão no topo do painel do mestre (e no NPC). Título, texto e imagem, para todos ou para alguns; abre por cima da tela deles, cada um pode fechar no aparelho, e o mestre fecha para todos. A arte do livro mostrada (ou do NPC conhecido) fica liberada para quem vê.
+- **Imagem enviada:** reduzida no navegador (WebP, lado maior até 1600 px, até ~300 kB), guardada no SQLite da campanha (tabela `arquivos`) e servida pela rota de imagem a quem está na campanha.
 
 ---
 
@@ -523,7 +546,8 @@ Antes de abandonar o ODM-App, exportar da campanha de playtest o que não existe
 | 3. Conteúdo base ✔ | Exportador no repositório dos livros + camada mecânica dos efeitos e dos ataques de criatura (para sua revisão) | Feito em 06/11/2026: `odm-base-1.0.json` validado, com 690 itens |
 | 4. Ficha ✔ | Camada mecânica de ficha no exportador, criação, ficha, progressão, loja de prestígio, motor de regras com a conta de cada valor | Feito em 06/11/2026: um personagem completo de cada uma das 6 classes da base no nível 1, e um personagem no nível 11 ou mais usando a loja de prestígio |
 | 5. Combate ✔ | Iniciativa, turnos, PA, efeitos automáticos, registro e desfazer, aba Combate, testes, pedido de teste | Feito em 07/11/2026: combate com zumbis e Horda do início ao fim, com o mestre no PC e o jogador num celular de verdade (`docs/teste-fase5-celular.md`), e `npm run combate:aceite -- --previa`. As regras de combate ainda estão como proposta nos lotes 8 e 9 dos livros, para revisão |
-| 6. Mestre | Encontros, missões e linha do tempo, modificadores de mundo, Jogo do 21, comércio, NPCs, notas, mostrar para os jogadores | Uma sessão inteira de playtest só com o app |
+| 6. Mestre | Encontros, missões e linha do tempo, modificadores de mundo, Jogo do 21, comércio, NPCs, notas, diário, mostrar para os jogadores, iniciativa oculta, tela do personagem com retrato, importação de Boa Esperança | Uma sessão inteira de playtest só com o app (`docs/teste-fase6.md`) |
+| 6b. Viagens | Mapa interativo compartilhado dos Pampas: anotações e destino marcados pelos jogadores; o mestre inicia a viagem, o caminho anima para todos e para a cada 4 horas para os testes de "Viagens" e os Encontros em Viagem; emboscada com animação e aviso só se o mestre confirmar | Depende da arte final do mapa dos Pampas |
 | 7. Acabamento | Animações finais, backup, instalador com a regra de firewall (seção 3.2), APK do Android (seção 3.6), testes nos fluxos principais | Instalador e APK para os apoiadores |
 | 8. Complementos | Pacote e tema de A Ordem no Caos (magia), depois A Arte da Guerra | Campanha com o complemento ativo |
 
@@ -616,6 +640,74 @@ Antes de abandonar o ODM-App, exportar da campanha de playtest o que não existe
   - Com Exaustão 6, o registro diz "morreu"; o app não tira o personagem da mesa.
 - **PA de quem está inconsciente (07/11/2026, depois do teste no celular):** quem começa o turno Inconsciente perde todos os PA daquele turno; não há o que guardar, e a cura no meio da rodada não traz reação. O livro diz que PA não gasto fica guardado (Guardando Ações) e que Inconsciente bloqueia ações e reações, mas não diz o que vale depois da cura.
 - **Lote 8 (proposta para revisão):** o custo de 1 PA do ataque com arma ("Ação Padrão", Jogador, Combate, Seu Turno) entrou em `combate-mecanica.yml`, em `regra.seu-turno`.
+
+### Decididas nos lotes 8 e 9 (07/11/2026, livros em 22a4cf8)
+
+Aprovadas nos YAML dos livros (aprovação em bloco de 203 itens); cada uma está no campo `decisoes` do item.
+
+- **Disparada:** cada Disparada além da segunda na rodada dá 1 nível de Exaustão, só a personagem. Deslocamento de habilidade ou item não conta.
+- **Falha crítica:** 1 natural no ataque erra sempre e aparece como "Falha crítica"; o resto da consequência é do mestre.
+- **Tentar até Conseguir:** o 20 não é crítico.
+- **Carta especial de criatura:** pode ser usada, com o mestre escolhendo (raro).
+- **Teste de Morte:** não é teste de resistência e não entra no automático; tem animação própria.
+- **Descanso além do limite:** o pop-up de descanso do mestre pergunta, por personagem, "Fulano não tem mais descanso curto e quer fazer um. Você permite? Sim / Não".
+- **Exaustão 5:** mantém metade dos PV máximos e sem PV temporários (como o 4).
+- **Congelado:** metade do deslocamento, para baixo, mínimo 1. **Bem Nutrido:** 1 Dado de Vida a mais naquele descanso curto. **Podridão Sangrenta:** qualquer ficha.
+- **Rito da Lua Sangrenta:** oferecido depois do acerto. As habilidades marcadas para depois de um ataque viram uma oferta ao jogador, que usa com PA guardado.
+- **Alcance:** vale para todas as armas de distância. Até o alcance efetivo, normal; do efetivo ao máximo (o dobro), desvantagem e, se acertar, metade do dano (para baixo, mínimo 1); acima do máximo, não ataca. Corpo a corpo, além do alcance, não ataca. O ataque tem o campo opcional "Distância até o alvo".
+- **Escopetas:** o alcance normal é o efetivo, em cone; até o máximo, desvantagem, metade do dano e um alvo só; a até 1 m, o teste do Impacto Pesado.
+- **Armas:** especiais de fogo são Armas de Fogo Superiores; Arco, Balestra e Balestra de Mão, Armas Marciais. Finesse: o jogador escolhe Brutalidade ou Agilidade no item. Foice e Zweihänder: Brutalidade. "Por tiro" só nas armas Semiautomática e Automática. LeMat MD II em dois modos, trocar custa 1 PA.
+- **Ataque Desarmado:** 1 PA; acerto com Brutalidade + proficiência; dano 1 + Brutalidade, contundente, mínimo 1. A Soqueira soma +2.
+- **Ataque de criatura ou NPC sem custo escrito:** 1 PA.
+- **Regras depois do dano:** ficam como texto nesta fase. Opção do mestre "Desligar habilidades automáticas de criaturas" (Recarga, Pressão de Massa e Ameaça de Massa à mão).
+- **Xerife (2 de RD num ataque):** fica para depois.
+- **Livro corrigido (07/11/2026, com o OK do Bruno):** o Catálogo de Armas (Mestre, "Alcance das armas de fogo") dizia que a penalidade valia além do máximo, com metade para cima. Passou a dizer: entre o efetivo e o máximo, desvantagem e metade (para baixo, mínimo 1); além do máximo, o disparo não alcança.
+
+### Decididas na etapa 7 da fase 6 (07/11/2026, encontros-mecanica.yml)
+
+- **E1, tamanho do grupo:** 3, 5 e 6 jogadores como o livro; nos outros, a mesma escala, 0,25 por jogador a partir de 4 (1 → ×0,25; 2 → ×0,5; 7 → ×1,75).
+- **E2, abaixo de Fácil:** o total que não alcança a coluna Fácil aparece como "Abaixo de Fácil"; subir um grau leva a Fácil; Morte certa é o teto.
+- **E3, nível do grupo:** a média dos níveis, para baixo (2, 3 e 3 → linha 2), entre 1 e 20.
+- **E5, divisão:** contam todos os personagens do combate, mesmo caídos; cada um recebe a parte para baixo e a sobra se perde. O mestre pode desmarcar alguém antes de dar.
+- **M2:** a coluna Morte certa vale como está no livro.
+- **Lendária:** criatura com "Lendário" na categoria da ficha. Ameaças (NPCs) com "Lendário" no título, como o pistoleiro, não são lendárias para esta regra.
+- **M1, XP de missão (decidido na etapa 8):** usa o mesmo multiplicador do grupo (0,25 por jogador), depois divide igualmente. A mesma escala vale para o grau do encontro.
+- **Dinheiro da missão:** a Tabela de Valor Gerado × o multiplicador do grupo, dividido igualmente; é sugestão editável.
+- **Missão que falhou:** não sugere XP nem dinheiro; o mestre decide.
+- **Dividir de outro jeito:** XP (combate ou missão) e dinheiro podem ser divididos em partes diferentes, em % ou em valor, com o mesmo total e a soma fechando 100%, só naquela entrega. XP e dinheiro da mesma missão podem ter divisões diferentes.
+- **Exportador corrigido:** as linhas dos níveis 11 a 20 das tabelas de Dificuldade de Encontros e de Valor Gerado (`<tr class="alto">`) ficavam de fora do pacote.
+
+### Decididas na etapa 9 da fase 6 (07/11/2026, mundo-mecanica.yml)
+
+- **W1, Vendaval:** a metade do alcance das armas de fogo arredonda para baixo, mínimo 1 m.
+- **Campo aberto:** marcado pelo mestre na carta do Vendaval; só com ele o deslocamento cai 1 m.
+- **J1, Jogo do 21:** baralho de 52 sem coringas; o mestre abre para um jogador; 2 cartas e o jogador compra até parar ou estourar; o mestre não joga; o Ás vale 1 ou 11 à escolha do jogador; o mestre escolhe o item da faixa.
+- **Geada:** com a carta ligada, a Disparada de um personagem pede o teste sozinha.
+- **Assumido:** sem mapa, a Neblina vale para todos enquanto ligada; a Chuva vale nos testes ativos de Furtividade (não no passivo).
+
+### Etapa 11 da fase 6 (07/11/2026)
+
+- **Retrato:** campo `retrato` na ficha (silhueta do pacote ou arquivo enviado), operação `retrato` com desfazer. O jogador também envia imagem (só para a campanha em que está, até 600 kB).
+- **Tela do personagem:** substitui o antigo bloco de itens na aba Inventário (celular, desktop do jogo e ficha da Mesa).
+
+### Decididas na etapa 10 da fase 6 (07/11/2026, comercio-mecanica.yml)
+
+- **C1:** "Mascara" é a Máscara de gás; "Filtros de ar", "Bomba incendiaria" e "Colete Antifacadas" faltam no catálogo e ficam na loja só como texto, sem preço.
+- **C2:** o "valor inicial" é o caixa da loja.
+- **C3:** a compra sai na hora, com desfazer só do mestre.
+- **Raridade:** arma sem Raridade escrita conta como comum; "itens de raridade raro ou inferior" são todos os equipamentos.
+- **Catálogo inteiro:** Porto dos Ladrões e o mercado negro da Família Bellandi vendem tudo, sem limite; munição 300 de cada normal e 20 de cada especial.
+- **V1:** a venda paga a metade do total vendido, arredondada para baixo uma vez.
+- **Madame Nara:** o catálogo místico do livro não lista itens; o mestre escreve os da loja.
+- **Exportador corrigido:** as munições saíam sem preço; agora levam o preço avulso e a caixa.
+
+### Decididas no playtest da fase 6 (08/11/2026)
+
+- **Arquivar personagem:** só o mestre, fora de combate. O personagem sai da mesa e da tela do jogador e fica em "Arquivados", de onde o mestre restaura. Rascunho continua sendo apagado.
+- **Serviço com efeito:** ao pagar, roda na vida do personagem, fora de combate, com desfazer do mestre: recuperar todos os PV, recuperar os Dados de Vida, tirar a Exaustão, dar uma condição e somar um valor por nível de Exaustão ao preço. Os serviços padrão da loja de Boa Esperança (hospedagem, que só cobra; tratamento médico; refeições, que dão Bem-nutrido) estão em `comercio-mecanica.yml` e vêm junto ao copiar a loja do livro.
+- **Pessoas do livro:** as "Pessoas importantes" de cada cidade (Mestre, 07-cidades.md) vão no pacote; em NPCs, o mestre copia as de uma cidade, sem repetir quem já está na campanha. Quem tem retrato no livro leva a imagem.
+- **Sugerir item no Jogo do 21:** lugares com o peso de cada categoria de espólio e a faixa do 21 em raridade. Em `mundo-mecanica.yml` (`regra.categorias-de-espolio`, lote 11), aprovado como proposto em 08/11/2026: 9 lugares, "Especiais" dentro de Armas de Fogo; Itens Preciosos e Dinheiro o mestre descreve.
+- **Limpar rolagens** também tira os cartões de teste do Escudo até o mesmo ponto (menos os que ainda esperam resposta).
 
 ### Regras já definidas antes da fase 3
 

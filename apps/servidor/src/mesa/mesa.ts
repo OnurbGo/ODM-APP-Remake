@@ -2,6 +2,10 @@ import { createHash, randomBytes, randomInt, randomUUID, timingSafeEqual } from 
 import {
   TAMANHO_CODIGO_MESA,
   VERSAO_PROTOCOLO,
+  type Cadastro as CadastroTipo,
+  type CadastroNovo,
+  type Mostra,
+  type CadastroDe,
   type CodigoErro,
   type EventoCompleto,
   type EventoVisto,
@@ -15,10 +19,14 @@ import {
   type Personagem,
   type RedeMestre,
 } from "@odm/protocolo";
+import { Cadastro } from "@odm/protocolo";
 import type { PacoteConteudo } from "@odm/conteudo";
 import { rolarD20, totalDaRolagem, type Aleatorio, type Modificador } from "@odm/regras";
 import type { Campanha, ParticipanteBanco, Repositorio } from "../banco/repositorio";
 import { LimiteTentativas } from "./limite";
+import { cadastrosParaJogador } from "./cadastros";
+import { Jogos21 } from "./jogo21";
+import { Lojas } from "./lojas";
 import { Combates, projetarCombate } from "./combate";
 import { Acoes } from "./acoes";
 import { Testes } from "./testes";
@@ -124,6 +132,8 @@ export class Mesa {
   readonly personagens: Personagens;
   readonly combates: Combates;
   readonly testes: Testes;
+  readonly jogos21: Jogos21;
+  readonly lojas: Lojas;
   readonly acoes: Acoes;
   readonly vida: Vida;
 
@@ -142,7 +152,25 @@ export class Mesa {
       avisarRemocao: (personagemId, donoId) => this.avisarRemocao(personagemId, donoId),
       avisarOpcoes: (o) => this.avisarOpcoes(o),
       avisarMestre: () => this.avisarMestre(),
+      ajustarLoja: (loja) => this.lojas.ajustar(loja),
+      emCombate: (personagemId) => !!this.combates.combate()?.combatentes.some((c) => c.personagemId === personagemId),
     }, this.aleatorio);
+    this.lojas = new Lojas({
+      conteudo: () => this.personagens.conteudoCompleto(),
+      loja: (id) => (this.campanha ? this.repo.cadastrosDa(this.campanha.id).find((c): c is CadastroDe<"loja"> => c.id === id && c.tipo === "loja") : undefined),
+      salvarLoja: (loja) => {
+        if (!this.campanha) return;
+        this.repo.salvarCadastro(this.campanha.id, { ...loja, atualizadoEm: new Date(this.agora()).toISOString() });
+        this.avisarCadastros();
+      },
+      personagem: (id) => repo.personagem(id),
+      operar: (personagemId, op, quem) => this.personagens.operarPeloSistema(personagemId, op, quem),
+      servico: {
+        exaustao: (id) => this.vida.exaustaoDe(id),
+        pode: (id) => this.vida.podeUsarServico(id),
+        aplicar: (id, efeito, rotulo, quem) => this.vida.efeitoDeServico(id, efeito, rotulo, quem),
+      },
+    });
     this.combates = new Combates(repo, {
       campanha: () => this.campanha,
       conteudo: () => this.personagens.conteudoCompleto(),
@@ -173,6 +201,13 @@ export class Mesa {
       personagem: (id) => repo.personagem(id),
     }, this.aleatorio);
     this.combates.ganchoDoTurno = (c, momento, ctx, recargas) => this.acoes.efeitosDoTurno(c, momento, ctx, recargas);
+    this.jogos21 = new Jogos21({
+      conteudo: () => this.personagens.conteudoCompleto(),
+      personagem: (id) => repo.personagem(id),
+      registrar: (evento) => this.registrar(evento),
+      novoEvento: (quem, corpo) => this.eventoDe(quem.id, corpo),
+      enviar: () => this.avisarJogos21(),
+    }, this.aleatorio);
     this.vida = new Vida({
       combates: this.combates,
       contextoFicha: () => this.personagens.contexto(),
@@ -180,6 +215,7 @@ export class Mesa {
       podeAgirPor: (p, quem) => quem.papel === "mestre" || p.participanteId === quem.id,
       campanhaId: () => this.campanha?.id ?? null,
     }, this.aleatorio);
+    this.combates.pedirTeste = (pedido, quem) => this.testes.pedirPeloSistema(pedido, quem);
     this.combates.paPorTurnoDe = (c) => (c.horda ? (this.acoes.hordaDe(c)?.regras.paPorTurno ?? null) : null);
   }
 
@@ -187,7 +223,7 @@ export class Mesa {
   conteudoDoMestre(token: string, local: boolean) {
     if (!local || !iguais(token, this.opcoes.tokenMestre)) return undefined;
     const c = this.personagens.conteudoCompleto();
-    return c ? { criaturas: c.criaturas, ameacas: c.ameacas, efeitos: c.efeitos, regras: c.regras, tabelas: c.tabelas } : null;
+    return c ? { criaturas: c.criaturas, ameacas: c.ameacas, efeitos: c.efeitos, regras: c.regras, tabelas: c.tabelas, modificadores: c.modificadores, lojas: c.lojas, municoes: c.municoes, pessoas: c.pessoas } : null;
   }
 
   /* Pedido HTTP do conteúdo da ficha: vale o token de quem está na mesa. */
@@ -195,6 +231,28 @@ export class Mesa {
     const mestre = local && iguais(token, this.opcoes.tokenMestre);
     if (!mestre && this.repo.participantePorToken(hash(token))?.campanhaId !== this.campanha?.id) return undefined;
     return this.personagens.conteudo();
+  }
+
+  /* Rosto de criatura ou NPC que já apareceu na iniciativa oculta do combate em curso. */
+  private reveladaNoCombate(id: string) {
+    const combate = this.combates.combate();
+    return !!combate && combate.fase !== "iniciativa" && combate.combatentes.some((c) => c.ref === id && (c.revelado || c.derrotado));
+  }
+
+  private readonly donoDoPersonagem = (personagemId: string) => this.repo.personagem(personagemId)?.participanteId ?? null;
+
+  /* Arte dos livros: o mestre vê tudo; o jogador da campanha aberta, só o que está liberado para ele.
+     Por enquanto, as silhuetas do retrato; as próximas etapas liberam o rosto revelado na iniciativa,
+     o NPC visível e o que o mestre mostrar. Nenhuma imagem sai do servidor sem passar por aqui. */
+  imagemPara(token: string, local: boolean, id: string, tipo: "corpo" | "rosto"): Buffer | null | undefined {
+    const mestre = local && iguais(token, this.opcoes.tokenMestre);
+    if (!mestre) {
+      const participante = this.repo.participantePorToken(hash(token));
+      if (!participante || participante.campanhaId !== this.campanha?.id) return undefined;
+      const quem: Espectador = { id: participante.id, papel: participante.papel };
+      if (!imagemLiberadaAoJogador(id) && !this.reveladaNoCombate(id) && !this.imagemLiberadaPelaCampanha(id, quem)) return undefined;
+    }
+    return this.personagens.imagem(id, tipo);
   }
 
   conectar(canal: Canal): Conexao {
@@ -274,6 +332,7 @@ export class Mesa {
       case "personagem_salvar":
       case "personagem_concluir":
       case "personagem_apagar":
+      case "personagem_arquivar":
       case "ficha_operar":
       case "ficha_desfazer":
         if (estado.fase === "dentro") this.responder(conexao, this.personagens.receber(mensagem, estado.quem));
@@ -283,6 +342,37 @@ export class Mesa {
         return;
       case "kit_salvar":
         if (this.exigirMestre(conexao)) this.responder(conexao, this.personagens.salvarKit(mensagem.kit));
+        return;
+      case "mostrar":
+        if (this.exigirMestre(conexao)) {
+          this.mostra = { ...mensagem.mostra, id: randomUUID() };
+          this.avisarMostra();
+        }
+        return;
+      case "mostrar_fechar":
+        if (this.exigirMestre(conexao)) {
+          this.mostra = null;
+          this.avisarMostra();
+        }
+        return;
+      case "jogo21_abrir":
+      case "jogo21_fechar":
+        if (this.exigirMestre(conexao) && estado.fase === "dentro") this.responder(conexao, this.jogos21.receber(mensagem, estado.quem));
+        return;
+      case "loja_comprar":
+      case "loja_vender":
+      case "loja_servico":
+        if (estado.fase === "dentro") this.responder(conexao, this.lojas.receber(mensagem, estado.quem));
+        return;
+      case "jogo21_comprar":
+      case "jogo21_parar":
+        if (estado.fase === "dentro") this.responder(conexao, this.jogos21.receber(mensagem, estado.quem));
+        return;
+      case "cadastro_salvar":
+        if (this.exigirMestre(conexao)) this.responder(conexao, this.salvarCadastro(mensagem.cadastro));
+        return;
+      case "cadastro_apagar":
+        if (this.exigirMestre(conexao)) this.responder(conexao, this.apagarCadastro(mensagem.id));
         return;
       case "kit_apagar":
         if (this.exigirMestre(conexao)) this.responder(conexao, this.personagens.apagarKit(mensagem.kitId));
@@ -338,6 +428,7 @@ export class Mesa {
       case "estresse_ajustar":
       case "ficha_classe_ajustar":
       case "habilidade_usar":
+      case "oferta_dispensar":
       case "descanso":
         if (estado.fase === "dentro") this.responder(conexao, this.vida.receber(mensagem, estado.quem));
         return;
@@ -362,14 +453,15 @@ export class Mesa {
     if (resultado) conexao.canal.enviar({ t: "erro", codigo: "recusado", mensagem: resultado.recusado });
   }
 
-  /* Vai para o dono atual e o mestre; quem deixou de controlar vê o personagem sair. */
+  /* Vai para o dono atual e o mestre; quem deixou de controlar vê o personagem sair. Arquivado, só o mestre recebe. */
   private enviarPersonagem(personagem: Personagem, antigoDono: string | null) {
     const { id, participanteId, situacao, ficha, vivo } = personagem;
     const mensagem = { t: "personagem", personagem: { id, participanteId, situacao, ficha, vivo } } as const;
     for (const c of this.conexoes) {
       if (c.estado.fase !== "dentro") continue;
       const { quem } = c.estado;
-      if (quem.papel === "mestre" || quem.id === participanteId) c.canal.enviar(mensagem);
+      if (quem.papel === "mestre") c.canal.enviar(mensagem);
+      else if (quem.id === participanteId) c.canal.enviar(situacao === "arquivado" ? { t: "personagem_removido", personagemId: id } : mensagem);
       else if (quem.id === antigoDono) c.canal.enviar({ t: "personagem_removido", personagemId: personagem.id });
     }
   }
@@ -385,7 +477,7 @@ export class Mesa {
   private enviarCombate() {
     const combate = this.combates.combate();
     for (const c of this.conexoes) {
-      if (c.estado.fase === "dentro") c.canal.enviar({ t: "combate", combate: projetarCombate(combate, c.estado.quem) });
+      if (c.estado.fase === "dentro") c.canal.enviar({ t: "combate", combate: projetarCombate(combate, c.estado.quem, this.donoDoPersonagem) });
     }
   }
 
@@ -508,7 +600,10 @@ export class Mesa {
       eventos: proprios.filter((e) => e.n > vistos).slice(-MAX_EVENTOS_NA_CHEGADA),
       personagens: this.personagens.visiveisPara(quem).map(({ id, participanteId, situacao, ficha, vivo }) => ({ id, participanteId, situacao, ficha, vivo })),
     });
-    conexao.canal.enviar({ t: "combate", combate: projetarCombate(this.combates.combate(), quem) });
+    conexao.canal.enviar({ t: "combate", combate: projetarCombate(this.combates.combate(), quem, this.donoDoPersonagem) });
+    conexao.canal.enviar({ t: "cadastros", lista: this.cadastrosPara(quem) });
+    conexao.canal.enviar({ t: "jogos21", lista: this.jogos21.listaPara(quem) });
+    conexao.canal.enviar({ t: "mostrando", mostra: this.mostraPara(quem) });
     if (participante.papel === "mestre") this.enviarEstadoMestre(conexao);
     this.avisarPresenca();
   }
@@ -692,6 +787,8 @@ export class Mesa {
     this.repo.fecharCampanhas();
     this.campanha = undefined;
     this.pedidos.clear();
+    this.jogos21.limpar();
+    this.mostra = null;
     this.avisarMudancaDeMesa();
   }
 
@@ -767,6 +864,79 @@ export class Mesa {
       });
   }
 
+  /* ---------- Cadastros do mestre (fase 6) ---------- */
+
+  /* O que cada um recebe: o mestre, tudo; o jogador, só o que cadastrosParaJogador libera. */
+  private cadastrosPara(quem: Espectador): CadastroTipo[] {
+    if (!this.campanha) return [];
+    const todos = this.repo.cadastrosDa(this.campanha.id);
+    return quem.papel === "mestre" ? todos : cadastrosParaJogador(todos);
+  }
+
+  /* ---------- Mostrar para os jogadores ---------- */
+
+  private mostra: (Mostra & { id: string }) | null = null;
+
+  private mostraPara(quem: Espectador): (Mostra & { id: string }) | null {
+    const m = this.mostra;
+    if (!m) return null;
+    if (quem.papel === "mestre") return m;
+    return m.para.length === 0 || m.para.includes(quem.id) ? { ...m, para: [] } : null;
+  }
+
+  private avisarMostra() {
+    for (const c of this.conexoes) if (c.estado.fase === "dentro") c.canal.enviar({ t: "mostrando", mostra: this.mostraPara(c.estado.quem) });
+  }
+
+  /* Arte do pacote que o jogador pode ver por causa da campanha: o NPC visível e o que o mestre mostra a ele. */
+  private imagemLiberadaPelaCampanha(id: string, quem: Espectador) {
+    const mostra = this.mostraPara(quem);
+    if (mostra?.imagem?.origem === "pacote" && mostra.imagem.id === id) return true;
+    if (!this.campanha) return false;
+    return this.repo.cadastrosDa(this.campanha.id).some((c) => c.tipo === "npc" && c.dados.visivel && c.dados.imagem?.origem === "pacote" && c.dados.imagem.id === id);
+  }
+
+  /* Imagem enviada: o mestre (NPC, Mostrar) e o jogador (retrato do personagem, etapa 11). Só quem está na
+     campanha aberta envia e lê; o tamanho é limitado na rota. */
+  salvarArquivo(token: string, local: boolean, tipo: string, dados: Buffer): string | undefined | null {
+    const mestre = local && iguais(token, this.opcoes.tokenMestre);
+    if (!mestre && this.repo.participantePorToken(hash(token))?.campanhaId !== this.campanha?.id) return undefined;
+    if (!this.campanha) return null;
+    const id = randomUUID();
+    this.repo.salvarArquivo(this.campanha.id, { id, tipo, dados }, new Date(this.agora()).toISOString());
+    return id;
+  }
+
+  arquivoPara(token: string, local: boolean, id: string): { tipo: string; dados: Buffer } | null | undefined {
+    const mestre = local && iguais(token, this.opcoes.tokenMestre);
+    if (!mestre && this.repo.participantePorToken(hash(token))?.campanhaId !== this.campanha?.id) return undefined;
+    return this.campanha ? this.repo.arquivo(this.campanha.id, id) : null;
+  }
+
+  private avisarJogos21() {
+    for (const c of this.conexoes) if (c.estado.fase === "dentro") c.canal.enviar({ t: "jogos21", lista: this.jogos21.listaPara(c.estado.quem) });
+  }
+
+  private avisarCadastros() {
+    for (const c of this.conexoes) if (c.estado.fase === "dentro") c.canal.enviar({ t: "cadastros", lista: this.cadastrosPara(c.estado.quem) });
+  }
+
+  private salvarCadastro(novo: CadastroNovo): { recusado: string } | void {
+    if (!this.campanha) return { recusado: "Nenhuma campanha aberta." };
+    const existente = novo.id ? this.repo.cadastrosDa(this.campanha.id).find((c) => c.id === novo.id) : undefined;
+    if (novo.id && !existente) return { recusado: "Esse cadastro não existe mais." };
+    if (existente && existente.tipo !== novo.tipo) return { recusado: "O tipo do cadastro não muda." };
+    const cadastro = Cadastro.parse({ ...novo, id: novo.id ?? randomUUID(), atualizadoEm: new Date(this.agora()).toISOString() });
+    this.repo.salvarCadastro(this.campanha.id, cadastro);
+    this.avisarCadastros();
+  }
+
+  private apagarCadastro(id: string): { recusado: string } | void {
+    if (!this.campanha) return { recusado: "Nenhuma campanha aberta." };
+    this.repo.apagarCadastro(this.campanha.id, id);
+    this.avisarCadastros();
+  }
+
   private enviarEstadoMestre(conexao: Conexao) {
     if (!this.campanha) return;
     conexao.canal.enviar({
@@ -789,3 +959,7 @@ export class Mesa {
     canal.enviar({ t: "erro", codigo, mensagem: MENSAGEM[codigo] });
   }
 }
+
+/* O que qualquer jogador da mesa pode baixar, sem depender do momento: as silhuetas do retrato do personagem. */
+/* Silhuetas do retrato e a arte dos itens do catálogo (ícone do inventário): o jogador sempre pode ver. */
+export const imagemLiberadaAoJogador = (id: string) => /^(silhueta|item|municao|modificacao)./.test(id);

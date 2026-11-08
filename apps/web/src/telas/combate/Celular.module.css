@@ -617,3 +617,23 @@
   flex: none;
   white-space: nowrap;
 }
+
+/* Iniciativa oculta: posição que ainda não agiu. */
+.oculta .fichaInterna {
+  border-style: dashed;
+  color: var(--cor-texto-suave);
+  font-family: var(--fonte-titulo);
+}
+
+/* Com o rosto da criatura, o losango vira um círculo com a arte e sem a letra. */
+.criatura .fichaInterna:has(img) {
+  width: 30px;
+  height: 30px;
+  overflow: hidden;
+  border-radius: 50%;
+  transform: none;
+}
+
+.criatura:has(img)::after {
+  content: none;
+}

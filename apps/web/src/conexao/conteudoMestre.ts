@@ -1,15 +1,17 @@
-import type { Ameaca, Criatura, Efeito, Regra, Tabela } from "@odm/conteudo";
+import type { Ameaca, Criatura, Efeito, Loja, Modificador, Municao, Pessoa, Regra, Tabela } from "@odm/conteudo";
 import { criarContextoCombate, type ContextoCombate } from "@odm/regras";
 import { useEffect, useMemo } from "react";
 import { create } from "zustand";
 import { tokenDaSessao, useLoja } from "./loja";
 
 /* Bestiário, efeitos e regras de combate: só o mestre baixa, da máquina dele (especificação 3.1). */
-export type ConteudoMestre = { criaturas: Criatura[]; ameacas: Ameaca[]; efeitos: Efeito[]; regras: Regra[]; tabelas: Tabela[] };
+export type ConteudoMestre = { criaturas: Criatura[]; ameacas: Ameaca[]; efeitos: Efeito[]; regras: Regra[]; tabelas: Tabela[]; modificadores: Modificador[]; lojas: Loja[]; municoes: Municao[]; pessoas: Pessoa[] };
 
 type Estado = { situacao: "parado" | "carregando" | "pronto" | "falhou"; conteudo: ConteudoMestre | null; mesaId: string | null };
 
 const useConteudo = create<Estado>(() => ({ situacao: "parado", conteudo: null, mesaId: null }));
+
+let tentativas = 0;
 
 async function baixar(mesaId: string) {
   useConteudo.setState({ situacao: "carregando", conteudo: null, mesaId });
@@ -18,8 +20,16 @@ async function baixar(mesaId: string) {
     const resposta = await fetch("/api/conteudo-mestre", { headers: token ? { Authorization: `Bearer ${token}` } : {} });
     if (!resposta.ok) throw new Error(String(resposta.status));
     useConteudo.setState({ situacao: "pronto", conteudo: (await resposta.json()) as ConteudoMestre });
+    tentativas = 0;
   } catch {
     useConteudo.setState({ situacao: "falhou" });
+    /* O servidor pode estar reiniciando: tenta de novo algumas vezes, com espera crescente. */
+    if (tentativas < 5) {
+      tentativas += 1;
+      setTimeout(() => {
+        if (useConteudo.getState().situacao === "falhou" && useConteudo.getState().mesaId === mesaId) void baixar(mesaId);
+      }, 1500 * tentativas);
+    }
   }
 }
 

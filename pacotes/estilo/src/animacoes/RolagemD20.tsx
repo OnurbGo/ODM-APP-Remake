@@ -2,10 +2,13 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import { CartaBaralho, type Naipe } from "../componentes/CartaBaralho";
 import { Etiqueta } from "../componentes/Etiqueta";
 import { D20Plano } from "./D20Plano";
+import { SimboloD20 } from "./SimboloD20";
+import { simboloDoNatural } from "./simbolosD20";
 import css from "./RolagemD20.module.css";
 import { usarVoltar } from "../componentes/usarVoltar";
 import { usePularAnimacao } from "./usePularAnimacao";
 import { useReduzirAnimacoes } from "./useReduzirAnimacoes";
+import { dicaDePular } from "./dicaDePular";
 
 export type ModificadorRolagem = { rotulo: string; valor: number };
 
@@ -28,6 +31,8 @@ export type DadosRolagem = {
   destaqueNatural?: "alto" | "baixo";
   notaNatural?: string;
   notaFinal?: string;
+  /* Teste de Morte: animação própria (batida de coração), com os sucessos e as falhas marcados um a um. */
+  morte?: { sucessos: number; falhas: number; novo: "sucesso" | "falha" | "acordou" | "estavel" | "tres_falhas" };
 };
 
 type Props = {
@@ -130,6 +135,8 @@ function Cena({ rolagem, rapida, semTresD, fecharSozinhoMs, aoFechar }: Props) {
   usarVoltar(true, aoFechar);
 
   const natural = rolagem.dados[rolagem.escolhido] ?? 0;
+  /* O olho com X e a lápide acompanham o 20 e o 1 naturais no resultado. */
+  const simboloNatural = simboloDoNatural(natural);
   const somaParcial =
     natural + rolagem.modificadores.slice(0, Math.max(0, Math.min(passo, qtdMods))).reduce((soma, m) => soma + m.valor, 0);
   const mostrarTotal = terminou ? rolagem.total : somaParcial;
@@ -140,7 +147,7 @@ function Cena({ rolagem, rapida, semTresD, fecharSozinhoMs, aoFechar }: Props) {
     <div
       ref={camada}
       tabIndex={-1}
-      className={css.camada}
+      className={`${css.camada} ${rolagem.morte ? css.morte : ""}`}
       role="dialog"
       aria-modal="true"
       aria-label={rolagem.titulo}
@@ -188,7 +195,10 @@ function Cena({ rolagem, rapida, semTresD, fecharSozinhoMs, aoFechar }: Props) {
         <div className={css.notas}>
           {dadoParou && rolagem.notaDados && <Etiqueta>{rolagem.notaDados}</Etiqueta>}
           {dadoParou && rolagem.notaNatural && (
-            <Etiqueta tom={rolagem.destaqueNatural === "baixo" ? "perigo" : "destaque"}>{rolagem.notaNatural}</Etiqueta>
+            <Etiqueta tom={rolagem.destaqueNatural === "baixo" ? "perigo" : "destaque"}>
+              {simboloNatural && <SimboloD20 simbolo={simboloNatural} className={css.simboloNatural} />}
+              {rolagem.notaNatural}
+            </Etiqueta>
           )}
         </div>
 
@@ -211,7 +221,10 @@ function Cena({ rolagem, rapida, semTresD, fecharSozinhoMs, aoFechar }: Props) {
           <ul className={css.mods}>
             <li className={css.mod}>
               <span className="odm-rotulo">d20</span>
-              <span className="odm-numero">{dadoParou ? natural : "—"}</span>
+              <span className="odm-numero">
+                {dadoParou && simboloNatural && <SimboloD20 simbolo={simboloNatural} className={css.simboloNatural} />}
+                {dadoParou ? natural : "—"}
+              </span>
             </li>
             {rolagem.modificadores.map((m, i) =>
               passo > i ? (
@@ -231,11 +244,13 @@ function Cena({ rolagem, rapida, semTresD, fecharSozinhoMs, aoFechar }: Props) {
           </p>
         )}
 
+        {rolagem.morte && dadoParou && <MarcasDeMorte morte={rolagem.morte} />}
+
         {terminou && rolagem.notaFinal && <p className={css.notaFinal}>{rolagem.notaFinal}</p>}
       </div>
 
       <p className={`${css.dica} odm-rotulo`}>
-        {terminou ? "Clique, Espaço ou Esc para fechar" : "Clique, Espaço ou Esc para pular"}
+        {dicaDePular(terminou ? "fechar" : "pular")}
       </p>
 
       {terminou && (
@@ -244,6 +259,32 @@ function Cena({ rolagem, rapida, semTresD, fecharSozinhoMs, aoFechar }: Props) {
           {semDado ? rolagem.notaFinal : `total ${rolagem.total}${alvoTexto ? ` contra ${alvoTexto}` : ""}`}.
         </p>
       )}
+    </div>
+  );
+}
+
+/* Três sucessos e três falhas do Morrendo. A marca que este teste acabou de pôr entra por último, com o carimbo. */
+function MarcasDeMorte({ morte }: { morte: NonNullable<DadosRolagem["morte"]> }) {
+  const linha = (tipo: "sucesso" | "falha", quantas: number) => {
+    const nova = morte.novo === tipo || (tipo === "falha" && morte.novo === "tres_falhas") || (tipo === "sucesso" && morte.novo === "estavel");
+    return (
+      <div className={css.linhaMorte}>
+        <span className="odm-rotulo">{tipo === "sucesso" ? "Sucessos" : "Falhas"}</span>
+        <span className={css.marcasMorte} aria-label={`${quantas} de 3`}>
+          {[0, 1, 2].map((i) => (
+            <span
+              key={i}
+              className={`${css.marcaMorte} ${i < quantas ? (tipo === "sucesso" ? css.marcaSucesso : css.marcaFalha) : ""} ${nova && i === quantas - 1 ? css.marcaNova : ""}`}
+            />
+          ))}
+        </span>
+      </div>
+    );
+  };
+  return (
+    <div className={css.morteMarcas}>
+      {linha("sucesso", morte.sucessos)}
+      {linha("falha", morte.falhas)}
     </div>
   );
 }

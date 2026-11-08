@@ -114,6 +114,12 @@ export const Marcas = z.object({
   /* Atitude Imprudente (Jogador, Morrendo): a opção que vale no próximo ataque, e se já foi usada neste turno. */
   imprudente: z.enum(["precisao", "potencia", "violencia"]).nullable().default(null),
   imprudenteNoTurno: z.boolean().default(false),
+  /* Habilidades marcadas para depois de um ataque contra este personagem (reage_a: apos_acerto, apos_erro,
+     apos_critico), como o Rito da Lua Sangrenta: o jogador vê "Usar" ou "Agora não". */
+  ofertaDeReacao: z
+    .object({ habilidades: z.array(Id).min(1).max(10), momento: z.enum(["apos_acerto", "apos_erro", "apos_critico"]), ataque: z.string().max(160), dano: Contagem.nullable() })
+    .nullable()
+    .default(null),
 });
 export type Marcas = z.infer<typeof Marcas>;
 
@@ -143,7 +149,7 @@ export const Combatente = z.object({
   pa: PontosDeAcao.default({ disponiveis: 0, guardados: 0, bloqueados: 0 }),
   deslocamentosNaRodada: Contagem.default(0),
   ataquesNoTurno: Contagem.default(0),
-  marcas: Marcas.default({ reacaoSemCusto: null, vantagemNoProximo: false, deslocamentoSemCusto: 0, paExtraNoPrimeiroTurno: 0, defesaDeReacao: null, comboLiberado: false, testeDeMortePendente: false, imprudente: null, imprudenteNoTurno: false }),
+  marcas: Marcas.default({ reacaoSemCusto: null, vantagemNoProximo: false, deslocamentoSemCusto: 0, paExtraNoPrimeiroTurno: 0, defesaDeReacao: null, comboLiberado: false, testeDeMortePendente: false, imprudente: null, imprudenteNoTurno: false, ofertaDeReacao: null }),
   /* Só criatura e NPC: o personagem usa o estado vivo dele. */
   pv: Inteiro.nullable().default(null),
   pvMaximo: Inteiro.nullable().default(null),
@@ -152,6 +158,8 @@ export const Combatente = z.object({
   /* Habilidades com Recarga X–Y já gastas. */
   recargasGastas: z.array(Id).max(40).default([]),
   derrotado: z.boolean().default(false),
+  /* Iniciativa oculta (07/11/2026): o jogador vê "?" na posição até o primeiro turno deste combatente. */
+  revelado: z.boolean().default(false),
   horda: Horda.nullable().default(null),
 });
 export type Combatente = z.infer<typeof Combatente>;
@@ -163,6 +171,8 @@ export const FonteDeAtaque = z.discriminatedUnion("tipo", [
   /* "escolha": no Ataque de Horda, a Pancada ou a Mordida. */
   z.object({ tipo: z.literal("acao"), acaoId: Id, escolha: Id.optional() }),
   z.object({ tipo: z.literal("arma"), itemFichaId: Id }),
+  /* Ataque Desarmado do personagem (Jogador, Ações), com o que as armas equipadas somam (Soqueira). */
+  z.object({ tipo: z.literal("desarmado") }),
 ]);
 export type FonteDeAtaque = z.infer<typeof FonteDeAtaque>;
 
@@ -174,6 +184,9 @@ export const OpcoesDeAtaque = z.object({
   alemDoAlcance: z.boolean().default(false),
   bonus: z.number().int().min(-99).max(99).default(0),
   modo: z.enum(["normal", "vantagem", "desvantagem"]).default("normal"),
+  /* Distância até o alvo, em metros, opcional: com ela o app diz se cai em desvantagem, se há teste de
+     resistência (Impacto Pesado) ou se está fora de alcance (decisão de 07/11/2026, escopetas). */
+  distancia: z.number().int().min(0).max(2000).nullable().default(null),
 });
 export type OpcoesDeAtaque = z.infer<typeof OpcoesDeAtaque>;
 
@@ -188,7 +201,7 @@ export const AtaquePendente = z.object({
   alvos: z.array(Id).min(1).max(20),
   aguardando: z.array(Id).max(20),
   reacoes: z.record(z.string(), Reacao).default({}),
-  opcoes: OpcoesDeAtaque.default({ alemDoAlcance: false, bonus: 0, modo: "normal" }),
+  opcoes: OpcoesDeAtaque.default({ alemDoAlcance: false, bonus: 0, modo: "normal", distancia: null }),
 });
 export type AtaquePendente = z.infer<typeof AtaquePendente>;
 
@@ -207,6 +220,8 @@ export const RolagemDeCombate = z.object({
   notaFinal: z.string().max(300).nullable().default(null),
   /* Quem vê a animação: quem atacou e o jogador atacado. */
   para: z.array(Id).max(20).default([]),
+  /* Teste de Morte: animação própria, com os sucessos e as falhas marcados (decisão de 07/11/2026). */
+  morte: z.object({ sucessos: Contagem, falhas: Contagem, novo: z.enum(["sucesso", "falha", "acordou", "estavel", "tres_falhas"]) }).nullable().default(null),
 });
 export type RolagemDeCombate = z.infer<typeof RolagemDeCombate>;
 
@@ -271,6 +286,7 @@ export const Mudanca = z.discriminatedUnion("op", [
   z.object({ op: z.literal("marcas"), alvo: Alvo, antes: Marcas, depois: Marcas }),
   z.object({ op: z.literal("recarga"), alvo: Alvo, acaoId: Id, gasta: z.boolean() }),
   z.object({ op: z.literal("derrotado"), alvo: Alvo, antes: z.boolean(), depois: z.boolean() }),
+  z.object({ op: z.literal("revelado"), alvo: Alvo, antes: z.boolean(), depois: z.boolean() }),
   z.object({ op: z.literal("horda"), alvo: Alvo, antes: Horda.nullable(), depois: Horda.nullable() }),
   z.object({ op: z.literal("combatente_entra"), combatente: Combatente, posicao: Contagem.nullable() }),
   z.object({ op: z.literal("combatente_sai"), combatente: Combatente, posicao: Contagem.nullable() }),

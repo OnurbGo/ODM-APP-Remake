@@ -16,9 +16,15 @@ export const ManifestoPacote = z.object({
 });
 export type ManifestoPacote = z.infer<typeof ManifestoPacote>;
 
+/* Arte dos livros (fase 6, etapa 4): corpo e rosto em WebP, por id. Fica só no pacote, que é privado. */
+const ImagemWebp = z.string().startsWith("data:image/webp;base64,");
+export const ImagensDoPacote = z.record(z.string().min(1), z.object({ corpo: ImagemWebp, rosto: ImagemWebp }));
+export type ImagensDoPacote = z.infer<typeof ImagensDoPacote>;
+
 export const PacoteConteudo = z.object({
   manifesto: ManifestoPacote,
   conteudo: Conteudo,
+  imagens: ImagensDoPacote.default({}),
 });
 export type PacoteConteudo = z.infer<typeof PacoteConteudo>;
 

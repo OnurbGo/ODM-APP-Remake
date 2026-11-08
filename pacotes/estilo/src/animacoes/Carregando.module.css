@@ -2,10 +2,44 @@
   display: inline-flex;
 }
 
+/* Ocupa a área que o pai der e fica no centro dela, nos dois eixos. Num pai sem altura,
+   reserva uma faixa própria para não colar no topo. */
+.bloco {
+  display: grid;
+  flex: 1 1 auto;
+  place-items: center;
+  align-self: stretch;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  min-height: clamp(6rem, 20vh, 12rem);
+  padding: var(--esp-4, 1rem);
+}
+
+.tela {
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: var(--esp-4, 1rem);
+}
+
+.linha {
+  display: inline-flex;
+  vertical-align: middle;
+}
+
 .desenho {
   display: block;
   flex: none;
   overflow: visible;
+}
+
+.fluido {
+  width: clamp(48px, 12vmin, 88px);
+  height: clamp(48px, 12vmin, 88px);
 }
 
 .metal {

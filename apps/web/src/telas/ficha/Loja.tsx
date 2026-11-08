@@ -1,5 +1,5 @@
 import { ATRIBUTOS, type Atributo } from "@odm/conteudo";
-import { Botao, PopUp } from "@odm/estilo";
+import { Botao, PopUp, TextoDoLivro } from "@odm/estilo";
 import type { CompraPrestigio } from "@odm/protocolo";
 import {
   atributosDaFicha,
@@ -44,7 +44,7 @@ function ListaAlvos({ alvos, aoEscolher }: { alvos: AlvoLoja[]; aoEscolher: (alv
       {alvos.map((a) => (
         <details key={a.id} className={css.habilidade}>
           <summary className={css.linhaTexto}>{a.nome}</summary>
-          <p className={css.habilidadeTexto}>{a.texto}</p>
+          <p className={css.habilidadeTexto}><TextoDoLivro texto={a.texto} /></p>
           <Botao largo disabled={!!a.motivo} onClick={() => aoEscolher(a)}>
             {a.motivo ?? "Comprar"}
           </Botao>

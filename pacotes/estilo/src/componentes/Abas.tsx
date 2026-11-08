@@ -15,16 +15,18 @@ type Props = {
   aoEscolher: (id: string) => void;
   variante?: "segmentada" | "inferior";
   rotuloGrupo: string;
+  /* Coluna estreita onde todas precisam aparecer: as abas quebram em mais de uma linha em vez de rolar. */
+  quebrar?: boolean;
 };
 
-export function Abas({ itens, ativa, aoEscolher, variante = "segmentada", rotuloGrupo }: Props) {
+export function Abas({ itens, ativa, aoEscolher, variante = "segmentada", rotuloGrupo, quebrar }: Props) {
   const { grupo, aoTeclar } = useSetas(
     itens.map((i) => i.id),
     ativa,
     aoEscolher,
   );
   return (
-    <div ref={grupo} role="tablist" aria-label={rotuloGrupo} className={`${css.abas} ${css[variante]}`} onKeyDown={aoTeclar}>
+    <div ref={grupo} role="tablist" aria-label={rotuloGrupo} className={`${css.abas} ${css[variante]} ${quebrar ? css.quebrar : ""}`} onKeyDown={aoTeclar}>
       {itens.map((item) => (
         <button
           key={item.id}

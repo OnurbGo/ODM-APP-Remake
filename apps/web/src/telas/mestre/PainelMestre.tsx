@@ -13,6 +13,8 @@ import { usarFirewall } from "./usarFirewall";
 const AreaFicha = lazy(() => import("../ficha/AreaFicha"));
 const Personagens = lazy(() => import("./Personagens"));
 const Escudo = lazy(() => import("./escudo/Escudo"));
+const Campanha = lazy(() => import("./campanha/Campanha"));
+const Mostrar = lazy(() => import("./campanha/Mostrar").then((m) => ({ default: m.Mostrar })));
 
 const NOME_REDE: Record<TipoRede, string> = {
   lan: "Rede local",
@@ -215,13 +217,15 @@ export default function PainelMestre() {
   const erro = useLoja((e) => e.erro);
   const [aberto, abrir] = useState<string | null>(null);
   const [trocando, definirTrocando] = useState(false);
+  const [mostrando, definirMostrando] = useState(false);
+  const aberta = useLoja((e) => e.mostrando);
   const [area, definirArea] = useState("mesa");
   const emCombate = useLoja((e) => !!e.combate);
   const existe = useLoja((e) => e.personagens.some((p) => p.id === aberto));
 
   if (aberto && existe) {
     return (
-      <Suspense fallback={<Carregando rotulo="Abrindo a ficha" />}>
+      <Suspense fallback={<Carregando modo="tela" rotulo="Abrindo a ficha" />}>
         <AreaFicha personagemId={aberto} aoVoltar={() => abrir(null)} />
       </Suspense>
     );
@@ -238,10 +242,14 @@ export default function PainelMestre() {
           itens={[
             { id: "mesa", rotulo: "Mesa" },
             { id: "escudo", rotulo: "Escudo", aviso: emCombate && area !== "escudo" },
+            { id: "campanha", rotulo: "Campanha" },
           ]}
           ativa={area}
           aoEscolher={definirArea}
         />
+        <Botao variante={aberta ? "primario" : "secundario"} onClick={() => definirMostrando(true)}>
+          {aberta ? "Mostrando…" : "Mostrar"}
+        </Botao>
         <Botao variante="fantasma" className={css.trocarCampanha} onClick={() => definirTrocando(true)}>
           Trocar de campanha
         </Botao>
@@ -254,7 +262,13 @@ export default function PainelMestre() {
           </Botao>
         </p>
       )}
-      {area === "escudo" ? (
+      {area === "campanha" ? (
+        <div className={css.area}>
+          <Suspense fallback={<Carregando rotulo="Abrindo a campanha" />}>
+            <Campanha />
+          </Suspense>
+        </div>
+      ) : area === "escudo" ? (
         <div className={css.area}>
           <Suspense fallback={<Carregando rotulo="Abrindo o Escudo" />}>
             <Escudo />
@@ -274,6 +288,11 @@ export default function PainelMestre() {
           <Registro className={css.preenche} />
         </div>
       </main>
+      )}
+      {mostrando && (
+        <Suspense fallback={null}>
+          <Mostrar aberto aoFechar={() => definirMostrando(false)} />
+        </Suspense>
       )}
       <PopUp
         aberto={trocando}

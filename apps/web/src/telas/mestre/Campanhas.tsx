@@ -7,7 +7,7 @@ import css from "./Campanhas.module.css";
 import { CamposOpcoes } from "./CamposOpcoes";
 
 const PACOTE_BASE = "base";
-const OPCOES_NOVAS: OpcoesCampanha = { cartasDoDestino: true, estresse: false, modeloVantagem: "dados_extras", empateIniciativa: "naipe", polivalencia: false };
+const OPCOES_NOVAS: OpcoesCampanha = { cartasDoDestino: true, estresse: false, modeloVantagem: "dados_extras", empateIniciativa: "naipe", polivalencia: false, habilidadesDeCriatura: true, mundo: [] };
 
 const dataCurta = (iso: string) => new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 

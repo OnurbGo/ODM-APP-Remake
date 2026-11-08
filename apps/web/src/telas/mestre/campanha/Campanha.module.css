@@ -1,0 +1,435 @@
+.campanha {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--esp-3);
+  min-height: 0;
+  padding: var(--esp-3) var(--esp-4);
+}
+
+.corpo {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.nota {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-1);
+  font-size: var(--texto-s);
+  color: var(--cor-texto-suave);
+}
+
+.aviso {
+  padding: var(--esp-2) var(--esp-3);
+  border: 1px solid var(--cor-perigo);
+  background: var(--cor-perigo-fundo);
+}
+
+.texto {
+  white-space: pre-line;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-1);
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+.campo input,
+.campo textarea,
+.campo select,
+.linhaForm input,
+.editor input[type="search"] {
+  min-height: var(--alvo-toque);
+  font: inherit;
+}
+
+.campo textarea {
+  resize: vertical;
+  line-height: 1.4;
+}
+
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-1);
+}
+
+.linhaLista {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-2);
+  min-height: var(--alvo-toque);
+}
+
+.linhaForm,
+.barraSalvar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-2);
+}
+
+.linhaForm input {
+  flex: 1 1 14rem;
+}
+
+.marcar {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--esp-2);
+  min-height: var(--alvo-toque);
+}
+
+.feito {
+  text-decoration: line-through;
+  color: var(--cor-texto-suave);
+}
+
+.objetivo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-1);
+}
+
+/* ---------- Lista + editor ---------- */
+
+.dupla {
+  display: grid;
+  grid-template-columns: minmax(220px, 300px) 1fr;
+  gap: var(--esp-4);
+  min-height: 0;
+  flex: 1;
+}
+
+.listaLateral {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-2);
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.painelEditor {
+  overflow-y: auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+.voltar {
+  display: none;
+}
+
+.itemLista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-1);
+  width: 100%;
+  min-height: var(--alvo-toque);
+  padding: var(--esp-2) var(--esp-3);
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  cursor: pointer;
+}
+
+.itemAtivo {
+  border-color: var(--cor-destaque);
+}
+
+.itemTitulo {
+  font-weight: 600;
+}
+
+.itemDetalhe {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-1);
+  font-size: var(--texto-s);
+  color: var(--cor-texto-suave);
+}
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-3);
+  max-width: 820px;
+  padding-bottom: var(--esp-6);
+}
+
+.editor > .barraSalvar {
+  position: sticky;
+  bottom: 0;
+  padding: var(--esp-2) 0;
+  background: var(--cor-fundo);
+  border-top: 1px solid var(--cor-borda);
+}
+
+@media (max-width: 899px) {
+  .campanha {
+    padding: var(--esp-2);
+  }
+
+  .dupla {
+    display: block;
+  }
+
+  .dupla.comEditor .listaLateral {
+    display: none;
+  }
+
+  .dupla:not(.comEditor) .painelEditor {
+    display: none;
+  }
+
+  .voltar {
+    display: inline-flex;
+    margin-bottom: var(--esp-2);
+  }
+}
+
+/* ---------- Concluir ---------- */
+
+.concluir {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-3);
+  min-width: min(520px, 100%);
+}
+
+.bloco {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-2);
+  padding-top: var(--esp-2);
+  border-top: 1px solid var(--cor-borda);
+}
+
+.campoValor {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-2);
+}
+
+.campoValor input {
+  width: 12ch;
+  min-height: var(--alvo-toque);
+  text-align: right;
+}
+
+/* ---------- Linha do tempo ---------- */
+
+.linhaDoTempo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-3);
+  max-width: 820px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.marcos {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-3);
+  padding-left: var(--esp-5);
+}
+
+.marcos::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 9px;
+  width: 2px;
+  background: var(--cor-borda-forte);
+}
+
+.marco {
+  position: relative;
+}
+
+.ponto {
+  position: absolute;
+  top: 18px;
+  left: calc(-1 * var(--esp-5) + 3px);
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--cor-borda-forte);
+  background: var(--cor-fundo);
+  transform: rotate(45deg);
+}
+
+.marcoAconteceu .ponto {
+  border-color: var(--cor-destaque);
+  background: var(--cor-destaque);
+}
+
+.formMarco {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-2);
+}
+
+/* ---------- Mundo ---------- */
+
+.mundo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-3);
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.cartasMundo {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
+  gap: var(--esp-3);
+  align-items: start;
+}
+
+.cartaLigada {
+  border-color: var(--cor-destaque);
+  box-shadow: 0 0 0 1px var(--cor-destaque);
+}
+
+.faz {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-1);
+  padding-left: var(--esp-4);
+  list-style: disc;
+  font-size: var(--texto-s);
+  color: var(--cor-destaque);
+}
+
+/* ---------- Comércio ---------- */
+
+.tabelaLoja {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--texto-s);
+}
+
+.tabelaLoja th {
+  text-align: left;
+  font-family: var(--fonte-rotulo);
+  color: var(--cor-texto-suave);
+  padding: var(--esp-1);
+}
+
+.tabelaLoja td {
+  padding: var(--esp-1);
+  border-top: 1px solid var(--cor-borda);
+  vertical-align: middle;
+}
+
+.tabelaLoja input {
+  width: 10ch;
+  min-height: var(--alvo-toque);
+  text-align: right;
+}
+
+/* ---------- Imagem (NPC, Mostrar) ---------- */
+
+.imagem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-2);
+}
+
+.previa {
+  max-width: 100%;
+  max-height: 280px;
+  object-fit: contain;
+  align-self: flex-start;
+  border: 1px solid var(--cor-borda);
+}
+
+.semImagem {
+  display: grid;
+  place-items: center;
+  width: 160px;
+  height: 120px;
+  border: 1px dashed var(--cor-borda-forte);
+  color: var(--cor-texto-suave);
+  font-size: var(--texto-s);
+}
+
+.listaLateral input[type="search"] {
+  width: 100%;
+  min-height: var(--alvo-toque);
+}
+
+.listaLateral {
+  overflow-x: hidden;
+}
+
+.servicoLinha {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-1);
+  padding-block: var(--esp-1);
+  border-bottom: 1px solid var(--cor-borda);
+}
+
+.efeitoServico {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-2);
+  padding: var(--esp-2) 0 var(--esp-2) var(--esp-3);
+}
+
+.efeitoResumo {
+  display: block;
+  color: var(--cor-destaque);
+  font-size: var(--texto-s);
+}
+
+.pessoasDoLivro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-2);
+  padding: var(--esp-2);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-s);
+}
+
+.pessoasDoLivro > summary {
+  cursor: pointer;
+}
+
+.sugestao {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--esp-2);
+  padding: var(--esp-2) 0;
+}
+
+/* Serviço: o nome e o texto ocupam a linha; o "Tirar" fica ao lado, no alto. */
+.servicoLinha > .linhaLista {
+  flex-wrap: nowrap;
+  align-items: flex-start;
+}
+
+.servicoLinha > .linhaLista > span {
+  flex: 1;
+  min-width: 0;
+}

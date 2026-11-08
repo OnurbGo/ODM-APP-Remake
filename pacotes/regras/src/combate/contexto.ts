@@ -2,10 +2,12 @@ import {
   ID_EXAUSTAO,
   MecanicaCombate,
   MecanicaEfeito,
+  MecanicaModificador,
   NivelDeExaustao,
   REGRAS_COMBATE,
   REGRAS_COMBATE_OBRIGATORIAS,
   type Efeito,
+  type Modificador,
   type RegrasCombate,
 } from "@odm/conteudo";
 import { opcoesPadrao, type OpcoesCampanha } from "@odm/protocolo";
@@ -22,7 +24,21 @@ export type ContextoCombate = {
   efeitos: ReadonlyMap<string, EfeitoDoPacote>;
   /* Nulo enquanto a Exaustão não tiver mecânica aprovada: o nível aparece, mas não muda conta. */
   exaustao: readonly NivelDeExaustao[] | null;
+  /* Modificadores de mundo ligados na campanha (fase 6, etapa 9); mecânica nula = só a carta de texto. */
+  mundo: readonly ModificadorAtivo[];
 };
+
+export type ModificadorAtivo = { id: string; nome: string; texto: string; mecanica: MecanicaModificador | null; campoAberto: boolean };
+
+export function lerMundo(modificadores: readonly Modificador[] | undefined, opcoes: OpcoesCampanha): ModificadorAtivo[] {
+  const porId = new Map((modificadores ?? []).map((m) => [m.id, m]));
+  return opcoes.mundo.flatMap(({ id, campoAberto }) => {
+    const m = porId.get(id);
+    if (!m) return [];
+    const lido = MecanicaModificador.safeParse(m.mecanica);
+    return [{ id, nome: m.nome, texto: m.texto, mecanica: m.mecanica && lido.success ? lido.data : null, campoAberto }];
+  });
+}
 
 type ItemComMecanica = { id: string; mecanica?: Record<string, unknown> };
 
@@ -56,12 +72,12 @@ function lerExaustao(efeitos: ReadonlyMap<string, EfeitoDoPacote>) {
 }
 
 export function criarContextoCombate(
-  conteudo: { regras: readonly ItemComMecanica[]; tabelas?: readonly ItemComMecanica[]; efeitos: readonly Efeito[] },
+  conteudo: { regras: readonly ItemComMecanica[]; tabelas?: readonly ItemComMecanica[]; efeitos: readonly Efeito[]; modificadores?: readonly Modificador[] },
   opcoes: OpcoesCampanha = opcoesPadrao(),
 ) {
   const lidas = lerRegrasCombate([...conteudo.regras, ...(conteudo.tabelas ?? [])]);
   if (!lidas.ok) return lidas;
   const efeitos = lerEfeitos(conteudo.efeitos);
-  const contexto: ContextoCombate = { regras: lidas.regras, opcoes, efeitos, exaustao: lerExaustao(efeitos) };
+  const contexto: ContextoCombate = { regras: lidas.regras, opcoes, efeitos, exaustao: lerExaustao(efeitos), mundo: lerMundo(conteudo.modificadores, opcoes) };
   return { ok: true, contexto } as const;
 }

@@ -1,5 +1,5 @@
 import { ATRIBUTOS, type Atributo } from "@odm/conteudo";
-import { Botao, CampoTexto, Cartao, Etiqueta, PopUp } from "@odm/estilo";
+import { Botao, CampoTexto, Cartao, Etiqueta, PopUp, TextoDoLivro } from "@odm/estilo";
 import type { FichaDados, FichaRascunho, Personagem } from "@odm/protocolo";
 import { calcularFicha, errosDaCriacao, NOME_ATRIBUTO, PASSOS_CRIACAO, vagasDeProficiencia, type ContextoFicha, type PassoCriacao } from "@odm/regras";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -41,7 +41,7 @@ function ListaEscolha({ itens, valor, aoEscolher }: { itens: { id: string; nome:
               {i.id === valor && <Etiqueta tom="destaque">Escolhida</Etiqueta>}
               {i.aviso && <Etiqueta>{i.aviso}</Etiqueta>}
             </summary>
-            <p className={css.texto}>{i.texto}</p>
+            <p className={css.texto}><TextoDoLivro texto={i.texto} /></p>
             <Botao largo disabled={i.id === valor || !!i.aviso} onClick={() => aoEscolher(i.id)}>
               {i.aviso ?? "Escolher"}
             </Botao>
@@ -238,6 +238,14 @@ export function Criacao({ personagem, ctx, aoVoltar }: { personagem: Personagem;
 
   useEffect(() => () => descarregar(), []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  /* No celular a faixa de passos rola de lado: mantém o passo atual à vista. */
+  const faixa = useRef<HTMLOListElement>(null);
+  useEffect(() => {
+    const ol = faixa.current;
+    const ativo = ol?.querySelector<HTMLElement>("[aria-current=step]");
+    if (ol && ativo) ol.scrollTo({ left: ativo.offsetLeft - (ol.clientWidth - ativo.offsetWidth) / 2, behavior: "smooth" });
+  }, [passo]);
+
   const indice = PASSOS_CRIACAO.indexOf(passo);
   const erros = errosDaCriacao(ficha, ctx);
   const comErro = new Set(erros.map((e) => e.passo));
@@ -261,7 +269,7 @@ export function Criacao({ personagem, ctx, aoVoltar }: { personagem: Personagem;
         </p>
       )}
       <nav aria-label="Passos da criação">
-        <ol className={css.passos}>
+        <ol ref={faixa} className={css.passos}>
           {PASSOS_CRIACAO.map((p, i) => (
             <li key={p}>
               <button type="button" className={`${css.passo} ${p === passo ? css.passoAtivo : ""}`} aria-current={p === passo ? "step" : undefined} onClick={() => definirPasso(p)}>

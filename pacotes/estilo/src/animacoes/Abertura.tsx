@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import css from "./Abertura.module.css";
 import { usePularAnimacao } from "./usePularAnimacao";
 import { useReduzirAnimacoes } from "./useReduzirAnimacoes";
+import { dicaDePular } from "./dicaDePular";
 
 type Props = {
   titulo: string;
@@ -129,7 +130,7 @@ export function Abertura({ titulo, aoTerminar }: Props) {
       </h1>
       <span className={css.filete} aria-hidden="true" />
 
-      <p className={`${css.dica} odm-rotulo`}>Clique, Espaço ou Esc para pular</p>
+      <p className={`${css.dica} odm-rotulo`}>{dicaDePular("pular")}</p>
     </div>
   );
 }

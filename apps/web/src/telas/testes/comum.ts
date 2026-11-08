@@ -82,8 +82,10 @@ export function rolagemDeCombate(id: string, r: RolagemDeCombate): DadosRolagem 
     ...(r.alvo ? { alvo: r.alvo } : {}),
     ...(r.resultado ? { resultado: r.resultado } : {}),
     destaqueNatural: natural === 20 ? "alto" : natural === 1 ? "baixo" : undefined,
-    notaNatural: natural === 20 ? "20 natural" : natural === 1 ? "Falha crítica" : undefined,
+    /* No Teste de Morte o 1 natural é só um 1; "Falha crítica" é do ataque. */
+    notaNatural: natural === 20 ? "20 natural" : natural === 1 ? (r.morte ? "1 natural" : "Falha crítica") : undefined,
     ...(r.notaFinal ? { notaFinal: r.notaFinal } : {}),
+    ...(r.morte ? { morte: r.morte } : {}),
   };
 }
 

@@ -1,0 +1,31 @@
+.simbolo {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  overflow: visible;
+  vertical-align: -0.15em;
+}
+
+.figura {
+  stroke: var(--simbolo-figura, var(--dado-numero));
+}
+
+.entalhe {
+  stroke: var(--simbolo-entalhe, var(--dado-corpo));
+}
+
+.fundo {
+  stroke: var(--simbolo-fundo, var(--dado-simbolo-fundo));
+}
+
+.figuraCheio {
+  fill: var(--simbolo-figura, var(--dado-numero));
+}
+
+.entalheCheio {
+  fill: var(--simbolo-entalhe, var(--dado-corpo));
+}
+
+.fundoCheio {
+  fill: var(--simbolo-fundo, var(--dado-simbolo-fundo));
+}

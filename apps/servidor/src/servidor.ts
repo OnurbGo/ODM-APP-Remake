@@ -42,7 +42,7 @@ const CSP = [
   "default-src 'self'",
   "script-src 'self'",
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data:",
+  "img-src 'self' data: blob:",
   "font-src 'self'",
   "connect-src 'self' ws:",
   "object-src 'none'",
@@ -99,6 +99,42 @@ export async function iniciarServidor(opcoes: OpcoesServidor) {
     if (conteudo === undefined) return resposta.code(401).send({ erro: "nao_autorizado" });
     if (conteudo === null) return resposta.code(404).send({ erro: "sem_conteudo" });
     return conteudo;
+  });
+
+  /* Arte dos livros (corpo ou rosto em WebP): o token vai no cabeçalho, e a tela monta a imagem por blob. */
+  /* Imagem enviada pelo mestre (NPC, "Mostrar", retrato): já vem reduzida pelo navegador, até 600 kB. */
+  const TIPOS_DE_IMAGEM = new Set(["image/webp", "image/png", "image/jpeg"]);
+  app.post<{ Body: { tipo?: unknown; dados?: unknown } }>("/api/arquivo", { bodyLimit: 1_000_000 }, async (pedido, resposta) => {
+    const token = pedido.headers.authorization?.replace(/^Bearer /, "") ?? "";
+    const local = pedido.ip === "127.0.0.1" || pedido.ip === "::1" || pedido.ip === "::ffff:127.0.0.1";
+    const { tipo, dados } = pedido.body ?? {};
+    if (typeof tipo !== "string" || !TIPOS_DE_IMAGEM.has(tipo) || typeof dados !== "string") return resposta.code(400).send({ erro: "arquivo_invalido" });
+    const buffer = Buffer.from(dados, "base64");
+    if (!buffer.length || buffer.length > 600_000) return resposta.code(413).send({ erro: "arquivo_grande" });
+    const id = mesa.salvarArquivo(token, local, tipo, buffer);
+    if (id === undefined) return resposta.code(401).send({ erro: "nao_autorizado" });
+    if (id === null) return resposta.code(409).send({ erro: "sem_campanha" });
+    return { id };
+  });
+
+  app.get<{ Params: { tipo: string; id: string } }>("/api/imagem/:tipo/:id", async (pedido, resposta) => {
+    const { tipo, id } = pedido.params;
+    if (tipo === "arquivo") {
+      if (!/^[0-9a-f-]{36}$/.test(id)) return resposta.code(404).send({ erro: "nao_encontrado" });
+      const token = pedido.headers.authorization?.replace(/^Bearer /, "") ?? "";
+      const local = pedido.ip === "127.0.0.1" || pedido.ip === "::1" || pedido.ip === "::ffff:127.0.0.1";
+      const arquivo = mesa.arquivoPara(token, local, id);
+      if (arquivo === undefined) return resposta.code(401).send({ erro: "nao_autorizado" });
+      if (arquivo === null) return resposta.code(404).send({ erro: "sem_imagem" });
+      return resposta.header("Cache-Control", "private, max-age=86400").type(arquivo.tipo).send(arquivo.dados);
+    }
+    if ((tipo !== "corpo" && tipo !== "rosto") || !/^[a-z0-9.-]{1,120}$/.test(id)) return resposta.code(404).send({ erro: "nao_encontrado" });
+    const token = pedido.headers.authorization?.replace(/^Bearer /, "") ?? "";
+    const local = pedido.ip === "127.0.0.1" || pedido.ip === "::1" || pedido.ip === "::ffff:127.0.0.1";
+    const imagem = mesa.imagemPara(token, local, id, tipo);
+    if (imagem === undefined) return resposta.code(401).send({ erro: "nao_autorizado" });
+    if (imagem === null) return resposta.code(404).send({ erro: "sem_imagem" });
+    return resposta.header("Cache-Control", "private, max-age=86400").type("image/webp").send(imagem);
   });
 
   if (opcoes.pastaWeb) {

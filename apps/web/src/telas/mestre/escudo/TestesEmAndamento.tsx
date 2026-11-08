@@ -10,7 +10,18 @@ import css from "./Escudo.module.css";
 
 export function useTestesAbertos(fechados: ReadonlySet<string>) {
   const eventos = useLoja((e) => e.eventos);
-  return useMemo(() => eventos.filter((e): e is EventoPedidoMestre => e.tipo === "teste_pedido" && !fechados.has(e.dados.pedido.id)).reverse(), [eventos, fechados]);
+  /* "Limpar rolagens" também tira os cartões de teste até o mesmo ponto do registro,
+     menos os que ainda esperam a resposta de alguém. */
+  const limpasAte = useLoja((e) => e.rolagensLimpasAte);
+  return useMemo(() => {
+    const resultados = resultadosDe(eventos as EventoVisto[]);
+    const esperando = (e: EventoPedidoMestre) =>
+      e.dados.pedido.personagens.some((p) => {
+        const r = ultimoDoPedido(resultados, e.dados.pedido.id, p.personagemId);
+        return !r || r.dados.estado === "recusado";
+      });
+    return eventos.filter((e): e is EventoPedidoMestre => e.tipo === "teste_pedido" && !fechados.has(e.dados.pedido.id) && (e.n > limpasAte || esperando(e))).reverse();
+  }, [eventos, fechados, limpasAte]);
 }
 
 export function TestesEmAndamento({ pedidos, efeitos, aoFechar }: { pedidos: EventoPedidoMestre[]; efeitos: ReadonlyMap<string, string>; aoFechar: (pedidoId: string) => void }) {

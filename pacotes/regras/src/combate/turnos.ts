@@ -59,7 +59,8 @@ export function fimDaRodada(combate: EstadoCombate): Mudanca[] {
   for (const c of combate.combatentes) {
     mudancas.push(...somarPa(c, "pa.guardados", 0));
     if (c.deslocamentosNaRodada) mudancas.push({ op: "somar", alvo: comoAlvo(c), campo: "deslocamentosNaRodada", delta: -c.deslocamentosNaRodada });
-    if (c.marcas.defesaDeReacao) mudancas.push({ op: "marcas", alvo: comoAlvo(c), antes: c.marcas, depois: { ...c.marcas, defesaDeReacao: null } });
+    /* A oferta de reação depois de um ataque vale até o fim da rodada, como o PA guardado. */
+    if (c.marcas.defesaDeReacao || c.marcas.ofertaDeReacao) mudancas.push({ op: "marcas", alvo: comoAlvo(c), antes: c.marcas, depois: { ...c.marcas, defesaDeReacao: null, ofertaDeReacao: null } });
     if (c.horda?.pressaoNaRodada.length) mudancas.push({ op: "horda", alvo: comoAlvo(c), antes: c.horda, depois: { ...c.horda, pressaoNaRodada: [] } });
   }
   return mudancas;
@@ -83,7 +84,7 @@ export { aindaPodeDesfazer } from "./prazo";
 export type TipoDeGasto = "acao" | "deslocamento" | "reacao";
 
 /* Gasta PA de quem está agindo (do turno) ou de quem reage (do guardado). Rainha: primeira reação sem custo;
-   Valete: um deslocamento sem custo no primeiro turno; terceiro deslocamento da rodada: 1 nível de Exaustão. */
+   Valete: um deslocamento sem custo no primeiro turno; cada Disparada além da segunda na rodada: 1 nível de Exaustão. */
 export function gastarPa(
   c: Combatente,
   quantos: number,
@@ -115,7 +116,8 @@ export function gastarPa(
   if (tipo === "deslocamento") {
     mudancas.push({ op: "somar", alvo: comoAlvo(c), campo: "deslocamentosNaRodada", delta: 1 });
     const regra = opcoes.ctx.regras.gastandoPa.mais_de_dois_deslocamentos_na_rodada;
-    if (c.deslocamentosNaRodada + 1 === 3 && opcoes.personagem) {
+    /* Cada Disparada além da segunda na rodada dá 1 nível (Jogador, Combate, 22a4cf8; só personagem). */
+    if (c.deslocamentosNaRodada + 1 >= 3 && opcoes.personagem) {
       exaustao = true;
       mudancas.push({ op: "somar", alvo: opcoes.personagem, campo: "exaustao", delta: regra.exaustao });
     }

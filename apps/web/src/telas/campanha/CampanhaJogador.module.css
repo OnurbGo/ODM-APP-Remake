@@ -1,0 +1,79 @@
+.campanha {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-3);
+}
+
+.titulo {
+  font-family: var(--fonte-titulo);
+  font-size: var(--texto-l);
+  color: var(--cor-destaque);
+}
+
+.nota {
+  font-size: var(--texto-s);
+  color: var(--cor-texto-suave);
+}
+
+.texto {
+  white-space: pre-line;
+  line-height: 1.45;
+}
+
+.etapa {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-1);
+  padding-top: var(--esp-2);
+  border-top: 1px solid var(--cor-borda);
+}
+
+.objetivos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-1);
+}
+
+.feito {
+  color: var(--cor-texto-suave);
+  text-decoration: line-through;
+}
+
+.marcos {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-3);
+  padding-left: calc(var(--esp-5) + var(--esp-2));
+}
+
+.marcos::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 9px;
+  width: 2px;
+  background: var(--cor-borda-forte);
+}
+
+.marco {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-1);
+}
+
+.ponto {
+  position: absolute;
+  top: 4px;
+  left: calc(-1 * (var(--esp-5) + var(--esp-2)) + 3px);
+  width: 14px;
+  height: 14px;
+  background: var(--cor-destaque);
+  transform: rotate(45deg);
+}
+
+.marcoTitulo {
+  font-weight: 600;
+}

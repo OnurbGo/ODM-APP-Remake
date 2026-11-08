@@ -3,7 +3,7 @@ import css from "./Personagens.module.css";
 
 /* As mesmas opções na campanha nova e na campanha aberta. */
 export function CamposOpcoes({ opcoes, aoMudar }: { opcoes: OpcoesCampanha; aoMudar: (opcoes: OpcoesCampanha) => void }) {
-  const alternar = (chave: "cartasDoDestino" | "estresse") => aoMudar({ ...opcoes, [chave]: !opcoes[chave] });
+  const alternar = (chave: "cartasDoDestino" | "estresse" | "habilidadesDeCriatura") => aoMudar({ ...opcoes, [chave]: !opcoes[chave] });
   return (
     <div className={css.gerenciar}>
       <label className={css.marca}>
@@ -28,6 +28,11 @@ export function CamposOpcoes({ opcoes, aoMudar }: { opcoes: OpcoesCampanha; aoMu
           <option value="nova_compra">Nova compra</option>
         </select>
       </label>
+      <label className={css.marca}>
+        <input type="checkbox" checked={!opcoes.habilidadesDeCriatura} onChange={() => alternar("habilidadesDeCriatura")} />
+        Desligar habilidades automáticas de criaturas
+      </label>
+      <p className={css.nota}>Desligadas, a Recarga, a Pressão de Massa e a Ameaça de Massa não acontecem sozinhas: você aplica à mão. Só você vê esta opção.</p>
       <p className={css.nota}>Polivalência entra com o pacote A Ordem no Caos.</p>
     </div>
   );

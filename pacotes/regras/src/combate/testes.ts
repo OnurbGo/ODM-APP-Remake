@@ -199,3 +199,19 @@ export function habilidadesQueServem<H extends { mecanica?: Record<string, unkno
     );
   });
 }
+
+/* Habilidades para um ataque contra o próprio personagem (reage_a com "ataque": contra_si), no momento pedido:
+   antes da rolagem, ou depois dela (acerto, erro, crítico). "so_corpo_a_corpo" vale só contra ataque corpo a corpo. */
+export function habilidadesContraAtaque<H extends { mecanica?: Record<string, unknown> }>(
+  habilidades: readonly H[],
+  ataque: { corpoACorpo: boolean; emArea?: boolean },
+  momento: ReageA["momento"],
+): H[] {
+  return habilidades.filter((h) => {
+    const lido = ReageA.array().safeParse(h.mecanica?.reage_a);
+    if (!lido.success) return false;
+    return lido.data.some(
+      (r) => (r.ataque === "contra_si" || (r.ataque === "contra_si_em_area" && ataque.emArea)) && r.momento === momento && (!r.so_corpo_a_corpo || ataque.corpoACorpo),
+    );
+  });
+}

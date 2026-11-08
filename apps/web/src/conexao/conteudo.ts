@@ -13,6 +13,8 @@ type EstadoConteudo = {
 
 const useConteudo = create<EstadoConteudo>(() => ({ situacao: "parado", conteudo: null, mesaId: null }));
 
+let tentativas = 0;
+
 async function baixar(mesaId: string) {
   useConteudo.setState({ situacao: "carregando", conteudo: null, mesaId });
   try {
@@ -20,8 +22,16 @@ async function baixar(mesaId: string) {
     const resposta = await fetch("/api/conteudo-ficha", { headers: token ? { Authorization: `Bearer ${token}` } : {} });
     if (!resposta.ok) throw new Error(String(resposta.status));
     useConteudo.setState({ situacao: "pronto", conteudo: (await resposta.json()) as ConteudoFicha });
+    tentativas = 0;
   } catch {
     useConteudo.setState({ situacao: "falhou" });
+    /* O servidor pode estar reiniciando: tenta de novo algumas vezes, com espera crescente. */
+    if (tentativas < 5) {
+      tentativas += 1;
+      setTimeout(() => {
+        if (useConteudo.getState().situacao === "falhou" && useConteudo.getState().mesaId === mesaId) void baixar(mesaId);
+      }, 1500 * tentativas);
+    }
   }
 }
 

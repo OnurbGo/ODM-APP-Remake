@@ -1,0 +1,62 @@
+.divisao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-2);
+}
+
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-1);
+}
+
+.botoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
+}
+
+.nota {
+  font-size: var(--texto-s);
+  color: var(--cor-texto-suave);
+}
+
+.modal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-3);
+  min-width: min(440px, 100%);
+}
+
+.pessoas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-2);
+}
+
+.pessoa {
+  display: grid;
+  grid-template-columns: 1fr 9ch 8ch;
+  align-items: center;
+  gap: var(--esp-2);
+}
+
+.pessoa input {
+  width: 100%;
+  min-height: var(--alvo-toque);
+  text-align: right;
+}
+
+.equivale {
+  font-size: var(--texto-s);
+  color: var(--cor-texto-suave);
+  text-align: right;
+}
+
+.fecha {
+  color: var(--cor-sucesso, inherit);
+}
+
+.naoFecha {
+  color: var(--cor-perigo, inherit);
+}

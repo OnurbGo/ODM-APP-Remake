@@ -46,7 +46,7 @@ export const personagens = sqliteTable(
       .notNull()
       .references(() => campanhas.id),
     participanteId: text("participante_id").references(() => participantes.id),
-    situacao: text({ enum: ["rascunho", "ativo"] }).notNull(),
+    situacao: text({ enum: ["rascunho", "ativo", "arquivado"] }).notNull(),
     ficha: text().notNull(),
     /* PV, fichas, efeitos: o que muda em jogo (EstadoVivo). */
     estado: text().notNull().default("{}"),
@@ -67,6 +67,37 @@ export const kits = sqliteTable(
     itens: text().notNull(),
   },
   (t) => [index("kits_campanha").on(t.campanhaId)],
+);
+
+/* Cadastros do mestre (fase 6): tipo e dados em JSON, validados pelo protocolo. */
+export const cadastros = sqliteTable(
+  "cadastros",
+  {
+    id: text().primaryKey(),
+    campanhaId: text("campanha_id")
+      .notNull()
+      .references(() => campanhas.id),
+    tipo: text().notNull(),
+    dados: text().notNull(),
+    atualizadoEm: text("atualizado_em").notNull(),
+  },
+  (t) => [index("cadastros_campanha").on(t.campanhaId)],
+);
+
+/* Imagens enviadas pelo mestre (NPC, "Mostrar para os jogadores", retrato): WebP já reduzido no navegador,
+   em base64. Ficam na campanha; a rota de imagem só entrega a quem está nela. */
+export const arquivos = sqliteTable(
+  "arquivos",
+  {
+    id: text().primaryKey(),
+    campanhaId: text("campanha_id")
+      .notNull()
+      .references(() => campanhas.id),
+    tipo: text().notNull(),
+    dados: text().notNull(),
+    criadoEm: text("criado_em").notNull(),
+  },
+  (t) => [index("arquivos_campanha").on(t.campanhaId)],
 );
 
 /* Um combate por vez; o encerrado fica guardado. */

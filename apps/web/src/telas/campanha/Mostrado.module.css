@@ -1,0 +1,55 @@
+.mostra {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-3);
+  min-width: min(520px, 100%);
+}
+
+.imagem {
+  max-width: 100%;
+  max-height: 60vh;
+  object-fit: contain;
+  align-self: center;
+}
+
+.texto {
+  white-space: pre-line;
+  line-height: 1.45;
+}
+
+.nota {
+  font-size: var(--texto-s);
+  color: var(--cor-texto-suave);
+}
+
+.pessoa {
+  display: flex;
+  gap: var(--esp-3);
+  align-items: flex-start;
+  padding: var(--esp-2) 0;
+  border-top: 1px solid var(--cor-borda);
+}
+
+.rosto,
+.semRosto {
+  flex: none;
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border: 1px solid var(--cor-borda-forte);
+}
+
+.semRosto {
+  display: grid;
+  place-items: center;
+  font-family: var(--fonte-titulo);
+  font-size: var(--texto-xl);
+  color: var(--cor-texto-suave);
+}
+
+.dados {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-1);
+  min-width: 0;
+}

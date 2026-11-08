@@ -64,6 +64,7 @@ export function projetarEvento(evento: EventoCompleto, quem: Espectador): Evento
     case "rolagem_livre":
       return quem.papel === "mestre" || !evento.dados.oculta ? evento : null;
     case "combate_desfeito":
+    case "jogo21":
       return evento;
     case "teste_pedido": {
       if (quem.papel === "mestre") return evento;

@@ -40,8 +40,15 @@ export const ItemFicha = z.object({
   quantidade: z.number().int().min(1).max(9999),
   equipado: z.boolean().default(false),
   pesoKg: z.number().min(0).max(9999).nullable().default(null),
+  /* Finesse: o atributo que o jogador escolheu no detalhe do item (decisão de 07/11/2026). */
+  atributo: AtributoFicha.nullable().optional(),
+  /* Arma com mais de um modo de disparo (LeMat MD II): o modo em uso. */
+  modo: z.string().max(40).nullable().optional(),
 });
 export type ItemFicha = z.infer<typeof ItemFicha>;
+
+export const Retrato = z.object({ origem: z.enum(["silhueta", "arquivo"]), id: Id });
+export type Retrato = z.infer<typeof Retrato>;
 
 /* Cópia do que o personagem tem, para o aviso "não está mais no livro" (especificação, 4.2). */
 const CopiaConteudo = z.object({ nome: z.string(), texto: z.string() });
@@ -74,10 +81,13 @@ export const FichaDados = z.object({
   notas: z.string().max(20_000),
   ajustes: z.record(z.string(), AjusteManual),
   copias: z.record(z.string(), CopiaConteudo),
+  /* Retrato de corpo inteiro (fase 6, etapa 11): uma silhueta do pacote ou a foto enviada pelo jogador. */
+  retrato: Retrato.nullable().default(null),
 });
 export type FichaDados = z.infer<typeof FichaDados>;
 
-export const SituacaoPersonagem = z.enum(["rascunho", "ativo"]);
+/* Arquivado: o mestre tirou da mesa (decisão de 08/11/2026); fica guardado e pode voltar. */
+export const SituacaoPersonagem = z.enum(["rascunho", "ativo", "arquivado"]);
 export type SituacaoPersonagem = z.infer<typeof SituacaoPersonagem>;
 
 export const Personagem = z.object({
@@ -116,6 +126,7 @@ export function fichaVazia(): FichaDados {
     notas: "",
     ajustes: {},
     copias: {},
+    retrato: null,
   };
 }
 
@@ -125,6 +136,11 @@ export const OpcoesCampanha = z.object({
   modeloVantagem: z.enum(["dados_extras", "cartas"]).default("dados_extras"),
   empateIniciativa: z.enum(["naipe", "nova_compra"]).default("naipe"),
   polivalencia: z.boolean().default(false),
+  /* Opção do mestre (07/11/2026): com ela desligada, Recarga, Pressão de Massa e Ameaça de Massa
+     não acontecem sozinhas; o mestre aplica à mão. */
+  habilidadesDeCriatura: z.boolean().default(true),
+  /* Modificadores de mundo ligados pelo mestre (fase 6, etapa 9). Todos veem; "campoAberto" só pesa no Vendaval. */
+  mundo: z.array(z.object({ id: Id, campoAberto: z.boolean().default(false) })).max(20).default([]),
 });
 export type OpcoesCampanha = z.infer<typeof OpcoesCampanha>;
 
@@ -146,11 +162,24 @@ export const Operacao = z.discriminatedUnion("op", [
   z.object({ op: z.literal("dar_item"), item: ItemFicha }),
   z.object({ op: z.literal("tirar_item"), item: ItemFicha }),
   z.object({ op: z.literal("equipar"), itemFichaId: Id, equipado: z.boolean() }),
+  /* Finesse (atributo) e modo de disparo; nulo volta ao padrão. */
+  z.object({ op: z.literal("item_ajustar"), itemFichaId: Id, campo: z.enum(["atributo", "modo"]), valor: z.string().max(40).nullable() }),
   z.object({ op: z.literal("dar_habilidade"), id: Id }),
   z.object({ op: z.literal("tirar_habilidade"), id: Id }),
   z.object({ op: z.literal("ajuste"), campo: z.string().min(1).max(200), ajuste: AjusteManual.nullable() }),
   z.object({ op: z.literal("passo_redencao"), indice: z.number().int().min(0).max(5), feito: z.boolean() }),
   z.object({ op: z.literal("notas"), texto: z.string().max(20_000) }),
+  z.object({ op: z.literal("retrato"), retrato: Retrato.nullable() }),
+  /* Compra, venda ou serviço numa loja (fase 6, etapa 10): um evento só, que o mestre desfaz por inteiro,
+     com o estoque e o caixa da loja juntos. Só o servidor monta. */
+  z.object({
+    op: z.literal("transacao"),
+    rotulo: z.string().min(1).max(200),
+    dinheiro: Delta,
+    entra: z.array(ItemFicha).max(20),
+    sai: z.array(ItemFicha).max(20),
+    loja: z.object({ lojaId: Id, caixa: Delta, estoque: z.array(z.object({ linhaId: Id, delta: Delta })).max(20) }).nullable(),
+  }),
 ]);
 export type Operacao = z.infer<typeof Operacao>;
 

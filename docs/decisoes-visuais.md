@@ -206,6 +206,83 @@ Telas sem protótipo próprio, no estilo dos cartões da aba Combate e do Escudo
 - **Morrendo e Estresse (mestre):** cartão na ficha do personagem no Escudo, com sucessos e falhas, Rolar o Teste de Morte, Estabilizar, falhas pendentes, sequelas, Estresse com −1, +1 e +2 (rolagem forçada) e as aflições e virtudes.
 - **Descanso (mestre):** botão no topo do Escudo quando não há combate. Pop-up com Curto ou Longo, os personagens (PV e curtos desde o longo), Dados de Vida no curto e, no longo, Alimentados e Com cuidados médicos.
 
+## Correções antes da fase 6 (aprovadas em 07/11/2026)
+
+Protótipo em `prototipos/` (`#/simbolos`), com os componentes reais do `estilo`.
+
+- **Símbolos do d20:** desenho próprio, nas cores do ícone. O 20 natural é o olho com um X na íris; o 1 natural, a lápide com cruz entalhada e uma rachadura. Os dois substituem o número na face do dado 3D e do dado plano, e aparecem ao lado de "20 natural", "Acerto crítico", "1 natural" e "Falha crítica" e do valor do d20 no resultado. Os caminhos ficam em `pacotes/estilo/src/animacoes/simbolosD20.ts`.
+- **Dado plano:** o resultado aparece ao fim do giro, e não só quando a animação é pulada.
+- **Tambor de carregamento:** o próprio componente centraliza. Por padrão ocupa a área do pai e fica no centro dela; no carregamento de uma tela, ocupa a janela. O tamanho acompanha a tela, de 48 a 88 px.
+- **Limpar rolagens:** tira da tela d20 livre, rolagem do mestre, resultado de teste e ataque, sem apagar o histórico nem o desfazer. Aparece sempre que há algo para limpar, também no registro do celular. "Mostrar ocultas (N)" traz tudo de volta. O corte fica salvo no aparelho, por campanha e por pessoa.
+
+## Fase 6, etapa 4: imagens no pacote (aprovada em 07/11/2026)
+
+- **De onde vem:** a arte dos livros entra só no pacote de conteúdo, que é privado: o corpo inteiro (560 px de altura) e o rosto (256 × 256), em WebP. Nenhuma imagem dos livros vai para este repositório.
+- **Rostos:** recorte quadrado da cabeça, conferido numa folha de contato. A fonte dos recortes é `livros/mestre/dados/app/imagens.yml`, no repositório dos livros.
+- **Silhuetas do retrato:** Pistoleiro, Bárbaro, Espião e Médico de Campo, pintados de preto com um "?" claro no peito.
+- **Retratos sem ficha:** seis retratos de `npcs/` não têm ficha de ameaça (cinco pessoas de uma cidade e um NPC genérico). O Ocultista usa a arte de `npcs/`.
+- **No app:** a imagem chega por uma rota com o token da mesa e é montada por `blob:`. O mestre vê todas; o jogador, só o que está liberado para ele.
+
+## Fase 6, etapa 5: tela do personagem (protótipo aprovado em 07/11/2026)
+
+Protótipo em `prototipos/` (`#/personagem`), com dados fictícios e figuras provisórias. A implementação é a etapa 11.
+
+- **Desktop:** retrato de corpo inteiro no centro, em moldura de arco; o equipamento em grupos dos dois lados, sem limite de slots (Corpo a corpo e Proteção à esquerda; À distância e Outros à direita), com a raridade na borda; embaixo, Defesa, Deslocamento e cada arma equipada com acerto e dano.
+- **Inventário:** busca, filtros por categoria com contagem, ordem (equipados primeiro, nome, mais pesados), grade ou lista, raridade, quantidade, marca de equipado e de novo; painel de detalhe com números, texto, peso, Finesse, modo de disparo, Equipar ou Guardar e Usar; carga com a marca do Sobrecarregado e o estado escrito; dinheiro.
+- **Celular:** o equipamento vira ícones dos dois lados do retrato; o detalhe abre em folha; uma coluna, sem rolagem lateral.
+- **Retrato:** enviar uma foto (reduzida no aparelho para até 600 × 1400, em WebP) ou escolher uma das 4 silhuetas. No app, as silhuetas e os rostos vêm do pacote (etapa 4).
+
+## Fase 6, etapa 6: iniciativa oculta (aprovada em 07/11/2026)
+
+- **Jogador:** na primeira rodada, cada posição é "?" até o primeiro turno de quem está nela, inclusive a dele; há um "?" por posição. Quem entra depois aparece como "?" no fim e, na vez dele, vai para a posição certa. O "Depois:" também mostra "?".
+- **Revelado:** o rosto da criatura ou do NPC (arte do pacote) no lugar do losango; personagem segue com a inicial.
+- **Compra da iniciativa:** o jogador vê só a própria carta. No registro dele, "comprou a carta", "escolheu a carta", "decidiu a carta" e "Combate começou. Vez de…", sem valores nem ordem.
+- **Mestre:** vê tudo; a regra da ordem não muda.
+
+## Fase 6, etapa 7: encontros e XP (aprovada em 07/11/2026)
+
+- **Montador no Escudo, sem combate:** encontros salvos no topo (Abrir, Apagar com confirmação). No "Novo combate", os personagens mostram o nível; a busca do bestiário mostra ND, XP e a marca "Lendária".
+- **Cada linha:** quantidade, Elite, XP (vazio = o da ficha; digitado = ajuste do mestre) e a conta "3 × 50 = 150 · XP da ficha". A lendária diz "Lendária: fora da conta" e abre as pistas (texto, de onde veio, contador "1 de 3").
+- **Resumo:** XP total e o grau numa etiqueta (Fácil verde, Moderada dourada, Difícil e Morte certa vermelhas). Passar o mouse ou tocar mostra a conta.
+- **Fim do combate:** pop-up central com as criaturas por ficha ("Contam", XP, subtotal), "Quem recebe", total, parte de cada um e a sobra. "Dar N XP e encerrar" ou "Encerrar sem dar XP".
+
+## Fase 6, etapa 8: missões e linha do tempo (aprovada em 07/11/2026)
+
+- **Mestre, área Campanha:** abas Missões e Linha do tempo. Missões: lista à esquerda (situação e dificuldade) e editor à direita; no celular, uma coisa por vez, com "← Missões". Editor em cartões: dados, as 4 etapas (para os jogadores, notas do mestre, "Mostrar esta etapa"), objetivos, ligações, recompensas e notas; barra fixa embaixo com Salvar, Concluir e entregar, Falhou e Apagar.
+- **Concluir:** pop-up com quem participou, XP e dinheiro sugeridos (editáveis, "Voltar à sugestão"), a divisão de cada um e os itens com "Quem recebe".
+- **Dividir de outro jeito:** pop-up com cada pessoa, campo em XP/R$ ou %, a equivalência ao lado e "Fecha" / "Falta" / "Sobra" embaixo.
+- **Linha do tempo:** linha vertical com losangos; aceso quando aconteceu. Cada marco mostra "Jogadores veem" ou "Só você vê", os interruptores Aconteceu e Visível, Editar, ↑ ↓ e Apagar.
+- **Jogador:** aba Campanha com ícone de mapa (6ª aba da barra inferior; no desktop, as abas da ficha quebram em duas linhas). Missões em cartões e a linha do tempo embaixo.
+- **Abas segmentadas:** não encolhem abaixo do rótulo (antes, em coluna estreita, os nomes se sobrepunham).
+
+## Fase 6, etapa 9: modificadores de mundo e Jogo do 21 (aprovada em 07/11/2026)
+
+- **Mestre, Campanha → Mundo:** grade de cartas com o texto do livro, o que entra na conta (em dourado) ou "Só texto: você aplica", e o interruptor Ligado. A carta ligada ganha borda dourada; o Vendaval ligado mostra também "Campo aberto".
+- **Jogador:** "O mundo agora" no alto da aba Campanha, com as cartas ligadas.
+- **Jogo do 21, mestre:** aba própria em Campanha. Escolhe o personagem e "onde", abre, acompanha a mão; no fim, o resultado e "Dar item a Fulano" (busca no catálogo), depois Fechar.
+- **Jogo do 21, jogador:** janela central que abre sozinha, com as cartas do baralho do app, a soma ("11 ou 21" com Ás), "Comprar carta" e "Parar em N" (com "Ás vale 1" / "Ás vale 11"). No fim, o total, Parou/Estourou e a faixa da tabela.
+
+## Fase 6, etapa 10a: comércio (aprovada em 07/11/2026)
+
+- **Mestre, Campanha → Comércio:** lista de lojas (Aberta/Fechada, cidade, caixa), "Nova loja" e "Copiar do livro" com o texto da cidade. Editor em cartões: dados e interruptores, estoque em tabela (filtro, preço e quantidade editáveis, "Mostrar mais"), acrescentar do catálogo ou escrito à mão, serviços, notas e "Compras e vendas" com Desfazer.
+- **Jogador:** seção Lojas na aba Campanha; "Entrar na loja" abre a janela com o dinheiro do personagem e as abas Comprar (busca, quantidade, "Comprar R$ N"), Vender (metade do preço, caixa da loja) e Serviços.
+- **Registro:** o jogador não vê Desfazer nas próprias compras.
+
+## Fase 6, etapa 10b: NPCs, notas, diário e Mostrar (aprovada em 07/11/2026)
+
+- **Campanha → NPCs:** lista com filtro e etiqueta Conhecido/Só você; editor com cartões "Quem é", "Para interpretar" (Rolar 1d8 ao lado de cada campo) e "Ficha e imagem" (busca no bestiário, arte do livro, Enviar imagem). Barra com Salvar, Mostrar aos jogadores e Apagar.
+- **Notas:** cartões com título, texto e "Fixar no topo". **Diário:** botão "Sessão N", cartão por sessão com título, data, texto, "Os jogadores leem" e "Sugerir do registro".
+- **Mostrar:** botão no topo do mestre (vira "Mostrando…" enquanto há algo aberto); pop-up com título, texto, imagem e "Para quem". O jogador recebe uma janela central com a imagem e o texto.
+- **Jogador:** "Pessoas" (retrato quadrado, nome, cidade · afiliação, resumo) e "Diário" na aba Campanha.
+
+## Fase 6, etapa 11: tela do personagem no app (aprovada em 07/11/2026, com ícones de item a ajustar)
+
+- Implementa o protótipo da etapa 5 com os dados da ficha: grupos de equipamento (Corpo a corpo, Proteção, À distância, Outros), retrato em arco, resumo (Defesa, armas equipadas com acerto e dano do motor, Deslocamento), inventário com busca, filtros, ordem, grade ou lista, detalhe com raridade, números, texto, peso, Finesse, modo de disparo, Equipar/Guardar e Tirar do inventário; carga com a marca do Sobrecarregado; dinheiro (tocar abre Receber/Gastar).
+- **Onde:** no celular, a aba Inventário; no desktop do jogo, a aba Inventário abre a tela no centro (no lugar do combate); na ficha aberta pela Mesa, a aba Inventário.
+- **Retrato:** silhueta do pacote ou foto enviada pelo jogador (reduzida no aparelho para até 600 × 1400, WebP). Vira a operação "retrato" na ficha, com desfazer.
+- **Ícones dos itens (pedido na aprovação):** a arte do item no catálogo do livro vira o ícone (miniatura quadrada no pacote, sobre pergaminho); sem arte, um ícone genérico por tipo (corpo a corpo, à distância, armadura, escudo, munição, explosivo, médico, comida, tabaco e bebida, roupa, ferramenta, outros). A borda inteira do item leva a cor da raridade.
+- **Fora do protótipo:** "Usar" ficou de fora (o app ainda não tem regra de consumir item) e a marca "novo" também (a ficha não guarda o que é novo).
+
 ## Ícone do app (aprovado em 06/11/2026)
 
 - **Desenho:** olho no selo. Selo de tinta, olho de pergaminho e íris de sangue com 6 sulcos na borda, que fazem dela o tambor de revólver da abertura. Desenho próprio, sem arte dos livros.

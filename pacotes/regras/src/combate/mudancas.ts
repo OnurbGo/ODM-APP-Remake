@@ -167,6 +167,10 @@ export function aplicarMudanca(mundo: Mundo, m: Mudanca, limites: Limites = SEM_
       const c = combatente(mundo, exigirCombatente(m.alvo));
       return { mundo: trocarCombatente(mundo, { ...c, derrotado: m.depois }), inversa: { ...m, antes: m.depois, depois: m.antes } };
     }
+    case "revelado": {
+      const c = combatente(mundo, exigirCombatente(m.alvo));
+      return { mundo: trocarCombatente(mundo, { ...c, revelado: m.depois }), inversa: { ...m, antes: m.depois, depois: m.antes } };
+    }
     case "horda": {
       const c = combatente(mundo, exigirCombatente(m.alvo));
       return { mundo: trocarCombatente(mundo, { ...c, horda: m.depois }), inversa: { ...m, antes: m.depois, depois: m.antes } };

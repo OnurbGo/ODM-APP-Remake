@@ -33,10 +33,16 @@
 
 /* Larguras pelo conteúdo: rótulos de tamanhos diferentes não colidem em colunas estreitas. */
 .segmentada .aba {
-  flex: 1 1 auto;
+  /* Não encolhe abaixo do rótulo: sem espaço, a faixa rola. */
+  flex: 1 0 auto;
   padding-inline: var(--esp-1);
   font-size: calc(var(--texto-m) * var(--rotulo-escala));
   white-space: nowrap;
+}
+
+.segmentada.quebrar {
+  flex-wrap: wrap;
+  overflow-x: visible;
 }
 
 .segmentada .aba::after {

@@ -1,0 +1,171 @@
+.coluna {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-3);
+}
+
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-1);
+}
+
+.botoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-1);
+}
+
+.linhas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-2);
+}
+
+.linha {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-2);
+  padding: var(--esp-2) var(--esp-3);
+  border: 1px solid var(--cor-borda);
+  background: var(--cor-fundo-inset);
+}
+
+.linhaTopo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-2);
+}
+
+.nomeLinha {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-1);
+  font-weight: 600;
+}
+
+.controles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-2) var(--esp-3);
+}
+
+.elite {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-1);
+  min-height: var(--alvo-toque);
+}
+
+.campoXp {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-1);
+}
+
+.campoXp input {
+  width: 9ch;
+  min-height: var(--alvo-toque);
+  text-align: right;
+}
+
+.resumo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-2);
+  padding-block: var(--esp-2);
+  border-top: 1px solid var(--cor-borda);
+  font-size: var(--texto-m);
+}
+
+.grau {
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: help;
+}
+
+.avisos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-1);
+  padding-left: var(--esp-4);
+  list-style: disc;
+  font-size: var(--texto-s);
+  color: var(--cor-texto-suave);
+}
+
+.salvar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
+}
+
+.salvar input {
+  flex: 1 1 14rem;
+  min-height: var(--alvo-toque);
+}
+
+.pistas {
+  padding-top: var(--esp-1);
+}
+
+.pistas summary {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  min-height: var(--alvo-toque);
+  cursor: pointer;
+  list-style: none;
+}
+
+.pistas summary::before {
+  content: "▸";
+  color: var(--cor-texto-suave);
+}
+
+.pistas[open] summary::before {
+  content: "▾";
+}
+
+.listaPistas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-1);
+  margin-block: var(--esp-2);
+  padding-left: var(--esp-4);
+  list-style: decimal;
+}
+
+.listaPistas li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-2);
+}
+
+.novaPista {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
+}
+
+.novaPista input {
+  flex: 1 1 12rem;
+  min-height: var(--alvo-toque);
+}
+
+.fim {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-3);
+  min-width: min(560px, 100%);
+}

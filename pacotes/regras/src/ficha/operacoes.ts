@@ -45,6 +45,13 @@ export function aplicarOperacao(ficha: FichaDados, op: Operacao): { ficha: Ficha
         ficha: { ...ficha, inventario: ficha.inventario.map((i) => (i.id === op.itemFichaId ? { ...i, equipado: op.equipado } : i)) },
         inversa: { op: "equipar", itemFichaId: op.itemFichaId, equipado: !op.equipado },
       };
+    case "item_ajustar": {
+      const anterior = ficha.inventario.find((i) => i.id === op.itemFichaId)?.[op.campo] ?? null;
+      return {
+        ficha: { ...ficha, inventario: ficha.inventario.map((i) => (i.id === op.itemFichaId ? { ...i, [op.campo]: op.valor } : i)) },
+        inversa: { op: "item_ajustar", itemFichaId: op.itemFichaId, campo: op.campo, valor: anterior },
+      };
+    }
     case "dar_habilidade":
       return { ficha: { ...ficha, habilidadesDoMestre: [...ficha.habilidadesDoMestre, op.id] }, inversa: { op: "tirar_habilidade", id: op.id } };
     case "tirar_habilidade":
@@ -66,10 +73,30 @@ export function aplicarOperacao(ficha: FichaDados, op: Operacao): { ficha: Ficha
     }
     case "notas":
       return { ficha: { ...ficha, notas: op.texto }, inversa: { op: "notas", texto: ficha.notas } };
+    case "retrato":
+      return { ficha: { ...ficha, retrato: op.retrato }, inversa: { op: "retrato", retrato: ficha.retrato ?? null } };
+    case "transacao": {
+      /* Sai: tira a quantidade da pilha (ou a pilha toda). Entra: soma na pilha de mesmo id ou acrescenta. */
+      let inventario = [...ficha.inventario];
+      for (const s of op.sai) {
+        const atual = inventario.find((i) => i.id === s.id);
+        if (!atual) continue;
+        inventario = atual.quantidade > s.quantidade ? inventario.map((i) => (i.id === s.id ? { ...i, quantidade: i.quantidade - s.quantidade } : i)) : inventario.filter((i) => i.id !== s.id);
+      }
+      for (const e of op.entra) {
+        const atual = inventario.find((i) => i.id === e.id);
+        inventario = atual ? inventario.map((i) => (i.id === e.id ? { ...i, quantidade: i.quantidade + e.quantidade } : i)) : [...inventario, e];
+      }
+      const loja = op.loja ? { ...op.loja, caixa: -op.loja.caixa, estoque: op.loja.estoque.map((x) => ({ ...x, delta: -x.delta })) } : null;
+      return {
+        ficha: { ...ficha, dinheiro: ficha.dinheiro + op.dinheiro, inventario },
+        inversa: { op: "transacao", rotulo: op.rotulo, dinheiro: -op.dinheiro, entra: op.sai, sai: op.entra, loja },
+      };
+    }
   }
 }
 
 /* O que só o mestre pode fazer (especificação, 6.2.1). */
 export function soDoMestre(op: Operacao) {
-  return ["xp", "prestigio", "honra", "dar_item", "dar_habilidade", "tirar_habilidade"].includes(op.op);
+  return ["xp", "prestigio", "honra", "dar_item", "dar_habilidade", "tirar_habilidade", "transacao"].includes(op.op);
 }

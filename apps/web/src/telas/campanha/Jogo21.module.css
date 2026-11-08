@@ -1,0 +1,47 @@
+.janela {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-3);
+  min-width: min(420px, 100%);
+}
+
+.mao {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--esp-2);
+  padding-block: var(--esp-2);
+}
+
+.soma {
+  text-align: center;
+  font-size: var(--texto-l);
+}
+
+.botoes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--esp-2);
+}
+
+.resultado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--esp-2);
+  font-size: var(--texto-l);
+}
+
+
+.resultado > span:first-child {
+  font-size: var(--texto-xl);
+  color: var(--cor-destaque);
+}
+
+.nota {
+  font-size: var(--texto-s);
+  color: var(--cor-texto-suave);
+  text-align: center;
+}

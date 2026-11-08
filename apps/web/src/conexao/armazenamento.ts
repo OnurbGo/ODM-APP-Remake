@@ -78,4 +78,38 @@ export const salvos = {
   guardarRolagemRapida: (ligada: boolean) => gravar(local, "odm-rolagem-rapida", ligada ? "sim" : null),
   tokenMestreDev: () => ler(sessao, "odm-token-mestre"),
   guardarTokenMestreDev: (token: string) => gravar(sessao, "odm-token-mestre", token),
+
+  /* "Limpar rolagens": até que posição do registro as rolagens saíram da tela, por campanha e por pessoa
+     (a posição "n" é do registro de quem recebe). Recarregar a página não traz de volta. */
+  rolagensLimpasAte(campanhaId: string, participanteId: string) {
+    const n = Number(ler(local, `odm-limpas-${campanhaId}-${participanteId}`));
+    return Number.isInteger(n) && n > 0 ? n : 0;
+  },
+  guardarRolagensLimpasAte: (campanhaId: string, participanteId: string, n: number) => gravar(local, `odm-limpas-${campanhaId}-${participanteId}`, n > 0 ? String(n) : null),
+
+  /* O encontro que montou o combate em curso: quantos de cada ficha entraram e o XP ajustado pelo mestre.
+     O fim do combate usa para contar os que sumiram dentro da Horda. */
+  encontroEmUso(campanhaId: string): LinhaEmUso[] {
+    try {
+      const lista = JSON.parse(ler(local, `odm-encontro-${campanhaId}`) ?? "[]") as unknown;
+      return Array.isArray(lista) ? lista.filter((l): l is LinhaEmUso => !!l && typeof l.ref === "string" && typeof l.quantidade === "number") : [];
+    } catch {
+      return [];
+    }
+  },
+  guardarEncontroEmUso: (campanhaId: string, linhas: LinhaEmUso[]) => gravar(local, `odm-encontro-${campanhaId}`, linhas.length ? JSON.stringify(linhas) : null),
+
+  /* Janelas que a jogadora já fechou neste aparelho (Jogo do 21, o que o mestre mostra, cartão de teste do Escudo): não voltam ao entrar
+     no combate nem ao recarregar. Valem só nesta aba, como o pedido de entrada. */
+  janelasFechadas(tipo: "jogo21" | "mostra" | "teste"): string[] {
+    try {
+      const lista = JSON.parse(ler(sessao, `odm-fechadas-${tipo}`) ?? "[]") as unknown;
+      return Array.isArray(lista) ? lista.filter((id): id is string => typeof id === "string") : [];
+    } catch {
+      return [];
+    }
+  },
+  guardarJanelasFechadas: (tipo: "jogo21" | "mostra" | "teste", ids: string[]) => gravar(sessao, `odm-fechadas-${tipo}`, ids.length ? JSON.stringify(ids.slice(-50)) : null),
 };
+
+export type LinhaEmUso = { ref: string; elite: boolean; quantidade: number; xp: number | null };

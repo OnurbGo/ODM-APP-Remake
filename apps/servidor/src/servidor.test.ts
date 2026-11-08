@@ -869,6 +869,20 @@ describe("personagens", () => {
     expect(salvo.personagem.ficha).toMatchObject({ xp: 0, honra: 10 });
   });
 
+  it("o mestre arquiva e restaura; o jogador perde o personagem de vista e não arquiva", async () => {
+    const { mestre, codigo } = await mestreComMesa();
+    const { jogador } = await jogadorAprovado(mestre, codigo, "Ana");
+    const id = await personagemAtivo(mestre, jogador);
+    jogador.enviar({ t: "personagem_arquivar", personagemId: id, arquivado: true });
+    expect(await jogador.esperar("erro")).toMatchObject({ mensagem: "Só o mestre arquiva personagem." });
+    const desde = jogador.recebidas.length;
+    mestre.enviar({ t: "personagem_arquivar", personagemId: id, arquivado: true });
+    await aguardar(mestre, (p) => p.id === id && p.situacao === "arquivado");
+    expect(await jogador.esperar("personagem_removido", () => true, desde)).toMatchObject({ personagemId: id });
+    mestre.enviar({ t: "personagem_arquivar", personagemId: id, arquivado: false });
+    await aguardar(jogador, (p) => p.id === id && p.situacao === "ativo", desde);
+  });
+
   it("depois de ativo, a criação não muda mais", async () => {
     const { mestre, codigo } = await mestreComMesa();
     const { jogador } = await jogadorAprovado(mestre, codigo, "Ana");
@@ -1029,6 +1043,116 @@ describe("personagens", () => {
     await aguardar(jogador, (p) => p.ficha.inventario.length === 2);
   });
 
+  it("cadastros do mestre: salva, edita e apaga; o jogador não recebe nem mexe", async () => {
+    const { mestre, codigo } = await mestreComMesa();
+    const { jogador } = await jogadorAprovado(mestre, codigo, "Ana");
+    await jogador.esperar("cadastros", (m) => m.lista.length === 0);
+    const encontro = { nome: "Emboscada", criaturas: [{ ref: "criatura.exemplo", quantidade: 3, elite: false, xp: null }], notas: "", missaoId: null };
+    jogador.enviar({ t: "cadastro_salvar", cadastro: { tipo: "encontro", dados: encontro } });
+    await jogador.esperar("erro", (m) => m.codigo === "nao_autorizado");
+    const desde = jogador.recebidas.length;
+    mestre.enviar({ t: "cadastro_salvar", cadastro: { tipo: "encontro", dados: encontro } });
+    const { lista } = await mestre.esperar("cadastros", (m) => m.lista.length === 1);
+    const salvo = lista[0]!;
+    expect(salvo).toMatchObject({ tipo: "encontro", dados: { nome: "Emboscada" } });
+    mestre.enviar({ t: "cadastro_salvar", cadastro: { id: salvo.id, tipo: "encontro", dados: { ...encontro, nome: "Emboscada no rio" } } });
+    await mestre.esperar("cadastros", (m) => m.lista.length === 1 && m.lista[0]!.tipo === "encontro" && m.lista[0]!.dados.nome === "Emboscada no rio");
+    mestre.enviar({ t: "cadastro_salvar", cadastro: { id: salvo.id, tipo: "lendaria", dados: { ref: "criatura.exemplo", pistas: [] } } });
+    await mestre.esperar("erro", (m) => m.mensagem === "O tipo do cadastro não muda.");
+    mestre.enviar({ t: "cadastro_apagar", id: salvo.id });
+    await mestre.esperar("cadastros", (m) => m.lista.length === 0);
+    /* O jogador recebeu só listas vazias: nada do mestre sai dele. */
+    expect(jogador.recebidas.slice(desde).filter((m) => m.t === "cadastros").every((m) => m.t === "cadastros" && m.lista.length === 0)).toBe(true);
+  });
+
+  it("loja: o jogador compra na hora, sem dinheiro é recusado, e só o mestre desfaz (estoque e caixa voltam)", async () => {
+    const { mestre, codigo } = await mestreComMesa();
+    const { jogador } = await jogadorAprovado(mestre, codigo, "Ana");
+    const id = await personagemAtivo(mestre, jogador);
+    mestre.enviar({ t: "ficha_operar", personagemId: id, operacao: { op: "dinheiro", delta: 50 } });
+    await aguardar(jogador, (p) => p.ficha.dinheiro === 50);
+    const dados = { nome: "Armazém", aberta: true, caixa: 100, notas: "SEGREDO-DA-LOJA", itens: [{ id: "linha-1", itemId: "item.bigorna", nome: "Bigorna", preco: 20, quantidade: 2 }] };
+    mestre.enviar({ t: "cadastro_salvar", cadastro: { tipo: "loja", dados } as never });
+    const { lista } = await jogador.esperar("cadastros", (m) => m.lista.some((c) => c.tipo === "loja"));
+    const loja = lista.find((c) => c.tipo === "loja")!;
+    expect(JSON.stringify(lista)).not.toContain("SEGREDO-DA-LOJA");
+
+    jogador.enviar({ t: "loja_comprar", lojaId: loja.id, linhaId: "linha-1", quantidade: 3, personagemId: id });
+    await jogador.esperar("erro", (m) => /Só há 2/.test(m.mensagem));
+    jogador.enviar({ t: "loja_comprar", lojaId: loja.id, linhaId: "linha-1", quantidade: 2, personagemId: id });
+    await aguardar(jogador, (p) => p.ficha.dinheiro === 10 && p.ficha.inventario.some((i) => i.nome === "Bigorna" && i.quantidade === 2));
+    await mestre.esperar("cadastros", (m) => m.lista.some((c) => c.tipo === "loja" && c.dados.caixa === 140 && c.dados.itens[0]!.quantidade === 0));
+
+    const compra = jogador.eventos().filter((e) => e.tipo === "ficha_alterada").at(-1)!;
+    jogador.enviar({ t: "ficha_desfazer", eventoId: compra.id });
+    await jogador.esperar("erro", (m) => /Só o mestre desfaz uma compra/.test(m.mensagem));
+    mestre.enviar({ t: "ficha_desfazer", eventoId: compra.id });
+    await aguardar(jogador, (p) => p.ficha.dinheiro === 50 && !p.ficha.inventario.some((i) => i.nome === "Bigorna"));
+    await mestre.esperar("cadastros", (m) => m.lista.some((c) => c.tipo === "loja" && c.dados.caixa === 100 && c.dados.itens[0]!.quantidade === 2));
+
+    mestre.enviar({ t: "cadastro_salvar", cadastro: { id: loja.id, tipo: "loja", dados: { ...dados, itens: [{ ...dados.itens[0]!, preco: 999 }] } } as never });
+    await jogador.esperar("cadastros", (m) => m.lista.some((c) => c.tipo === "loja" && c.dados.itens[0]!.preco === 999));
+    jogador.enviar({ t: "loja_comprar", lojaId: loja.id, linhaId: "linha-1", quantidade: 1, personagemId: id });
+    await jogador.esperar("erro", (m) => /Dinheiro insuficiente/.test(m.mensagem));
+  });
+
+  it("mostrar: vai só a quem foi escolhido, sem a lista; fechar some para todos", async () => {
+    const { mestre, codigo } = await mestreComMesa();
+    const { jogador: ana, id: anaId } = await jogadorAprovado(mestre, codigo, "Ana");
+    const { jogador: beto } = await jogadorAprovado(mestre, codigo, "Beto");
+    ana.enviar({ t: "mostrar", mostra: { titulo: "x", texto: "", imagem: null, para: [] } });
+    await ana.esperar("erro", (m) => m.codigo === "nao_autorizado");
+    mestre.enviar({ t: "mostrar", mostra: { titulo: "Carta rasgada", texto: "Encontre-me no moinho.", imagem: null, para: [anaId] } });
+    const vista = await ana.esperar("mostrando", (m) => m.mostra !== null);
+    expect(vista.mostra).toMatchObject({ titulo: "Carta rasgada", para: [] });
+    await beto.esperar("mostrando", () => true);
+    expect(beto.recebidas.some((m) => m.t === "mostrando" && m.mostra !== null)).toBe(false);
+    mestre.enviar({ t: "mostrar_fechar" });
+    await ana.esperar("mostrando", (m) => m.mostra === null, ana.recebidas.length);
+  });
+
+  it("arquivo: quem está na campanha envia e lê; sem token não", async () => {
+    const { mestre, codigo } = await mestreComMesa();
+    const { token } = await jogadorAprovado(mestre, codigo, "Ana");
+
+    const base = `http://127.0.0.1:${servidor.porta}`;
+    const corpo = JSON.stringify({ tipo: "image/png", dados: Buffer.from("imagem-de-teste").toString("base64") });
+    const semToken = await fetch(`${base}/api/arquivo`, { method: "POST", headers: { "Content-Type": "application/json" }, body: corpo });
+    expect(semToken.status).toBe(401);
+    const doJogador = await fetch(`${base}/api/arquivo`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: corpo });
+    expect(doJogador.status).toBe(200);
+    const inventado = await fetch(`${base}/api/arquivo`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer inventado" }, body: corpo });
+    expect(inventado.status).toBe(401);
+    const enviado = await fetch(`${base}/api/arquivo`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${TOKEN_MESTRE}` }, body: corpo });
+    expect(enviado.status).toBe(200);
+    const { id } = (await enviado.json()) as { id: string };
+    expect((await fetch(`${base}/api/imagem/arquivo/${id}`)).status).toBe(401);
+    const lido = await fetch(`${base}/api/imagem/arquivo/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+    expect(lido.status).toBe(200);
+    expect(Buffer.from(await lido.arrayBuffer()).toString()).toBe("imagem-de-teste");
+  });
+
+  it("missão visível chega ao jogador sem as notas do mestre; rascunho não chega", async () => {
+    const { mestre, codigo } = await mestreComMesa();
+    const { jogador } = await jogadorAprovado(mestre, codigo, "Ana");
+    await jogador.esperar("cadastros");
+    const etapa = (jogadores: string, visivel: boolean) => ({ jogadores, mestre: "NOTA-SECRETA", visivel });
+    const dados = {
+      titulo: "O sino de meia-noite",
+      situacao: "rascunho",
+      visivel: true,
+      notas: "NOTA-SECRETA",
+      etapas: { inicio: etapa("O sino tocou.", true), investigacao: etapa("NOTA-SECRETA", false), conflito: etapa("", false), desfecho: etapa("", false) },
+    };
+    mestre.enviar({ t: "cadastro_salvar", cadastro: { tipo: "missao", dados } as never });
+    const { lista } = await mestre.esperar("cadastros", (m) => m.lista.length === 1);
+    mestre.enviar({ t: "cadastro_salvar", cadastro: { id: lista[0]!.id, tipo: "missao", dados: { ...dados, situacao: "ativa" } } as never });
+    const recebida = await jogador.esperar("cadastros", (m) => m.lista.length === 1);
+    expect(JSON.stringify(recebida)).toContain("O sino tocou.");
+    expect(JSON.stringify(recebida)).not.toContain("NOTA-SECRETA");
+    expect(JSON.stringify(jogador.recebidas)).not.toContain("NOTA-SECRETA");
+  });
+
   it("opções da campanha: Cartas do Destino começam ligadas, e só o mestre muda", async () => {
     const { mestre, codigo } = await mestreComMesa();
     const { jogador } = await jogadorAprovado(mestre, codigo, "Ana");
@@ -1053,6 +1177,30 @@ describe("personagens", () => {
     expect(conteudo.classes).toHaveLength(2);
     expect(conteudo).not.toHaveProperty("criaturas");
     expect(conteudo).not.toHaveProperty("ameacas");
+  });
+
+  it("imagens do pacote: o mestre vê todas; o jogador, só a silhueta; sem token, nenhuma", async () => {
+    await servidor.encerrar();
+    const webp = (texto: string) => `data:image/webp;base64,${Buffer.from(texto).toString("base64")}`;
+    const comImagens = PacoteConteudo.parse({
+      manifesto: { id: "base", nome: "Exemplo", versao: "1.0" },
+      conteudo: conteudoExemplo(),
+      imagens: { "criatura.sombra": { corpo: webp("corpo-sombra"), rosto: webp("rosto-sombra") }, "silhueta.exemplo": { corpo: webp("corpo-silhueta"), rosto: webp("rosto-silhueta") } },
+    });
+    servidor = await subir(undefined, [comImagens]);
+    const { mestre, codigo } = await mestreComMesa();
+    const { token } = await jogadorAprovado(mestre, codigo, "Ana");
+    const url = (tipo: string, id: string) => `http://127.0.0.1:${servidor.porta}/api/imagem/${tipo}/${id}`;
+    const doMestre = await fetch(url("rosto", "criatura.sombra"), { headers: { Authorization: `Bearer ${TOKEN_MESTRE}` } });
+    expect(doMestre.status).toBe(200);
+    expect(doMestre.headers.get("content-type")).toContain("image/webp");
+    expect(await doMestre.text()).toBe("rosto-sombra");
+    expect((await fetch(url("rosto", "criatura.sombra"), { headers: { Authorization: `Bearer ${token}` } })).status).toBe(401);
+    const silhueta = await fetch(url("corpo", "silhueta.exemplo"), { headers: { Authorization: `Bearer ${token}` } });
+    expect(await silhueta.text()).toBe("corpo-silhueta");
+    expect((await fetch(url("corpo", "silhueta.exemplo"))).status).toBe(401);
+    expect((await fetch(url("rosto", "criatura.nao-existe"), { headers: { Authorization: `Bearer ${TOKEN_MESTRE}` } })).status).toBe(404);
+    expect((await fetch(url("pe", "criatura.sombra"), { headers: { Authorization: `Bearer ${TOKEN_MESTRE}` } })).status).toBe(404);
   });
 
   it("sem pacote, a mesa abre e a ficha diz que não há conteúdo", async () => {
@@ -1161,7 +1309,16 @@ describe("combate", () => {
   const pacoteDeCombate = () =>
     PacoteConteudo.parse({
       manifesto: { id: "base", nome: "Exemplo", versao: "1.0" },
-      conteudo: { ...conteudoExemplo(), regras: [...conteudoExemplo().regras, ...regrasDeCombateExemplo()], efeitos: efeitosExemplo(), criaturas: [criatura] },
+      conteudo: {
+        ...conteudoExemplo(),
+        regras: [...conteudoExemplo().regras, ...regrasDeCombateExemplo()],
+        efeitos: efeitosExemplo(),
+        criaturas: [criatura],
+        /* Modificador fictício com a forma da Geada. */
+        modificadores: [
+          { id: "modificador.gelo", tipo: "modificador", nome: "Gelo", fonte: { arquivo: "x.md" }, texto: "Chão escorregadio.", mecanica: { disparada: { teste: { pericia: "pericia.faro", dt: 12 }, falha: { efeito: "efeito.sangria" } } } },
+        ],
+      },
     });
 
   beforeEach(async () => {
@@ -1215,6 +1372,27 @@ describe("combate", () => {
     }
     throw new Error("Iniciativa não fechou");
   }
+
+  it("serviço com efeito: a Exaustão entra no preço, e depois de pagar os PV e a Exaustão voltam ao normal", async () => {
+    const { mestre, jogador, personagemId: id } = await mesaDeCombate();
+    const doZe = (teste: (p: Personagem) => boolean) => jogador.esperar("personagem", (m) => m.personagem.id === id && teste(m.personagem));
+    mestre.enviar({ t: "ficha_operar", personagemId: id, operacao: { op: "dinheiro", delta: 200 } });
+    await doZe((p) => p.ficha.dinheiro === 200);
+    mestre.enviar({ t: "pv_ajustar", alvo: { tipo: "personagem", id }, delta: -3, temporarios: false });
+    const ferido = await doZe((p) => p.vivo.pv !== null);
+    mestre.enviar({ t: "efeito_aplicar", alvo: { tipo: "personagem", id }, efeitoId: "efeito.exaustao", acumulos: 2 });
+    await doZe((p) => p.vivo.exaustao === 2);
+    const efeito = { curaTotal: true, dadosDeVida: true, tiraExaustao: true, condicao: null, extraPorExaustao: 50 };
+    mestre.enviar({ t: "cadastro_salvar", cadastro: { tipo: "loja", dados: { nome: "Saloon", aberta: true, servicos: [{ id: "servico-1", nome: "Tratamento", preco: 10, descricao: "", efeito }] } } as never });
+    const { lista } = await jogador.esperar("cadastros", (m) => m.lista.some((c) => c.tipo === "loja"));
+    const loja = lista.find((c) => c.tipo === "loja")!;
+    jogador.enviar({ t: "loja_servico", lojaId: loja.id, servicoId: "servico-1", personagemId: id });
+    /* 10 + 2 níveis × 50 = 110. */
+    await doZe((p) => p.ficha.dinheiro === 90);
+    const curado = await doZe((p) => p.vivo.exaustao === 0);
+    /* PV nulo = cheio. */
+    expect([null, (ferido.personagem.vivo.pv ?? 0) + 3]).toContain(curado.personagem.vivo.pv);
+  });
 
   it("sem as regras de combate aprovadas, diz quais faltam", async () => {
     await servidor.encerrar();
@@ -1322,6 +1500,24 @@ describe("combate", () => {
     expect((await jogador.esperar("erro", (m) => /turno já acabou/.test(m.mensagem))).mensagem).toMatch(/só o mestre/);
     mestre.enviar({ t: "combate_desfazer", eventoId: segundo.id });
     await esperarCombate(mestre, (c) => c.combatentes.find((x) => x.id === meu.id)!.deslocamentosNaRodada === 1);
+  });
+
+  it("com o Gelo ligado, a Disparada do personagem pede o teste sozinha", async () => {
+    const { mestre, jogador, personagemId } = await mesaDeCombate();
+    const { mesa } = await mestre.esperar("bem_vindo");
+    mestre.enviar({ t: "opcoes_campanha", opcoes: { ...mesa.opcoes, mundo: [{ id: "modificador.gelo", campoAberto: false }] } });
+    await jogador.esperar("opcoes_campanha", (m) => m.opcoes.mundo.length === 1);
+    let combate = await combateEmCurso(mestre, personagemId);
+    const meu = combate.combatentes.find((c) => c.personagemId === personagemId)!;
+    while (combate.ordem[combate.vez] !== meu.id) {
+      const vez = combate.vez;
+      mestre.enviar({ t: "turno_encerrar" });
+      combate = (await esperarCombate(mestre, (c) => c.vez === vez + 1)).combate!;
+    }
+    jogador.enviar({ t: "pa_gastar", combatenteId: meu.id, quantos: 1, tipo: "deslocamento" });
+    const { evento } = await jogador.esperar("evento", (m) => m.evento.tipo === "teste_pedido_visto");
+    expect(evento).toMatchObject({ dados: { pedido: { origem: "Gelo", teste: { alvo: "pericia", periciaId: "pericia.faro" } } } });
+    expect(jogador.eventos().some((e) => e.tipo === "combate_visto" && e.dados.rotulo.includes("Gelo: teste"))).toBe(true);
   });
 
   it("encerrar o combate fecha para todos, e o mestre pode desfazer o encerramento", async () => {
@@ -1616,6 +1812,8 @@ describe("combate", () => {
             },
           ],
           criaturas: [{ ...criatura, secoes: [{ titulo: "Ações", itens: [garra] }] }],
+          /* Soco ganha uma marca de situação de exemplo: oferecido depois de um acerto contra quem o tem. */
+          habilidades: base.habilidades.map((h) => (h.id === "habilidade.rufiao.soco" ? { ...h, mecanica: { reage_a: [{ ataque: "contra_si", momento: "apos_acerto" }] } } : h)),
         },
       });
     };
@@ -1708,6 +1906,44 @@ describe("combate", () => {
       const eu = depois.combate!.combatentes.find((c) => c.id === meu.id)!;
       expect(eu.pa.guardados).toBe(2);
       expect(eu.marcas.defesaDeReacao).toBeNull();
+    });
+
+    it("iniciativa oculta: o registro do jogador não traz a ordem nem a carta dos outros", async () => {
+      const { mestre, jogador } = await montar();
+      await esperarRotulo(mestre, "combate", /Combate começou. Ordem:/);
+      await esperarRotulo(jogador, "combate_visto", /Combate começou/);
+      const textos = jogador.recebidas.flatMap((m) => (m.t === "evento" && m.evento.tipo === "combate_visto" ? [m.evento.dados.rotulo] : []));
+      expect(textos.some((t) => /Combate começou/.test(t))).toBe(true);
+      expect(textos.join(" | ")).not.toMatch(/Ordem:|tirou|ficou com/);
+      expect(JSON.stringify(ultimoCombate(jogador)!.ordem)).toMatch(/oculto-/);
+    });
+
+    it("1 natural no ataque erra sempre e aparece como Falha crítica", async () => {
+      const { mestre, personagemId, sombra } = await montar();
+      await ateAVezDe(mestre, sombra.id);
+      const meu = ultimoCombate(mestre)!.combatentes.find((c) => c.personagemId === personagemId)!;
+      fila = [1];
+      mestre.enviar({ t: "atacar", atacanteId: sombra.id, fonte: { tipo: "acao", acaoId: "criatura.sombra.garra" }, alvos: [meu.id] });
+      const { evento } = await esperarRotulo(mestre, "combate", /atacou com Garra/);
+      expect(evento.tipo === "combate" && evento.dados.rotuloMestre).toMatch(/falha crítica, errou/);
+      expect(evento.tipo === "combate" && evento.dados.rolagem?.resultado).toEqual({ texto: "Falha crítica", bom: false });
+    });
+
+    it("depois do acerto, a habilidade marcada vira oferta; usar como reação gasta 1 PA guardado", async () => {
+      const { mestre, jogador, personagemId, meu } = await montar();
+      await ateAVezDe(mestre, meu.id);
+      jogador.enviar({ t: "turno_encerrar" });
+      await esperarCombate(mestre, (c) => c.ordem[c.vez] !== meu.id || c.fase === "fim_da_rodada");
+      const sombra = { id: await criaturaPronta(mestre) };
+      mestre.enviar({ t: "atacar", atacanteId: sombra.id, fonte: { tipo: "acao", acaoId: "criatura.sombra.garra" }, alvos: [meu.id] });
+      await esperarCombate(jogador, (c) => !!c.ataquePendente);
+      fila = [19, 3];
+      jogador.enviar({ t: "reagir", combatenteId: meu.id, reacao: "nenhuma" });
+      const { combate } = await esperarCombate(jogador, (c) => !!c.combatentes.find((x) => x.id === meu.id)?.marcas.ofertaDeReacao);
+      expect(combate!.combatentes.find((x) => x.id === meu.id)!.marcas.ofertaDeReacao).toMatchObject({ habilidades: ["habilidade.rufiao.soco"], momento: "apos_acerto" });
+      jogador.enviar({ t: "habilidade_usar", personagemId, habilidadeId: "habilidade.rufiao.soco", reacao: true });
+      const depois = await esperarCombate(jogador, (c) => !c.combatentes.find((x) => x.id === meu.id)?.marcas.ofertaDeReacao);
+      expect(depois.combate!.combatentes.find((x) => x.id === meu.id)!.pa.guardados).toBe(2);
     });
 
     it("o mestre segue sem a reação, ou cancela o ataque", async () => {

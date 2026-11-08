@@ -1,4 +1,4 @@
-import { Alternador, Botao, CampoNumero, Cartao, Etiqueta, PopUp, Seletor } from "@odm/estilo";
+import { Alternador, Botao, CampoNumero, Cartao, Etiqueta, IconeCondicao, PopUp, Seletor, TextoDoLivro } from "@odm/estilo";
 import type { Acao, Ameaca, Criatura } from "@odm/conteudo";
 import type { Alvo, Combatente, EfeitoAtivo, EstadoCombate, Personagem } from "@odm/protocolo";
 import { alvosDoAtaqueDeHorda, ataqueDeCriatura, bonusDeHorda, hordaDaFicha, type ContextoCombate } from "@odm/regras";
@@ -176,7 +176,9 @@ function LinhaEfeito({ c, e, ctx }: { c: Combatente; e: EfeitoAtivo; ctx: Contex
   const botoes = (mec?.acoes ?? []).map((a, i) => ({ nome: a.nome, i }));
   return (
     <li className={css.efeito}>
-      <span>{e.nome}</span>
+      <span>
+        <IconeCondicao efeitoId={e.efeitoId} className={css.iconeEfeito} /> {e.nome}
+      </span>
       {e.acumulos > 1 && <Etiqueta tom="perigo">×{e.acumulos}</Etiqueta>}
       {e.nivel !== null && <Etiqueta>Nível {e.nivel}</Etiqueta>}
       {e.turnosRestantes !== null && (
@@ -313,7 +315,7 @@ function AtaqueDeHorda({ c, ficha, combate, acao, alemDoAlcance, aoFechar }: { c
         variante="primario"
         disabled={!alvos.length || !escolha}
         onClick={() => {
-          acoes.atacar(c.id, { tipo: "acao", acaoId: acao.id, escolha }, alvos, { alemDoAlcance, bonus: 0, modo: "normal" });
+          acoes.atacar(c.id, { tipo: "acao", acaoId: acao.id, escolha }, alvos, { alemDoAlcance, bonus: 0, modo: "normal", distancia: null });
           aoFechar();
         }}
       >
@@ -359,7 +361,7 @@ export function AcoesDaCriatura({ c, ficha, combate }: { c: Combatente; ficha: C
                 </button>
                 {aberta === acao.id && (
                   <>
-                    <p className={css.acaoDetalhe}>{acao.texto}</p>
+                    <p className={css.acaoDetalhe}><TextoDoLivro texto={acao.texto} /></p>
                     {acao.recargaCriatura && (
                       <Botao variante="fantasma" onClick={() => acoes.usarRecarga(c.id, acao.id, !gasta)}>
                         {gasta ? "Devolver a habilidade" : "Marcar como usada"}
@@ -374,14 +376,14 @@ export function AcoesDaCriatura({ c, ficha, combate }: { c: Combatente; ficha: C
                           <Botao
                             key={alvo.id}
                             onClick={() => {
-                              acoes.atacar(c.id, { tipo: "acao", acaoId: acao.id }, [alvo.id], { alemDoAlcance, bonus: 0, modo: "normal" });
+                              acoes.atacar(c.id, { tipo: "acao", acaoId: acao.id }, [alvo.id], { alemDoAlcance, bonus: 0, modo: "normal", distancia: null });
                               abrir(null);
                             }}
                           >
                             {alvo.nome}
                           </Botao>
                         ))}
-                        <Alternador rotulo="Além do alcance efetivo" ligado={alemDoAlcance} aoMudar={definirAlem} />
+                        <Alternador rotulo="Entre o alcance efetivo e o máximo" dica="Desvantagem e, se acertar, metade do dano" ligado={alemDoAlcance} aoMudar={definirAlem} />
                       </div>
                     ) : (
                       <RolarAcao rotulo={`${c.nome}: ${acao.rotulo}`} aoFechar={() => abrir(null)} />
@@ -450,16 +452,21 @@ export function VidaDoPersonagem({ c, personagem, estresseMaximo }: { c: Combate
   );
 }
 
-/* Descanso disparado pelo mestre (Jogador, Descansos): só fora de combate; passar de 2 curtos avisa no registro. */
-export function Descanso({ aberto, personagens, aoFechar }: { aberto: boolean; personagens: Personagem[]; aoFechar: () => void }) {
+/* Descanso disparado pelo mestre (Jogador, Descansos): só fora de combate. Passou do limite de descansos curtos,
+   o pop-up pergunta por personagem se o mestre permite (decisão de 07/11/2026). */
+export function Descanso({ aberto, personagens, limite, aoFechar }: { aberto: boolean; personagens: Personagem[]; limite: number | null; aoFechar: () => void }) {
   const [tipo, definirTipo] = useState<"curto" | "longo">("curto");
   const [fora, definirFora] = useState<string[]>([]);
+  /* Quem passou do limite: sim, não ou ainda sem resposta. */
+  const [permitidos, definirPermitidos] = useState<Record<string, boolean>>({});
   const [dados, definirDados] = useState<Record<string, number>>({});
   const [alimentado, definirAlimentado] = useState(true);
   const [cuidados, definirCuidados] = useState(false);
   const combate = useLoja((e) => e.combate);
   if (!aberto) return null;
-  const escolhidos = personagens.filter((p) => !fora.includes(p.id));
+  const passou = (p: Personagem) => tipo === "curto" && limite !== null && p.vivo.descansosCurtos >= limite;
+  const escolhidos = personagens.filter((p) => !fora.includes(p.id) && (!passou(p) || permitidos[p.id] === true));
+  const semResposta = personagens.filter((p) => !fora.includes(p.id) && passou(p) && permitidos[p.id] === undefined);
   return (
     <PopUp aberto titulo="Descanso" variante="central" aoFechar={aoFechar}>
       <div className={css.formularioDescanso}>
@@ -483,7 +490,20 @@ export function Descanso({ aberto, personagens, aoFechar }: { aberto: boolean; p
                 <span className={css.nota}>
                   {pv === null ? "PV cheios" : `${pv} PV`} · {p.vivo.descansosCurtos} curto(s) desde o longo
                 </span>
-                {tipo === "curto" && !fora.includes(p.id) && (
+                {passou(p) && !fora.includes(p.id) && (
+                  <div className={css.perguntaDescanso} role="group" aria-label={`Permitir o descanso de ${p.ficha.nome || "Sem nome"}`}>
+                    <span>
+                      {p.ficha.nome || "Sem nome"} não tem mais descanso curto e quer fazer um. Você permite?
+                    </span>
+                    <Botao variante={permitidos[p.id] === true ? "primario" : "secundario"} aria-pressed={permitidos[p.id] === true} onClick={() => definirPermitidos((m) => ({ ...m, [p.id]: true }))}>
+                      Sim
+                    </Botao>
+                    <Botao variante={permitidos[p.id] === false ? "primario" : "secundario"} aria-pressed={permitidos[p.id] === false} onClick={() => definirPermitidos((m) => ({ ...m, [p.id]: false }))}>
+                      Não
+                    </Botao>
+                  </div>
+                )}
+                {tipo === "curto" && !fora.includes(p.id) && (!passou(p) || permitidos[p.id] === true) && (
                   <CampoNumero rotulo="Dados de Vida" semSinal valor={dados[p.id] ?? 0} minimo={0} maximo={20} aoMudar={(v) => definirDados((d) => ({ ...d, [p.id]: v }))} />
                 )}
               </li>
@@ -497,11 +517,12 @@ export function Descanso({ aberto, personagens, aoFechar }: { aberto: boolean; p
           </>
         )}
         {combate && combate.fase !== "encerrado" && <p className={css.nota}>Encerre o combate antes do descanso.</p>}
+        {semResposta.length > 0 && <p className={css.nota}>Responda Sim ou Não para {semResposta.map((p) => p.ficha.nome || "Sem nome").join(", ")}.</p>}
         <Botao
           variante="primario"
           grande
           largo
-          disabled={!escolhidos.length || (!!combate && combate.fase !== "encerrado")}
+          disabled={!escolhidos.length || semResposta.length > 0 || (!!combate && combate.fase !== "encerrado")}
           onClick={() => {
             acoes.descansar(
               tipo,

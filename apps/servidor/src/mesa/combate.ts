@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { Conteudo, Criatura, Ameaca } from "@odm/conteudo";
 import {
   EstadoCombate,
+  PedidoTeste,
   type Alvo,
   type Combatente,
   type EstadoVivo,
@@ -36,6 +37,7 @@ import {
   pendenciasDaIniciativa,
   proximoNaOrdem,
   situacaoDoVivo,
+  testeNaDisparada,
   trocarPosicoes,
   type Aleatorio,
   type ContextoCombate,
@@ -106,6 +108,8 @@ export class Combates {
   ganchoDoTurno: GanchoDoTurno | null = null;
   /* A Horda tem PA próprio por turno (Formar Horda). */
   paPorTurnoDe: ((c: Combatente) => number | null) | null = null;
+  /* Teste pedido pelo próprio combate (Geada na Disparada). */
+  pedirTeste: ((pedido: PedidoTeste, quem: Espectador) => Recusa | void) | null = null;
   private cacheCtx: { chave: string; ctx: ContextoCombate | null; faltando: string[] } | null = null;
 
   constructor(
@@ -329,13 +333,14 @@ export class Combates {
       pa: { disponiveis: 0, guardados: 0, bloqueados: 0 },
       deslocamentosNaRodada: 0,
       ataquesNoTurno: 0,
-      marcas: { reacaoSemCusto: null, vantagemNoProximo: false, deslocamentoSemCusto: 0, paExtraNoPrimeiroTurno: 0, defesaDeReacao: null, comboLiberado: false, testeDeMortePendente: false, imprudente: null, imprudenteNoTurno: false },
+      marcas: { reacaoSemCusto: null, vantagemNoProximo: false, deslocamentoSemCusto: 0, paExtraNoPrimeiroTurno: 0, defesaDeReacao: null, comboLiberado: false, testeDeMortePendente: false, imprudente: null, imprudenteNoTurno: false, ofertaDeReacao: null },
       pv: null,
       pvMaximo: null,
       pvTemporarios: 0,
       efeitos: [],
       recargasGastas: [],
       derrotado: false,
+      revelado: false,
       horda: null,
       ...dados,
     };
@@ -362,6 +367,7 @@ export class Combates {
     const mudancas: Mudanca[] = [];
     const extras = ctx.regras.redencao?.iniciativa.cartas_extras ?? 0;
     const nomes: string[] = [];
+    const vistos: string[] = [];
     for (const c of alvos) {
       const quantas = this.redencaoCompleta(c) ? 1 + extras : 1;
       const r = comprarCartas(baralho, quantas, this.aleatorio, ctx.regras.iniciativa.baralho.coringas);
@@ -369,9 +375,11 @@ export class Combates {
       const depois = quantas > 1 ? { ...c, cartasParaEscolher: r.compradas } : { ...c, carta: r.compradas[0]!, usaEfeito: eEspecial(r.compradas[0]!) ? null : false };
       mudancas.push({ op: "combatente_muda", antes: c, depois });
       nomes.push(quantas > 1 ? `${c.nome} comprou ${quantas} cartas para escolher` : `${c.nome} tirou ${NOME_DA_CARTA[r.compradas[0]!.valor]}`);
+      /* Iniciativa oculta: o jogador não vê a carta dos outros no registro. */
+      vistos.push(quantas > 1 ? `${c.nome} comprou ${quantas} cartas para escolher` : `${c.nome} comprou a carta`);
     }
     mudancas.push(this.andamento(combate, { baralho }));
-    return this.executar(quem, ctx, { rotulo: nomes.join("; "), mudancas, autor: alvos.length === 1 ? alvos[0] : null });
+    return this.executar(quem, ctx, { rotulo: vistos.join("; "), rotuloMestre: nomes.join("; "), mudancas, autor: alvos.length === 1 ? alvos[0] : null });
   }
 
   private escolherCarta(combatenteId: string, cartaId: string, quem: Espectador, ctx: ContextoCombate): Recusa | void {
@@ -382,7 +390,7 @@ export class Combates {
     const carta = c.cartasParaEscolher.find((x) => x.id === cartaId);
     if (!carta) return recusa("Essa carta não está entre as compradas.");
     const depois = { ...c, carta, cartasParaEscolher: [], usaEfeito: eEspecial(carta) ? null : false };
-    return this.executar(quem, ctx, { rotulo: `${c.nome} ficou com ${NOME_DA_CARTA[carta.valor]}`, mudancas: [{ op: "combatente_muda", antes: c, depois }], autor: c });
+    return this.executar(quem, ctx, { rotulo: `${c.nome} escolheu a carta`, rotuloMestre: `${c.nome} ficou com ${NOME_DA_CARTA[carta.valor]}`, mudancas: [{ op: "combatente_muda", antes: c, depois }], autor: c });
   }
 
   private decidirEfeito(m: Extract<MensagemDeCombate, { t: "iniciativa_efeito" }>, quem: Espectador, ctx: ContextoCombate): Recusa | void {
@@ -405,7 +413,7 @@ export class Combates {
     }
     const depois = { ...c, usaEfeito: m.usar, alvosDoEfeito: alvos };
     const rotulo = m.usar ? `${c.nome} vai usar o efeito do ${NOME_DA_CARTA[valor]}` : `${c.nome} ficou com a prioridade do ${NOME_DA_CARTA[valor]}`;
-    return this.executar(quem, ctx, { rotulo, mudancas: [{ op: "combatente_muda", antes: c, depois }], autor: c });
+    return this.executar(quem, ctx, { rotulo: `${c.nome} decidiu a carta`, rotuloMestre: rotulo, mudancas: [{ op: "combatente_muda", antes: c, depois }], autor: c });
   }
 
   private resultado(combate: EstadoCombate, ctx: ContextoCombate) {
@@ -428,7 +436,7 @@ export class Combates {
       nomes.push(`${c.nome}: ${NOME_DA_CARTA[r.compradas[0]!.valor]}`);
     }
     mudancas.push(this.andamento(combate, { baralho }));
-    return this.executar(quem, ctx, { rotulo: `Desempate por nova compra (${nomes.join(", ")})`, mudancas });
+    return this.executar(quem, ctx, { rotulo: "Desempate por nova compra", rotuloMestre: `Desempate por nova compra (${nomes.join(", ")})`, mudancas });
   }
 
   /* Fecha a iniciativa: ordem, trocas do Coringa e os benefícios das cartas especiais. Só sem pendência. */
@@ -467,7 +475,7 @@ export class Combates {
     const comMarcas = { ...primeiro, marcas: marcas.get(primeiro.id)! };
     const doTurno: EfeitosDoTurno[] = [];
     mudancas.push(...this.inicioDeTurno(comMarcas, ctx, combate, doTurno));
-    return this.comEfeitos(quem, ctx, { rotulo: `Combate começou. Ordem: ${ordem.map((id) => porId.get(id)!.nome).join(" → ")}`, mudancas }, doTurno);
+    return this.comEfeitos(quem, ctx, { rotulo: `Combate começou. Vez de ${primeiro.nome}`, rotuloMestre: `Combate começou. Ordem: ${ordem.map((id) => porId.get(id)!.nome).join(" → ")}`, mudancas }, doTurno);
   }
 
   fontesDe(c: Combatente, ctx: ContextoCombate) {
@@ -481,7 +489,9 @@ export class Combates {
     const r = inicioDoTurno(c, this.fontesDe(c, ctx), paPorTurno, ctx, this.aleatorio);
     const doTurno = this.ganchoDoTurno?.(c, "inicio_do_turno", ctx, r.recargas);
     if (doTurno) efeitos?.push(doTurno);
-    return [...expirarMarcasDe(combate, c.id), ...r.mudancas, ...(doTurno?.mudancas ?? [])];
+    /* Iniciativa oculta: no primeiro turno do combatente, a posição dele aparece para os jogadores. */
+    const revelar: Mudanca[] = c.revelado ? [] : [{ op: "revelado", alvo: { tipo: "combatente", id: c.id }, antes: false, depois: true }];
+    return [...revelar, ...expirarMarcasDe(combate, c.id), ...r.mudancas, ...(doTurno?.mudancas ?? [])];
   }
 
   /* Junta o texto dos gatilhos ao rótulo do evento e, depois de gravar, pede os testes que eles trazem. */
@@ -489,7 +499,8 @@ export class Combates {
     const notas = efeitos.flatMap((x) => x.notas);
     const notasMestre = efeitos.flatMap((x) => [...x.notas, ...x.notasMestre]);
     const rotulo = notas.length ? `${e.rotulo}. ${notas.join(". ")}` : e.rotulo;
-    const rotuloMestre = notasMestre.length > notas.length ? `${e.rotulo}. ${notasMestre.join(". ")}` : (e.rotuloMestre ?? null);
+    const baseMestre = e.rotuloMestre ?? e.rotulo;
+    const rotuloMestre = notasMestre.length ? `${baseMestre}. ${notasMestre.join(". ")}` : (e.rotuloMestre ?? null);
     const r = this.executar(quem, ctx, { ...e, rotulo, rotuloMestre });
     if (r) return r;
     for (const x of efeitos) x.aoTerminar(quem);
@@ -552,8 +563,16 @@ export class Combates {
     const tipo = { acao: "ação", deslocamento: "deslocamento", reacao: "reação" }[m.tipo];
     let rotulo = `${c.nome} gastou ${m.quantos} PA (${tipo})`;
     if (r.semCusto) rotulo = `${c.nome}: ${tipo} sem custo (${r.semCusto})`;
-    if (r.exaustao) rotulo += ". Terceiro deslocamento da rodada: 1 nível de Exaustão";
-    return this.executar(quem, ctx, { rotulo, mudancas: r.mudancas, autor: c });
+    if (r.exaustao) rotulo += `. ${c.deslocamentosNaRodada + 1}ª Disparada da rodada: 1 nível de Exaustão`;
+    /* Geada (modificador de mundo): a Disparada pede Acrobacia; na falha, cai. Criatura: o mestre rola. */
+    const geada = m.tipo === "deslocamento" && !r.semCusto ? testeNaDisparada(ctx) : null;
+    if (geada) rotulo += c.personagemId ? `. ${geada.nome}: teste de Acrobacia (DT ${geada.dt})` : `. ${geada.nome}: ${c.nome} faz Acrobacia (DT ${geada.dt}); na falha, cai`;
+    const feito = this.executar(quem, ctx, { rotulo, mudancas: r.mudancas, autor: c });
+    if (feito || !geada || !c.personagemId) return feito;
+    this.pedirTeste?.(
+      PedidoTeste.parse({ id: randomUUID(), tipo: "habilidade", origem: geada.nome, teste: { alvo: "pericia", periciaId: geada.periciaId }, dt: geada.dt, dtVisivel: true, personagens: [{ personagemId: c.personagemId }], efeitoNaFalha: { efeitoId: geada.efeitoId } }),
+      quem,
+    );
   }
 
   private encerrar(quem: Espectador, ctx: ContextoCombate): Recusa | void {
@@ -600,12 +619,41 @@ export class Combates {
 }
 
 /* O que cada um vê do combate (especificação 3.1): o jogador nunca recebe PV de criatura, Recarga nem o baralho. */
-export function projetarCombate(combate: EstadoCombate | null, quem: Espectador): EstadoCombate | null {
+/* Iniciativa oculta (decisão de 07/11/2026): para o jogador, cada posição é "?" até o primeiro turno de quem está
+   nela, inclusive a dele. Na primeira rodada o "?" fica no lugar certo; quem entra depois vai como "?" para o fim
+   da lista e, na vez dele, aparece na posição certa. A carta de quem ainda não agiu não sai do servidor (na
+   iniciativa, o jogador vê só a dele). O mestre recebe tudo; a regra da ordem não muda. */
+export const ID_OCULTO = "oculto-";
+
+function ocultarIniciativa(combate: EstadoCombate, dono: (personagemId: string) => string | null, quem: Espectador): EstadoCombate {
+  if (combate.fase === "encerrado") return combate;
+  const semCarta = (c: Combatente): Combatente => ({ ...c, carta: null, cartasParaEscolher: [], desempate: [], usaEfeito: null, alvosDoEfeito: [] });
+  if (combate.fase === "iniciativa") {
+    return { ...combate, combatentes: combate.combatentes.map((c) => (c.personagemId && dono(c.personagemId) === quem.id ? c : semCarta(c))) };
+  }
+  const porId = new Map(combate.combatentes.map((c) => [c.id, c]));
+  const visivel = (id: string) => {
+    const c = porId.get(id);
+    return !c || c.revelado || c.derrotado;
+  };
+  let n = 0;
+  const ficha = () => `${ID_OCULTO}${++n}`;
+  const primeiraRodada = combate.rodada <= 1;
+  const noLugar = combate.ordem.flatMap((id) => (visivel(id) ? [id] : primeiraRodada ? [ficha()] : []));
+  const noFim = primeiraRodada ? [] : combate.ordem.filter((id) => !visivel(id)).map(() => ficha());
+  const ordem = [...noLugar, ...noFim];
+  const atual = combate.ordem[combate.vez];
+  const vez = atual && visivel(atual) ? Math.max(0, ordem.indexOf(atual)) : 0;
+  return { ...combate, ordem, vez, combatentes: combate.combatentes.map((c) => (visivel(c.id) ? c : semCarta(c))) };
+}
+
+export function projetarCombate(combate: EstadoCombate | null, quem: Espectador, dono: (personagemId: string) => string | null = () => null): EstadoCombate | null {
   if (!combate || quem.papel === "mestre") return combate;
+  const oculto = ocultarIniciativa(combate, dono, quem);
   return {
-    ...combate,
+    ...oculto,
     baralho: [],
-    combatentes: combate.combatentes.map((c) =>
+    combatentes: oculto.combatentes.map((c) =>
       c.tipo === "personagem"
         ? c
         : {

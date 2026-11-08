@@ -8,7 +8,7 @@ import TelaJogo from "./Jogo";
 export default function JogoDoPersonagem({ personagemId, aoAbrirMesa }: { personagemId: string; aoAbrirMesa: () => void }) {
   const personagem = useLoja((e) => e.personagens.find((p) => p.id === personagemId));
   const contexto = useContextoFicha();
-  if (contexto.situacao === "carregando" || !personagem) return <Carregando rotulo="Abrindo o personagem" />;
+  if (contexto.situacao === "carregando" || !personagem) return <Carregando modo="tela" rotulo="Abrindo o personagem" />;
   if (contexto.situacao === "falhou") {
     return (
       <div className={css.falha}>

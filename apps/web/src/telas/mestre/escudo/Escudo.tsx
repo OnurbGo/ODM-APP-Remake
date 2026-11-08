@@ -1,4 +1,4 @@
-import { BarraPV, Botao, CampoNumero, Carregando, Cartao, Etiqueta, MarcadorPA, Seletor, type EstadoPA } from "@odm/estilo";
+import { BarraPV, Botao, Carregando, Cartao, Etiqueta, MarcadorPA, Seletor, type EstadoPA } from "@odm/estilo";
 import type { Combatente, EstadoCombate, Personagem } from "@odm/protocolo";
 import { calcularFicha, ordenarIniciativa, situacaoDoVivo, trocarPosicoes, type ContextoCombate, type ContextoFicha } from "@odm/regras";
 import { useMemo, useState } from "react";
@@ -11,8 +11,10 @@ import comum from "../../combate/Comum.module.css";
 import ini from "../../combate/Iniciativa.module.css";
 import css from "./Escudo.module.css";
 import { AcoesDaCriatura, AtaqueEsperando, CartaoDaHorda, ControleVida, Descanso, EfeitosDoCombatente, FormarHorda, RolagemManual, VidaDoPersonagem } from "./AcoesDoEscudo";
+import { FimDoCombate, MontarEncontro } from "./Encontros";
 import { PedirTeste, type OpcoesDoPedido } from "./PedirTeste";
 import { TestesEmAndamento, useTestesAbertos } from "./TestesEmAndamento";
+import { salvos } from "../../../conexao/armazenamento";
 
 /* Escudo do Mestre (especificação 7.1, parada 4). Etapa 5: montar o combate, iniciativa, turnos, rodadas e PA.
    Etapa 6: pedir testes e o cartão de resultados. Etapa 7: ataques, reação, dano, efeitos e rolagem manual. */
@@ -24,77 +26,6 @@ function pvDoPersonagem(c: Combatente, v: Vivos) {
   if (!p || !v.ctxFicha) return null;
   const calc = calcularFicha(p.ficha, v.ctxFicha, v.ctx ? situacaoDoVivo(p.vivo, v.ctx) : {});
   return { pv: p.vivo.pv ?? calc.pvMaximo.valor, maximo: calc.pvMaximo.valor, temporarios: p.vivo.pvTemporarios, defesa: calc.defesa.valor, efeitos: p.vivo.efeitos, personagem: p, estresseMaximo: calc.estresseMaximo?.valor ?? null };
-}
-
-/* ---------- Novo combate ---------- */
-
-type Pedido = { ref: string; nome: string; quantidade: number; elite: boolean };
-
-function NovoCombate({ conteudo }: { conteudo: ConteudoMestre }) {
-  const todos = useLoja((e) => e.personagens);
-  const personagens = useMemo(() => todos.filter((p) => p.situacao === "ativo"), [todos]);
-  /* Guarda quem o mestre tirou: personagem novo entra marcado, mesmo com o Escudo já aberto. */
-  const [fora, definirFora] = useState<string[]>([]);
-  const escolhidos = personagens.map((p) => p.id).filter((id) => !fora.includes(id));
-  const [busca, definirBusca] = useState("");
-  const [pedidos, definirPedidos] = useState<Pedido[]>([]);
-  const termo = busca.trim().toLocaleLowerCase("pt-BR");
-  const fichas = [...conteudo.criaturas, ...conteudo.ameacas];
-  const achadas = termo ? fichas.filter((f) => f.nome.toLocaleLowerCase("pt-BR").includes(termo)).slice(0, 8) : [];
-  const alternar = (id: string) => definirFora((l) => (l.includes(id) ? l.filter((x) => x !== id) : [...l, id]));
-  const mudar = (i: number, parte: Partial<Pedido>) => definirPedidos((l) => l.map((p, j) => (j === i ? { ...p, ...parte } : p)));
-  return (
-    <div className={css.centroInterno}>
-      <Cartao titulo="Novo combate">
-        <fieldset className={comum.semCombate}>
-          <legend className="odm-rotulo">Personagens</legend>
-          {personagens.length === 0 && <p className={comum.vazio}>Nenhum personagem pronto nesta campanha.</p>}
-          {personagens.map((p) => (
-            <label key={p.id} className={comum.linhaFicha}>
-              <span>
-                <input type="checkbox" checked={escolhidos.includes(p.id)} onChange={() => alternar(p.id)} /> {p.ficha.nome || "Sem nome"}
-              </span>
-            </label>
-          ))}
-        </fieldset>
-        <label className={comum.campo}>
-          <span className="odm-rotulo">Bestiário</span>
-          <input type="search" value={busca} placeholder="Buscar criatura ou ameaça" onChange={(e) => definirBusca(e.target.value)} />
-        </label>
-        <ul>
-          {achadas.map((f) => (
-            <li key={f.id} className={comum.linhaFicha}>
-              <span>
-                <Sinal tipo={f.tipo === "ameaca" ? "npc" : "criatura"} /> {f.nome} {f.nd && <Etiqueta>ND {f.nd}</Etiqueta>}
-              </span>
-              <Botao variante="fantasma" onClick={() => definirPedidos((l) => [...l, { ref: f.id, nome: f.nome, quantidade: 1, elite: false }])}>
-                Adicionar
-              </Botao>
-            </li>
-          ))}
-        </ul>
-        {pedidos.length > 0 && (
-          <ul>
-            {pedidos.map((p, i) => (
-              <li key={`${p.ref}-${i}`} className={comum.linhaFicha}>
-                <span>{p.nome}</span>
-                <CampoNumero rotulo={`Quantidade de ${p.nome}`} rotuloOculto semSinal valor={p.quantidade} minimo={1} maximo={20} aoMudar={(q) => mudar(i, { quantidade: q })} />
-                <label>
-                  <input type="checkbox" checked={p.elite} onChange={() => mudar(i, { elite: !p.elite })} /> Elite
-                </label>
-                <Botao variante="fantasma" onClick={() => definirPedidos((l) => l.filter((_, j) => j !== i))}>
-                  Tirar
-                </Botao>
-              </li>
-            ))}
-          </ul>
-        )}
-        <Botao variante="primario" grande largo disabled={!escolhidos.length && !pedidos.length} onClick={() => acoes.criarCombate(escolhidos, pedidos.map(({ ref, quantidade, elite }) => ({ ref, quantidade, elite })))}>
-          Montar combate
-        </Botao>
-      </Cartao>
-    </div>
-  );
 }
 
 /* ---------- Iniciativa ---------- */
@@ -432,7 +363,8 @@ export default function Escudo() {
   /* Pedido aberto: a lista de quem já vem marcado (vazia = ninguém). */
   const [pedindo, definirPedindo] = useState<string[] | null>(null);
   const [descansando, definirDescansando] = useState(false);
-  const [fechados, definirFechados] = useState<ReadonlySet<string>>(() => new Set());
+  const [encerrando, definirEncerrando] = useState(false);
+  const [fechados, definirFechados] = useState<ReadonlySet<string>>(() => new Set(salvos.janelasFechadas("teste")));
   const abertos = useTestesAbertos(fechados);
   const efeitosDoPacote = doMestre.situacao === "pronto" ? doMestre.conteudo.efeitos : null;
   const efeitosPorId = useMemo(() => new Map<string, string>((efeitosDoPacote ?? []).map((e) => [e.id, e.exibir ?? e.nome])), [efeitosDoPacote]);
@@ -459,7 +391,13 @@ export default function Escudo() {
     escala: doMestre.ctx.regras.testes?.escala_dt ?? {},
     oponentes: [...new Set((combate?.combatentes ?? []).filter((c) => c.tipo !== "personagem").map((c) => c.nome))],
   };
-  const cartoes = <TestesEmAndamento pedidos={abertos} efeitos={efeitosPorId} aoFechar={(id) => definirFechados((f) => new Set([...f, id]))} />;
+  const cartoes = <TestesEmAndamento pedidos={abertos} efeitos={efeitosPorId} aoFechar={(id) =>
+        definirFechados((f) => {
+          const novos = new Set([...f, id]);
+          salvos.guardarJanelasFechadas("teste", [...novos]);
+          return novos;
+        })
+      } />;
 
   return (
     <div className={css.tela}>
@@ -480,15 +418,18 @@ export default function Escudo() {
               Nova rodada
             </Botao>
           )}
-          {combate && combate.fase !== "iniciativa" && <Botao onClick={acoes.encerrarCombate}>Encerrar combate</Botao>}
+          {combate && combate.fase !== "iniciativa" && <Botao onClick={() => definirEncerrando(true)}>Encerrar combate</Botao>}
         </div>
       </header>
       <PedirTeste aberto={pedindo !== null} marcados={pedindo ?? []} opcoes={opcoesDoPedido} aoFechar={() => definirPedindo(null)} />
-      <Descanso aberto={descansando} personagens={opcoesDoPedido.personagens} aoFechar={() => definirDescansando(false)} />
+      {encerrando && combate && <FimDoCombate combate={combate} conteudo={doMestre.conteudo} aoFechar={() => definirEncerrando(false)} />}
+      <Descanso aberto={descansando} personagens={opcoesDoPedido.personagens} limite={doMestre.ctx.regras.descansos?.curtos_antes_do_longo ?? null} aoFechar={() => definirDescansando(false)} />
       {!combate ? (
         <>
           {abertos.length > 0 && <div className={css.centroInterno}>{cartoes}</div>}
-          <NovoCombate conteudo={doMestre.conteudo} />
+          <div className={css.centroInterno}>
+            <MontarEncontro conteudo={doMestre.conteudo} ctxFicha={vivos.ctxFicha} />
+          </div>
         </>
       ) : combate.fase === "iniciativa" ? (
         <Iniciativa combate={combate} ctx={doMestre.ctx} fichas={[...doMestre.conteudo.criaturas, ...doMestre.conteudo.ameacas]} />

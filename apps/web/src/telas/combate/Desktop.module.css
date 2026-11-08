@@ -750,3 +750,21 @@
   text-transform: var(--rotulo-caixa);
   color: var(--cor-destaque);
 }
+
+/* Iniciativa oculta: posição que ainda não agiu. */
+.oculta {
+  justify-content: center;
+  min-width: 2.5em;
+  border-style: dashed;
+  font-family: var(--fonte-titulo);
+}
+
+.rostoFaixa {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  overflow: hidden;
+  border-radius: 50%;
+}

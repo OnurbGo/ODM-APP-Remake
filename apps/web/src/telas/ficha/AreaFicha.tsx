@@ -10,7 +10,7 @@ export default function AreaFicha({ personagemId, aoVoltar }: { personagemId: st
   const personagem = useLoja((e) => e.personagens.find((p) => p.id === personagemId));
   const contexto = useContextoFicha();
 
-  if (contexto.situacao === "carregando" || !personagem) return <Carregando rotulo="Abrindo a ficha" />;
+  if (contexto.situacao === "carregando" || !personagem) return <Carregando modo="tela" rotulo="Abrindo a ficha" />;
   if (contexto.situacao === "falhou") {
     return (
       <div className={css.falha}>

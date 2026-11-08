@@ -12,6 +12,8 @@ const PARADAS = [
   { rota: "#/transicoes", nome: "Parada 7 — Transições, carregamento e botões", pronta: true },
   { rota: "#/escudo", nome: "Parada 8 — Iniciativa do mestre (Nova iniciativa)", pronta: true },
   { rota: "#/combate", nome: "Parada 8 — Iniciativa do jogador e vantagem por cartas (painel P)", pronta: true },
+  { rota: "#/simbolos", nome: "Antes da fase 6 — Símbolos do d20 e tambor", pronta: true },
+  { rota: "#/personagem", nome: "Fase 6, etapa 5 — Tela do personagem: retrato, equipamento e inventário", pronta: true },
 ];
 
 export function Indice() {

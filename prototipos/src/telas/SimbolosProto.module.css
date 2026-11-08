@@ -1,0 +1,90 @@
+.pagina {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-4);
+  box-sizing: border-box;
+  min-height: 100vh;
+  padding: var(--esp-4);
+  background: var(--cor-fundo);
+  color: var(--cor-texto);
+}
+
+.titulo {
+  margin: 0;
+  font-family: var(--fonte-gotica);
+  font-size: var(--texto-xl);
+}
+
+.apoio {
+  margin: 0;
+  color: var(--cor-texto-suave);
+}
+
+.linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--esp-5);
+  margin-bottom: var(--esp-4);
+}
+
+.figura {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--esp-2);
+  margin: 0;
+  color: var(--cor-texto-suave);
+}
+
+.grande {
+  width: 140px;
+  height: 140px;
+}
+
+.pequenos {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--esp-3);
+}
+
+.etiqueta {
+  --simbolo-figura: currentColor;
+  --simbolo-fundo: var(--dado-corpo);
+  --simbolo-entalhe: var(--cor-superficie);
+  width: 1.3em;
+  height: 1.3em;
+}
+
+.botoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
+}
+
+.tambores {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--esp-3);
+}
+
+.caixaAlta,
+.caixaBaixa {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border: 1px dashed var(--cor-borda-forte);
+  border-radius: var(--raio-m);
+}
+
+.caixaAlta {
+  height: 320px;
+}
+
+.legenda {
+  position: absolute;
+  top: var(--esp-1);
+  left: var(--esp-2);
+  color: var(--cor-texto-suave);
+  font-size: var(--texto-xs);
+}

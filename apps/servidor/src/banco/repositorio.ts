@@ -1,11 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
-import { EstadoCombate, EstadoVivo, EventoCompleto, FichaDados, Kit, OpcoesCampanha, type Papel, type Personagem, type ResumoCampanha, type SituacaoPersonagem } from "@odm/protocolo";
+import { Cadastro, EstadoCombate, EstadoVivo, EventoCompleto, FichaDados, Kit, OpcoesCampanha, type Papel, type Personagem, type ResumoCampanha, type SituacaoPersonagem } from "@odm/protocolo";
 import { and, asc, desc, eq, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-sqlite";
 import { migrate } from "drizzle-orm/node-sqlite/migrator";
 import { z } from "zod";
-import { campanhas, combates, dispositivos, eventos, kits, participantes, personagens } from "./esquema";
+import { arquivos, cadastros, campanhas, combates, dispositivos, eventos, kits, participantes, personagens } from "./esquema";
 
 export type Campanha = typeof campanhas.$inferSelect;
 export type ParticipanteBanco = typeof participantes.$inferSelect;
@@ -57,7 +57,9 @@ export class Repositorio {
       id: c.id,
       nome: c.nome,
       ultimaSessaoEm: c.ultimaSessaoEm,
-      personagens: this.personagensDa(c.id).map((p) => p.ficha.nome || NOME_EM_BRANCO),
+      personagens: this.personagensDa(c.id)
+        .filter((p) => p.situacao !== "arquivado")
+        .map((p) => p.ficha.nome || NOME_EM_BRANCO),
     }));
   }
 
@@ -221,6 +223,41 @@ export class Repositorio {
 
   apagarKit(campanhaId: string, id: string) {
     this.db.delete(kits).where(and(eq(kits.id, id), eq(kits.campanhaId, campanhaId))).run();
+  }
+
+  /* Cadastros do mestre. Linha que não passa mais no protocolo (versão antiga) fica de fora, sem quebrar a mesa. */
+  cadastrosDa(campanhaId: string): Cadastro[] {
+    return this.db
+      .select()
+      .from(cadastros)
+      .where(eq(cadastros.campanhaId, campanhaId))
+      .all()
+      .flatMap((l) => {
+        const r = Cadastro.safeParse({ id: l.id, tipo: l.tipo, dados: JSON.parse(l.dados), atualizadoEm: l.atualizadoEm });
+        return r.success ? [r.data] : [];
+      });
+  }
+
+  salvarCadastro(campanhaId: string, c: Cadastro) {
+    const dados = JSON.stringify(c.dados);
+    this.db
+      .insert(cadastros)
+      .values({ id: c.id, campanhaId, tipo: c.tipo, dados, atualizadoEm: c.atualizadoEm })
+      .onConflictDoUpdate({ target: cadastros.id, set: { tipo: c.tipo, dados, atualizadoEm: c.atualizadoEm } })
+      .run();
+  }
+
+  apagarCadastro(campanhaId: string, id: string) {
+    this.db.delete(cadastros).where(and(eq(cadastros.id, id), eq(cadastros.campanhaId, campanhaId))).run();
+  }
+
+  salvarArquivo(campanhaId: string, a: { id: string; tipo: string; dados: Buffer }, criadoEm: string) {
+    this.db.insert(arquivos).values({ id: a.id, campanhaId, tipo: a.tipo, dados: a.dados.toString("base64"), criadoEm }).run();
+  }
+
+  arquivo(campanhaId: string, id: string): { tipo: string; dados: Buffer } | null {
+    const l = this.db.select().from(arquivos).where(and(eq(arquivos.id, id), eq(arquivos.campanhaId, campanhaId))).get();
+    return l ? { tipo: l.tipo, dados: Buffer.from(l.dados, "base64") } : null;
   }
 
   /* O combate em curso da campanha, se houver. */

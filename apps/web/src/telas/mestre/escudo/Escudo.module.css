@@ -252,12 +252,13 @@
 
 .cabecalho {
   display: flex;
+  flex-wrap: wrap; /* com personagem há mais controles: a linha quebra em vez de espremer o nome */
   align-items: center;
-  gap: var(--esp-4);
+  gap: var(--esp-3) var(--esp-4);
 }
 
 .identidade {
-  flex: 1;
+  flex: 1 1 14rem;
   min-width: 0;
 }
 
@@ -711,4 +712,25 @@
   flex-wrap: wrap;
   gap: var(--esp-1);
   margin-left: auto;
+}
+
+/* Descanso além do limite de curtos: a pergunta ao mestre, por personagem. */
+.perguntaDescanso {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-2);
+  width: 100%;
+  padding: var(--esp-2);
+  background: var(--cor-superficie-alta);
+  border: 1px solid var(--cor-borda-forte);
+  border-radius: var(--raio-m);
+}
+
+.perguntaDescanso > span {
+  flex: 1 1 220px;
+}
+
+.iconeEfeito {
+  color: var(--cor-destaque);
 }

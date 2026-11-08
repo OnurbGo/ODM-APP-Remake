@@ -100,6 +100,14 @@ export type Descanso = {
   avisos: string[];
 };
 
+/* Dados de Vida a mais para gastar neste descanso curto, pelos efeitos ativos (Bem Nutrido, decisão de 07/11/2026). */
+export function dadosDeVidaExtras(fontes: readonly { mecanica?: Record<string, unknown> | null }[]): number {
+  return fontes.reduce((s, f) => {
+    const proximo = (f.mecanica as { proximo_descanso_curto?: { dados_de_vida_extra?: unknown } } | undefined)?.proximo_descanso_curto;
+    return s + (typeof proximo?.dados_de_vida_extra === "number" ? proximo.dados_de_vida_extra : 0);
+  }, 0);
+}
+
 export function descansoCurto(
   alvo: Alvo,
   vivo: EstadoVivo,
@@ -108,6 +116,8 @@ export function descansoCurto(
   ctx: ContextoCombate,
   /* Dados de Vida gastos, já rolados (um valor por dado). */
   dadosDeVida: readonly number[] = [],
+  /* Quantos desses dados vieram a mais (Bem Nutrido: 1 Dado de Vida a mais neste descanso) e não contam como gastos. */
+  extras = 0,
 ): Descanso {
   const mudancas: Mudanca[] = [];
   const resumo: string[] = [];
@@ -121,7 +131,8 @@ export function descansoCurto(
   mudancas.push({ op: "somar", alvo, campo: "pv", delta: natural + porDados });
   resumo.push(`+${natural} PV (Fibra)`);
   if (dadosDeVida.length) {
-    mudancas.push({ op: "somar", alvo, campo: "dadosDeVidaGastos", delta: dadosDeVida.length });
+    const gastos = Math.max(0, dadosDeVida.length - extras);
+    if (gastos) mudancas.push({ op: "somar", alvo, campo: "dadosDeVidaGastos", delta: gastos });
     resumo.push(`+${porDados} PV (${dadosDeVida.length} Dado${dadosDeVida.length > 1 ? "s" : ""} de Vida)`);
   }
   mudancas.push(...recuperarFichas(alvo, vivo, calc, "descanso_curto"));

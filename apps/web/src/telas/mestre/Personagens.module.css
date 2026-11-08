@@ -89,3 +89,12 @@
   display: flex;
   flex-direction: column;
 }
+
+.arquivados {
+  margin-top: var(--esp-3);
+}
+
+.arquivados > summary {
+  cursor: pointer;
+  color: var(--cor-texto-suave);
+}

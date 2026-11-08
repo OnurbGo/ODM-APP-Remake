@@ -7,6 +7,8 @@ import { EscudoMestre } from "./telas/EscudoMestre";
 import { FichaDesktop } from "./telas/ficha/FichaDesktop";
 import { Indice } from "./telas/Indice";
 import { TransicoesProto } from "./telas/TransicoesProto";
+import { TelaPersonagem } from "./telas/personagem/TelaPersonagem";
+import { SimbolosProto } from "./telas/SimbolosProto";
 import { Vitrine } from "./telas/Vitrine";
 
 function useRota() {
@@ -49,5 +51,7 @@ export function App() {
   if (rota === "/ficha-desktop") return <FichaDesktop {...props} />;
   if (rota === "/escudo") return <EscudoMestre {...props} />;
   if (rota === "/vitrine") return <Vitrine {...props} />;
+  if (rota === "/simbolos") return <SimbolosProto />;
+  if (rota === "/personagem") return <TelaPersonagem />;
   return <Indice />;
 }

@@ -1,5 +1,9 @@
 import { CAMINHO_WS, VERSAO_PROTOCOLO } from "@odm/protocolo/constantes";
 import type {
+  Cadastro,
+  Mostra,
+  Jogo21,
+  CadastroNovo,
   Credencial,
   EstadoCombate,
   EventoVisto,
@@ -64,6 +68,12 @@ type Estado = {
   mestre: EstadoMestre | null;
   rolagem: EventoRolagem | null;
   personagens: Personagem[];
+  /* Cadastros da campanha (fase 6): ao mestre, todos; ao jogador, só o que ele pode ver. */
+  cadastros: Cadastro[];
+  /* Jogo do 21: ao mestre, todos; ao jogador, os dos personagens dele. */
+  jogos21: Jogo21[];
+  /* O que o mestre está mostrando a este aparelho. */
+  mostrando: (Mostra & { id: string }) | null;
   /* O combate como este aparelho pode ver (o jogador não recebe PV de criatura nem o baralho). */
   combate: EstadoCombate | null;
   /* Rolagens até esta posição saem da tela. O histórico fica: o desfazer depende dele. */
@@ -91,6 +101,9 @@ const INICIAL: Omit<Estado, "rolagemRapida"> = {
   mestre: null,
   rolagem: null,
   personagens: [],
+  cadastros: [],
+  jogos21: [],
+  mostrando: null,
   combate: null,
   rolagensLimpasAte: 0,
   resultadoTeste: null,
@@ -106,6 +119,9 @@ const SEM_MESA = {
   mestre: null,
   rolagem: null,
   personagens: [],
+  cadastros: [],
+  jogos21: [],
+  mostrando: null,
   combate: null,
   rolagensLimpasAte: 0,
   resultadoTeste: null,
@@ -188,6 +204,7 @@ function tratar(mensagem: MensagemServidor) {
         participantes: mensagem.participantes,
         personagens: mensagem.personagens,
         eventos: juntarEventos(e.eu?.id === mensagem.eu.id ? e.eventos : [], mensagem.eventos),
+        rolagensLimpasAte: salvos.rolagensLimpasAte(mensagem.mesa.id, mensagem.eu.id),
       }));
       return;
     case "personagem":
@@ -202,6 +219,15 @@ function tratar(mensagem: MensagemServidor) {
       return;
     case "combate":
       definir({ combate: mensagem.combate });
+      return;
+    case "cadastros":
+      definir({ cadastros: mensagem.lista });
+      return;
+    case "jogos21":
+      definir({ jogos21: mensagem.lista });
+      return;
+    case "mostrando":
+      definir({ mostrando: mensagem.mostra });
       return;
     case "opcoes_campanha":
       definir((e) => ({ mesa: e.mesa ? { ...e.mesa, opcoes: mensagem.opcoes } : null }));
@@ -389,17 +415,34 @@ export const acoes = {
   recusar: (pedidoId: string) => enviar({ t: "recusar_entrada", pedidoId }),
   revogar: (participanteId: string) => enviar({ t: "revogar_acesso", participanteId }),
   trocarCodigo: () => enviar({ t: "trocar_codigo" }),
-  limparRolagens: () => definir((e) => ({ rolagensLimpasAte: e.eventos.at(-1)?.n ?? 0 })),
+  limparRolagens() {
+    const { eventos, mesa, eu } = useLoja.getState();
+    const ate = eventos.at(-1)?.n ?? 0;
+    if (mesa && eu) salvos.guardarRolagensLimpasAte(mesa.id, eu.id, ate);
+    definir({ rolagensLimpasAte: ate });
+  },
   criarPersonagem: () => enviar({ t: "personagem_criar" }),
   salvarRascunho: (personagemId: string, ficha: FichaRascunho) => enviar({ t: "personagem_salvar", personagemId, ficha }),
   concluirPersonagem: (personagemId: string) => enviar({ t: "personagem_concluir", personagemId }),
   apagarPersonagem: (personagemId: string) => enviar({ t: "personagem_apagar", personagemId }),
+  arquivarPersonagem: (personagemId: string, arquivado: boolean) => enviar({ t: "personagem_arquivar", personagemId, arquivado }),
   operar: (personagemId: string, operacao: Operacao) => enviar({ t: "ficha_operar", personagemId, operacao }),
   desfazerFicha: (eventoId: string) => enviar({ t: "ficha_desfazer", eventoId }),
   ligarPersonagem: (personagemId: string, participanteId: string | null) => enviar({ t: "ligar_personagem", personagemId, participanteId }),
   definirOpcoes: (opcoes: OpcoesCampanha) => enviar({ t: "opcoes_campanha", opcoes }),
   salvarKit: (kit: Kit) => enviar({ t: "kit_salvar", kit }),
   apagarKit: (kitId: string) => enviar({ t: "kit_apagar", kitId }),
+  salvarCadastro: (cadastro: CadastroNovo) => enviar({ t: "cadastro_salvar", cadastro }),
+  apagarCadastro: (id: string) => enviar({ t: "cadastro_apagar", id }),
+  abrirJogo21: (personagemId: string, local: string) => enviar({ t: "jogo21_abrir", personagemId, local }),
+  comprarNo21: (jogoId: string) => enviar({ t: "jogo21_comprar", jogoId }),
+  pararNo21: (jogoId: string, asesComo11: number) => enviar({ t: "jogo21_parar", jogoId, asesComo11 }),
+  fecharJogo21: (jogoId: string) => enviar({ t: "jogo21_fechar", jogoId }),
+  mostrar: (mostra: Mostra) => enviar({ t: "mostrar", mostra }),
+  fecharMostra: () => enviar({ t: "mostrar_fechar" }),
+  comprarNaLoja: (lojaId: string, linhaId: string, quantidade: number, personagemId: string) => enviar({ t: "loja_comprar", lojaId, linhaId, quantidade, personagemId }),
+  venderNaLoja: (lojaId: string, itemFichaId: string, quantidade: number, personagemId: string) => enviar({ t: "loja_vender", lojaId, itemFichaId, quantidade, personagemId }),
+  pagarServico: (lojaId: string, servicoId: string, personagemId: string) => enviar({ t: "loja_servico", lojaId, servicoId, personagemId }),
   entregarKit: (personagemId: string, kitId: string) => enviar({ t: "kit_entregar", personagemId, kitId }),
 
   /* Combate: o servidor decide; a tela só pede e espera a resposta chegar. */
@@ -427,7 +470,8 @@ export const acoes = {
   atitudeImprudente: (combatenteId: string, opcao: "precisao" | "potencia" | "violencia" | "impeto") => enviar({ t: "atitude_imprudente", combatenteId, opcao }),
   ajustarEstresse: (personagemId: string, delta: number) => enviar({ t: "estresse_ajustar", personagemId, delta }),
   ajustarFichaDeClasse: (personagemId: string, recursoId: string, delta: number) => enviar({ t: "ficha_classe_ajustar", personagemId, recursoId, delta }),
-  usarHabilidade: (personagemId: string, habilidadeId: string) => enviar({ t: "habilidade_usar", personagemId, habilidadeId }),
+  usarHabilidade: (personagemId: string, habilidadeId: string, reacao = false) => enviar({ t: "habilidade_usar", personagemId, habilidadeId, reacao }),
+  dispensarOferta: (combatenteId: string) => enviar({ t: "oferta_dispensar", combatenteId }),
   descansar: (tipo: "curto" | "longo", personagens: { personagemId: string; dadosDeVida: number }[], alimentado: boolean, cuidadosMedicos: boolean) =>
     enviar({ t: "descanso", tipo, personagens, alimentado, cuidadosMedicos }),
   ajustarPv: (alvo: Alvo, delta: number, temporarios: boolean) => enviar({ t: "pv_ajustar", alvo, delta, temporarios }),

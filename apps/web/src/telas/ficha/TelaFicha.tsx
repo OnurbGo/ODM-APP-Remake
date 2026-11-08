@@ -1,4 +1,4 @@
-import { Abas, Botao, Etiqueta, PopUp, useTrocaDeTela, type ItemAba } from "@odm/estilo";
+import { Abas, Botao, Etiqueta, PopUp, useTrocaDeTela, type ItemAba, TextoDoLivro } from "@odm/estilo";
 import type { Operacao, Personagem } from "@odm/protocolo";
 import { calcularFicha, entregaDoNivel, opcoesDoTalento, pedeAtributo, pendenciasDeNivel, talentosDaLoja, type ContextoFicha, type Pendencia } from "@odm/regras";
 import { useEffect, useMemo, useState } from "react";
@@ -8,18 +8,16 @@ import { useTelaLarga } from "../useLargura";
 import {
   BlocoAtributos,
   BlocoCalculados,
-  BlocoCarga,
-  BlocoDinheiro,
   BlocoFichasDeClasse,
   BlocoHabilidades,
   BlocoHonra,
-  BlocoItens,
   BlocoNotas,
   BlocoPericias,
   BlocoProgressao,
   BlocoRedencao,
   type FichaVista,
 } from "./Blocos";
+import { TelaPersonagem } from "./personagem/TelaPersonagem";
 import css from "./Ficha.module.css";
 import desktop from "./FichaDesktop.module.css";
 import { EscolherAtributo, EscolherOpcoes, LojaPrestigio } from "./Loja";
@@ -43,7 +41,7 @@ function Escolha({ ficha, pendencia, aoFechar }: { ficha: FichaVista; pendencia:
             .map((e) => (
               <details key={e.id} className={css.habilidade}>
                 <summary className={css.linhaTexto}>{e.nome}</summary>
-                <p className={css.habilidadeTexto}>{e.descricao}</p>
+                <p className={css.habilidadeTexto}><TextoDoLivro texto={e.descricao} /></p>
                 <Botao largo onClick={() => concluir({ op: "especializacao", id: e.id })}>
                   Escolher
                 </Botao>
@@ -53,7 +51,7 @@ function Escolha({ ficha, pendencia, aoFechar }: { ficha: FichaVista; pendencia:
           talentosDaLoja(dados, ctx).map((t) => (
             <details key={t.id} className={css.habilidade}>
               <summary className={css.linhaTexto}>{t.nome}</summary>
-              <p className={css.habilidadeTexto}>{t.texto}</p>
+              <p className={css.habilidadeTexto}><TextoDoLivro texto={t.texto} /></p>
               <Botao
                 largo
                 disabled={!!t.motivo}
@@ -88,7 +86,7 @@ function Escolha({ ficha, pendencia, aoFechar }: { ficha: FichaVista; pendencia:
               return (
                 <details key={id} className={css.habilidade}>
                   <summary className={css.linhaTexto}>{h?.nome ?? id}</summary>
-                  <p className={css.habilidadeTexto}>{h?.texto}</p>
+                  <p className={css.habilidadeTexto}><TextoDoLivro texto={h?.texto ?? ""} /></p>
                   <Botao
                     largo
                     onClick={() =>
@@ -162,15 +160,7 @@ function CabecalhoClasse({ ficha }: { ficha: FichaVista }) {
 export function ConteudoCelular({ aba, ficha, aoEscolher, aoAbrirLoja }: { aba: string; ficha: FichaVista; aoEscolher: () => void; aoAbrirLoja: () => void }) {
   if (aba === "habilidades") return <BlocoHabilidades ficha={ficha} />;
   if (aba === "notas") return <BlocoNotas ficha={ficha} />;
-  if (aba === "inventario") {
-    return (
-      <div className={css.grupos}>
-        <BlocoCarga ficha={ficha} />
-        <BlocoDinheiro ficha={ficha} />
-        <BlocoItens ficha={ficha} />
-      </div>
-    );
-  }
+  if (aba === "inventario") return <TelaPersonagem ficha={ficha} />;
   return (
     <div className={css.grupos}>
       <BlocoProgressao ficha={ficha} aoEscolher={aoEscolher} aoAbrirLoja={aoAbrirLoja} />
@@ -208,7 +198,7 @@ function Celular({ ficha, aoEscolher, aoVoltar }: { ficha: FichaVista; aoEscolhe
       <main className={css.corpoCelular}>{loja ? <LojaPrestigio ficha={ficha} /> : <ConteudoCelular aba={aba} ficha={ficha} aoEscolher={aoEscolher} aoAbrirLoja={() => abrirLoja(true)} />}</main>
       {!loja && (
         <nav className={css.navegacao}>
-          <Abas rotuloGrupo="Navegação da ficha" itens={ABAS_CELULAR} ativa={aba} aoEscolher={definirAba} />
+          <Abas rotuloGrupo="Navegação da ficha" itens={ABAS_CELULAR} ativa={aba} aoEscolher={(a) => { definirAba(a); window.scrollTo({ top: 0 }); /* cada aba abre do topo */ }} />
         </nav>
       )}
     </div>
@@ -262,15 +252,7 @@ function Desktop({ ficha, aoEscolher, aoVoltar, temPendencia }: { ficha: FichaVi
             <BlocoHabilidades ficha={ficha} />
           </div>
         )}
-        {aba === "inventario" && (
-          <div className={desktop.inventario}>
-            <BlocoItens ficha={ficha} />
-            <div className={desktop.coluna}>
-              <BlocoCarga ficha={ficha} />
-              <BlocoDinheiro ficha={ficha} />
-            </div>
-          </div>
-        )}
+        {aba === "inventario" && <TelaPersonagem ficha={ficha} />}
         {aba === "notas" && (
           <div className={desktop.notas}>
             <BlocoNotas ficha={ficha} />

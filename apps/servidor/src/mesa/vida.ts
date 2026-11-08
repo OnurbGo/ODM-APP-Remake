@@ -1,17 +1,22 @@
 import { randomUUID } from "node:crypto";
-import type { Alvo, Combatente, EstadoVivo, MensagemClienteLida, Morrendo, Mudanca } from "@odm/protocolo";
+import type { Alvo, Combatente, EfeitoDeServico, EstadoVivo, MensagemClienteLida, Morrendo, Mudanca, RolagemDeCombate } from "@odm/protocolo";
 import {
   aliviarEstresse,
+  aplicarEfeito,
   consequenciaDeMorte,
   danoEmMorrendo,
   descansoCurto,
   descansoLongo,
+  dadosDeVidaExtras,
+  fontesDosEfeitos,
   entrarEmMorrendo,
   gastarHabilidade,
+  gastarPa,
   ajustarFicha,
   ganharEstresse,
   habilidadesDaFicha,
   resolverCrise,
+  semPvTemporarios,
   rolarDados,
   testeDeMorte,
   type Aleatorio,
@@ -124,8 +129,9 @@ export function mudarEstresse(alvo: Alvo, vivo: EstadoVivo, calc: FichaCalculada
     if (dano > 0) mudancas.push({ op: "somar", alvo, campo: "pv", delta: -dano });
     notas.push(`Crise: ${crise.nome}${crise.intensidade === 2 ? " II" : ""} (aflição), ${dano} de dano psicológico`);
   } else {
-    mudancas.push({ op: "somar", alvo, campo: "pvTemporarios", delta: valor });
-    notas.push(`Crise: ${crise.nome}${crise.intensidade === 2 ? " II" : ""} (virtude), +${valor} PV temporários`);
+    const sem = semPvTemporarios(vivo, ctx);
+    if (!sem) mudancas.push({ op: "somar", alvo, campo: "pvTemporarios", delta: valor });
+    notas.push(`Crise: ${crise.nome}${crise.intensidade === 2 ? " II" : ""} (virtude), ${sem ? `sem PV temporários (${sem})` : `+${valor} PV temporários`}`);
   }
   return { mudancas, notas };
 }
@@ -147,7 +153,7 @@ type Hospedeiro = {
 
 type MensagemDeVida = Extract<
   MensagemClienteLida,
-  { t: "teste_de_morte" | "estabilizar" | "atitude_imprudente" | "estresse_ajustar" | "ficha_classe_ajustar" | "habilidade_usar" | "descanso" }
+  { t: "teste_de_morte" | "estabilizar" | "atitude_imprudente" | "estresse_ajustar" | "ficha_classe_ajustar" | "habilidade_usar" | "oferta_dispensar" | "descanso" }
 >;
 
 const OPCOES_IMPRUDENTES = { precisao: "Precisão (vantagem no próximo ataque)", potencia: "Potência (+1 dado de dano)", violencia: "Violência (rola o dano duas vezes)", impeto: "Ímpeto (+1 PA neste turno)" };
@@ -174,10 +180,63 @@ export class Vida {
       case "ficha_classe_ajustar":
         return this.ajustarFichaDeClasse(m.personagemId, m.recursoId, m.delta, quem, ctx);
       case "habilidade_usar":
-        return this.usarHabilidade(m.personagemId, m.habilidadeId, quem, ctx);
+        return this.usarHabilidade(m.personagemId, m.habilidadeId, m.reacao, quem, ctx);
+      case "oferta_dispensar":
+        return this.dispensarOferta(m.combatenteId, quem, ctx);
       case "descanso":
         return this.descansar(m, quem, ctx);
     }
+  }
+
+  /* Serviço de loja (decisão de 08/11/2026): o nível de Exaustão entra no preço; o efeito roda depois do pagamento. */
+  exaustaoDe(personagemId: string): number {
+    const r = this.host.combates.contexto();
+    if ("recusado" in r) return 0;
+    return this.estado(personagemId, r.ctx)?.vivo.exaustao ?? 0;
+  }
+
+  podeUsarServico(personagemId: string): Recusa | void {
+    const combate = this.host.combates.combate();
+    if (combate && combate.fase !== "encerrado" && this.combatenteDe(personagemId)) return recusa("Durante o combate não dá para usar este serviço.");
+  }
+
+  efeitoDeServico(personagemId: string, efeito: EfeitoDeServico, rotulo: string, quem: Espectador): Recusa | void {
+    const r = this.host.combates.contexto();
+    if ("recusado" in r) return r;
+    const { ctx } = r;
+    const e = this.estado(personagemId, ctx);
+    if (!e) return recusa("Personagem não encontrado.");
+    const { alvo, vivo } = e;
+    const mudancas: Mudanca[] = [];
+    const feito: string[] = [];
+    if (efeito.tiraExaustao && vivo.exaustao) {
+      mudancas.push({ op: "somar", alvo, campo: "exaustao", delta: -vivo.exaustao });
+      feito.push("sem Exaustão");
+    }
+    if (efeito.curaTotal) {
+      /* O máximo é o de depois do serviço: sem a Exaustão, a Exaustão 5 já não corta os PV pela metade. */
+      const calc = efeito.tiraExaustao ? (this.host.combates.calculo(e.p, { ...vivo, exaustao: 0 }, ctx) ?? e.calc) : e.calc;
+      const pv = vivo.pv ?? calc.pvMaximo.valor;
+      if (pv < calc.pvMaximo.valor) {
+        mudancas.push({ op: "somar", alvo, campo: "pv", delta: calc.pvMaximo.valor - pv });
+        mudancas.push(...curaEncerraMorrendo(alvo, vivo));
+        feito.push("todos os PV");
+      }
+    }
+    if (efeito.dadosDeVida && vivo.dadosDeVidaGastos) {
+      mudancas.push({ op: "somar", alvo, campo: "dadosDeVidaGastos", delta: -vivo.dadosDeVidaGastos });
+      feito.push("todos os Dados de Vida");
+    }
+    if (efeito.condicao && ctx.efeitos.has(efeito.condicao)) {
+      const c = aplicarEfeito(alvo, vivo.efeitos, { id: randomUUID(), efeitoId: efeito.condicao, origem: rotulo }, ctx);
+      if (!("recusado" in c)) {
+        mudancas.push(c.mudanca);
+        feito.push(ctx.efeitos.get(efeito.condicao)?.nome ?? "efeito");
+      }
+    }
+    if (!mudancas.length) return;
+    const res = this.host.combates.aplicar(quem, ctx, { rotulo: `${rotulo}: ${e.p.ficha.nome || "Personagem"} recebe ${feito.join(", ")}`, mudancas });
+    if ("recusado" in res) return res;
   }
 
   private estado(id: string, ctx: ContextoCombate) {
@@ -229,7 +288,26 @@ export class Vida {
       texto += `, ${r.sucesso ? "sucesso" : "falha"} (${r.morrendo!.sucessos} ${r.morrendo!.sucessos === 1 ? "sucesso" : "sucessos"}, ${r.morrendo!.falhas} ${r.morrendo!.falhas === 1 ? "falha" : "falhas"})`;
     }
     if (c?.marcas.testeDeMortePendente) mudancas.push({ op: "marcas", alvo: { tipo: "combatente", id: c.id }, antes: c.marcas, depois: { ...c.marcas, testeDeMortePendente: false } });
-    const res = this.host.combates.aplicar(quem, ctx, { rotulo: texto, mudancas, autor: c });
+    /* O jogador vê o Teste de Morte rolar, com animação própria e as marcas de sucesso e falha (07/11/2026). */
+    const marcas = r.morrendo ?? { sucessos: vivo.morrendo.sucessos, falhas: vivo.morrendo.falhas };
+    const novo = r.acorda ? "acordou" : r.estabiliza ? "estavel" : r.tresFalhas ? "tres_falhas" : r.sucesso ? "sucesso" : "falha";
+    const resultado = { acordou: "Acordou", estavel: "Estável", tres_falhas: "Três falhas", sucesso: "Sucesso", falha: "Falha" }[novo];
+    const rolagem: RolagemDeCombate = {
+      titulo: "Teste de Morte",
+      subtitulo: nome,
+      dados: [natural],
+      escolhido: 0,
+      cartas: [],
+      modificadores: [],
+      total: natural,
+      alvo: { rotulo: "Sucesso a partir de", valor: ctx.regras.morrendo.teste_de_morte.sucesso_a_partir_de },
+      resultado: { texto: resultado, bom: novo === "acordou" || novo === "estavel" || novo === "sucesso" },
+      natural,
+      notaFinal: texto.slice(0, 300),
+      para: e.p.participanteId ? [e.p.participanteId] : [],
+      morte: { sucessos: Math.min(3, marcas.sucessos), falhas: Math.min(3, marcas.falhas), novo },
+    };
+    const res = this.host.combates.aplicar(quem, ctx, { rotulo: texto, mudancas, autor: c, rolagem: { ...rolagem, para: [] }, rolagemJogador: rolagem });
     if ("recusado" in res) return res;
   }
 
@@ -292,17 +370,48 @@ export class Vida {
     if ("recusado" in r) return r;
   }
 
-  private usarHabilidade(personagemId: string, habilidadeId: string, quem: Espectador, ctx: ContextoCombate): Recusa | void {
+  /* Usar como reação (oferta depois de um ataque): paga 1 PA guardado, ou a Rainha, além do custo da habilidade,
+     e a oferta se fecha. O efeito da habilidade fica combinado com o mestre, como no pop-up de teste. */
+  private usarHabilidade(personagemId: string, habilidadeId: string, comoReacao: boolean, quem: Espectador, ctx: ContextoCombate): Recusa | void {
     const e = this.estado(personagemId, ctx);
     const ctxFicha = this.host.contextoFicha();
     if (!e || !ctxFicha) return recusa("Esse personagem não está na mesa.");
     if (!this.host.podeAgirPor(e.p, quem)) return recusa("Esse personagem não é seu.");
     const h = habilidadesDaFicha(e.p.ficha, ctxFicha).find((x) => x.id === habilidadeId);
     if (!h) return recusa("Essa habilidade não é deste personagem.");
-    if (!h.mecanica?.usos && !h.mecanica?.custo?.fichas) return recusa(`${h.nome} não tem usos nem fichas para gastar.`);
-    const g = gastarHabilidade(e.alvo, h, e.vivo, e.calc);
-    if ("recusado" in g) return g;
-    const r = this.host.combates.aplicar(quem, ctx, { rotulo: `${e.p.ficha.nome || "Personagem"} usou ${h.nome}`, mudancas: g.mudancas, autor: this.combatenteDe(personagemId) });
+    const temCusto = !!h.mecanica?.usos || !!h.mecanica?.custo?.fichas;
+    if (!temCusto && !comoReacao) return recusa(`${h.nome} não tem usos nem fichas para gastar.`);
+    const mudancas: Mudanca[] = [];
+    if (temCusto) {
+      const g = gastarHabilidade(e.alvo, h, e.vivo, e.calc);
+      if ("recusado" in g) return g;
+      mudancas.push(...g.mudancas);
+    }
+    const c = this.combatenteDe(personagemId);
+    let sufixo = "";
+    if (comoReacao) {
+      if (!c) return recusa("Reação só em combate.");
+      const gasto = gastarPa(c, 1, "reacao", { naVez: false, fontes: this.host.combates.fontesDe(c, ctx), ctx });
+      if ("recusado" in gasto) return gasto;
+      mudancas.push(...gasto.mudancas);
+      const marcas = gasto.mudancas.filter((x) => x.op === "marcas").at(-1);
+      const base = marcas && marcas.op === "marcas" ? marcas.depois : c.marcas;
+      if (base.ofertaDeReacao) mudancas.push({ op: "marcas", alvo: { tipo: "combatente", id: c.id }, antes: base, depois: { ...base, ofertaDeReacao: null } });
+      sufixo = gasto.semCusto ? ` como reação, sem custo (${gasto.semCusto})` : " como reação (1 PA guardado)";
+    }
+    const r = this.host.combates.aplicar(quem, ctx, { rotulo: `${e.p.ficha.nome || "Personagem"} usou ${h.nome}${sufixo}`, mudancas, autor: c });
+    if ("recusado" in r) return r;
+  }
+
+  private dispensarOferta(combatenteId: string, quem: Espectador, ctx: ContextoCombate): Recusa | void {
+    const c = this.host.combates.combate()?.combatentes.find((x) => x.id === combatenteId);
+    if (!c?.marcas.ofertaDeReacao) return recusa("Não há reação oferecida.");
+    if (!this.host.combates.podeMexer(c, quem)) return recusa("Esse personagem não é seu.");
+    const r = this.host.combates.aplicar(quem, ctx, {
+      rotulo: `${c.nome} não usou reação depois do ataque`,
+      mudancas: [{ op: "marcas", alvo: { tipo: "combatente", id: c.id }, antes: c.marcas, depois: { ...c.marcas, ofertaDeReacao: null } }],
+      autor: c,
+    });
     if ("recusado" in r) return r;
   }
 
@@ -323,10 +432,12 @@ export class Vida {
       let r;
       if (m.tipo === "curto") {
         const lados = Number(e.calc.dadoDeVida?.match(/d(\d+)/)?.[1] ?? 0);
-        const disponiveis = Math.max(0, e.calc.dadosDeVida - e.vivo.dadosDeVidaGastos);
+        const extras = dadosDeVidaExtras(fontesDosEfeitos(e.vivo.efeitos, ctx));
+        const disponiveis = Math.max(0, e.calc.dadosDeVida - e.vivo.dadosDeVidaGastos) + extras;
         const quantos = lados ? Math.min(pedido.dadosDeVida, disponiveis) : 0;
         const dados = Array.from({ length: quantos }, () => this.aleatorio(1, lados));
-        r = descansoCurto(e.alvo, e.vivo, e.calc, habilidades, ctx, dados);
+        r = descansoCurto(e.alvo, e.vivo, e.calc, habilidades, ctx, dados, Math.min(extras, quantos));
+        if (extras && quantos) r.resumo.push(`${Math.min(extras, quantos)} Dado de Vida a mais (Bem Nutrido)`);
         if (dados.length) r.resumo.push(`dados: ${dados.join(", ")}`);
       } else {
         r = descansoLongo(e.alvo, e.vivo, e.calc, habilidades, ctx, { alimentado: m.alimentado, cuidadosMedicos: m.cuidadosMedicos });

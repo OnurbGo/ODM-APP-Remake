@@ -65,6 +65,8 @@ const Ficha = {
   atributos: Atributos,
   extras: z.array(z.string()),
   nd: z.string().nullable(),
+  /* ND da versão Elite, quando a ficha indica ("Elite sugerida: ND 10"). */
+  ndElite: z.string().nullable().default(null),
   xp: z.number().int().nullable(),
   secoes: z.array(z.object({ titulo: z.string().nullable(), itens: z.array(z.union([Acao, NotaFicha])) })),
 };
@@ -178,6 +180,18 @@ export const Pericia = z.object({
 });
 export type Pericia = z.infer<typeof Pericia>;
 
+/* Modificador de mundo (Mestre, "Modificadores de mundo"): carta que o mestre liga e todos veem. */
+export const Modificador = z.object({ ...Item, tipo: z.literal("modificador") });
+export type Modificador = z.infer<typeof Modificador>;
+
+/* Loja de uma cidade (Mestre, "Disposição do comércio"): o texto da proposta econômica; o estoque vem da mecânica. */
+export const Loja = z.object({ ...Item, tipo: z.literal("loja") });
+export type Loja = z.infer<typeof Loja>;
+
+/* Pessoa importante de uma cidade (Mestre, 07-cidades.md): o mestre copia como NPC da campanha (08/11/2026). */
+export const Pessoa = z.object({ ...Item, tipo: z.literal("pessoa"), cidade: z.string().min(1), papel: z.string().default(""), retrato: z.boolean().default(false) });
+export type Pessoa = z.infer<typeof Pessoa>;
+
 /* Regra em prosa que o app calcula: carga, atributos iniciais, loja de prestígio. */
 export const Regra = z.object({ ...Item, tipo: z.literal("regra") });
 export type Regra = z.infer<typeof Regra>;
@@ -200,5 +214,8 @@ export const Conteudo = z.strictObject({
   tabelas: z.array(Tabela).default([]),
   pericias: z.array(Pericia).default([]),
   regras: z.array(Regra).default([]),
+  modificadores: z.array(Modificador).default([]),
+  lojas: z.array(Loja).default([]),
+  pessoas: z.array(Pessoa).default([]),
 });
 export type Conteudo = z.infer<typeof Conteudo>;

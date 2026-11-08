@@ -2,19 +2,19 @@ import { estadoVivoNovo, fichaVazia, opcoesPadrao, type Alvo, type Carta, type E
 import { describe, expect, it } from "vitest";
 import { calcularFicha, criarContexto, habilidadesDaFicha, recortarConteudoFicha } from "../index";
 import { conteudoExemplo } from "../ficha/exemplo";
-import { ataqueComArma, ataqueDeCriatura, rolarDanoDoAtaque } from "./ataque";
+import { ataqueComArma, ataqueDeCriatura, ataqueDesarmado, atributosDaArma, bonusDesarmado, efeitoDaDistancia, rolarDanoDoAtaque } from "./ataque";
 import { criarBaralho, embaralhar } from "./baralho";
 import { criarContextoCombate } from "./contexto";
 import { defesasDaFichaDeCriatura, resolverDano } from "./dano";
 import { lerFormula, rolarDados } from "./dados";
-import { completarFichas, descansoCurto, descansoLongo, fichasAtuais, gastarHabilidade, usosDoCombate } from "./descansos";
+import { completarFichas, dadosDeVidaExtras, descansoCurto, descansoLongo, fichasAtuais, gastarHabilidade, usosDoCombate } from "./descansos";
 import { aplicarEfeito, descontarDuracao, disparosDoTurno, deslocamentoComEfeitos } from "./efeitos";
 import { combateCom, combatente, contextoCombateExemplo, dadosFixos, regrasDeCombateExemplo } from "./exemplo";
 import { alvosDoAtaqueDeHorda, bonusDeHorda, danoNaHorda, formarHorda, hordaDaFicha, multiplicadorDeArea, pvDaHorda } from "./horda";
 import { ordenarIniciativa, trocarPosicoes } from "./iniciativa";
 import { aplicarMudanca, aplicarMudancas, type Mundo } from "./mudancas";
-import { situacaoDoVivo } from "./situacao";
-import { fontesDosEfeitos, montarTeste, penalidadeDeAtaquesMultiplos, resolverTeste, valorPassivo, venceContestado } from "./testes";
+import { semPvTemporarios, situacaoDoVivo } from "./situacao";
+import { fontesDosEfeitos, habilidadesContraAtaque, montarTeste, penalidadeDeAtaquesMultiplos, resolverTeste, valorPassivo, venceContestado } from "./testes";
 import { expirarMarcasDe, fimDaRodada, fimDoTurno, gastarPa, inicioDoTurno, proximoNaOrdem } from "./turnos";
 import { rolarD20ComVantagem, saldoDeVantagem } from "./vantagem";
 import { consequenciaDeMorte, danoEmMorrendo, entrarEmMorrendo, ganharEstresse, resolverCrise, testeDeMorte } from "./vida";
@@ -482,12 +482,15 @@ describe("turnos e PA", () => {
     expect(expirarMarcasDe(combateCom([rainha]), "b")).toHaveLength(1);
   });
 
-  it("o terceiro deslocamento da rodada dá 1 nível de Exaustão, uma vez", () => {
+  it("cada Disparada além da segunda na rodada dá 1 nível de Exaustão", () => {
     const c = combatente("a", { pa: { disponiveis: 3, guardados: 0, bloqueados: 0 }, deslocamentosNaRodada: 2 });
     const r = gastarPa(c, 1, "deslocamento", { naVez: true, fontes: [], ctx, personagem: eu });
     expect(r).toMatchObject({ exaustao: true });
     expect("mudancas" in r && r.mudancas).toContainEqual({ op: "somar", alvo: eu, campo: "exaustao", delta: 1 });
-    expect(gastarPa({ ...c, deslocamentosNaRodada: 3 }, 1, "deslocamento", { naVez: true, fontes: [], ctx, personagem: eu })).toMatchObject({ exaustao: false });
+    expect(gastarPa({ ...c, deslocamentosNaRodada: 3 }, 1, "deslocamento", { naVez: true, fontes: [], ctx, personagem: eu })).toMatchObject({ exaustao: true });
+    expect(gastarPa({ ...c, deslocamentosNaRodada: 1 }, 1, "deslocamento", { naVez: true, fontes: [], ctx, personagem: eu })).toMatchObject({ exaustao: false });
+    /* Criatura não ganha Exaustão. */
+    expect(gastarPa(c, 1, "deslocamento", { naVez: true, fontes: [], ctx, personagem: null })).toMatchObject({ exaustao: false });
   });
 
   it("travado não gasta PA em ação, só em deslocamento", () => {
@@ -576,5 +579,136 @@ describe("turno de quem está inconsciente", () => {
     expect(r.perdidos).toBe(3);
     expect(r.mudancas).toContainEqual({ op: "somar", alvo: { tipo: "combatente", id: "p" }, campo: "pa.bloqueados", delta: 3 });
     expect(r.mudancas.some((m) => m.op === "somar" && m.campo === "pa.disponiveis")).toBe(false);
+  });
+});
+
+describe("respostas aos lotes 8 e 9 (07/11/2026)", () => {
+  const ctx = contextoCombateExemplo();
+  const fila = (valores: number[]) => (minimo: number, maximo: number) => valores.shift() ?? Math.min(maximo, Math.max(minimo, 1));
+  const ficha = { atributos: { brutalidade: { valor: 3 }, agilidade: { valor: 2 }, fibra: { valor: 0 }, intelecto: { valor: 0 }, astucia: { valor: 0 }, presenca: { valor: 0 } }, proficiencia: 2, categorias: new Set(["armas_simples", "armas_de_fogo_superiores"]) };
+  const escopeta = {
+    ataque: {
+      categoria: "armas_de_fogo_superiores",
+      arma_de_fogo: true,
+      tipo: "distancia",
+      alcance_m: 2,
+      alcance_maximo_m: 4,
+      cone: true,
+      ate_o_maximo: { desvantagem: true, dano: "metade", alvos: 1 },
+      fora_do_maximo: "fora_de_alcance",
+      atributo: "agilidade",
+      dano: { formula: "2d12", tipo: "perfurante" },
+      impacto_pesado: true,
+    },
+  };
+
+  it("escopeta: efetivo em cone, até o máximo com desvantagem e metade, além dele fora de alcance", () => {
+    const a = ataqueComArma({ nome: "Escopeta", mecanica: escopeta }, ficha, ctx, 1)!;
+    expect(efeitoDaDistancia(a.alcance, null).faixa).toBe("efetivo");
+    expect(efeitoDaDistancia(a.alcance, 1, { ate_m: 1 })).toMatchObject({ faixa: "efetivo", impactoPesado: true });
+    expect(efeitoDaDistancia(a.alcance, 2, { ate_m: 1 })).toMatchObject({ faixa: "efetivo", impactoPesado: false, maximoDeAlvos: null });
+    expect(efeitoDaDistancia(a.alcance, 3)).toMatchObject({ faixa: "ate_o_maximo", desvantagem: true, danoMetade: true, maximoDeAlvos: 1 });
+    expect(efeitoDaDistancia(a.alcance, 5).faixa).toBe("fora_de_alcance");
+  });
+
+  it("arma comum: passou do efetivo, a regra do alcance efetivo decide", () => {
+    const a = ataqueComArma({ nome: "Revólver", mecanica: { ataque: { tipo: "distancia", alcance_m: 8, atributo: "agilidade", dano: { formula: "1d10", tipo: "perfurante" } } } }, ficha, ctx, 1)!;
+    expect(efeitoDaDistancia(a.alcance, 8).faixa).toBe("efetivo");
+    expect(efeitoDaDistancia(a.alcance, 9).faixa).toBe("alem_do_efetivo");
+  });
+
+  it("arma com modos: vale o modo escolhido no item, ou o primeiro", () => {
+    const lemat = {
+      ataque: {
+        categoria: "armas_de_fogo_curtas",
+        arma_de_fogo: true,
+        modos: [
+          { nome: "Revolver", tipo: "distancia", alcance_m: 8, atributo: "agilidade", dano: { formula: "2d6", tipo: "perfurante" } },
+          { nome: "Escopeta", tipo: "distancia", alcance_m: 2, alcance_maximo_m: 4, cone: true, atributo: "agilidade", dano: { formula: "3d8", tipo: "perfurante" } },
+        ],
+        trocar_modo: { pa: 1 },
+      },
+    };
+    expect(ataqueComArma({ nome: "LeMat", mecanica: lemat }, ficha, ctx, 1)!.dano.formula).toBe("2d6");
+    const escolhido = ataqueComArma({ nome: "LeMat", mecanica: lemat, modo: "Escopeta" }, ficha, ctx, 1)!;
+    expect(escolhido).toMatchObject({ nome: "LeMat (modo Escopeta)", dano: { formula: "3d8" }, alcance: { cone: true, maximo: 4 } });
+  });
+
+  it("Finesse: vale o atributo escolhido no item; sem escolha, o maior", () => {
+    const faca = { ataque: { tipo: "corpo_a_corpo", alcance_m: 1, atributo: ["brutalidade", "agilidade"], dano: { formula: "1d4", tipo: "cortante" } } };
+    expect(atributosDaArma({ nome: "Faca", mecanica: faca })).toEqual(["brutalidade", "agilidade"]);
+    expect(ataqueComArma({ nome: "Faca", mecanica: faca }, ficha, ctx, 1)!.acerto[0]).toEqual({ rotulo: "Brutalidade", valor: 3 });
+    expect(ataqueComArma({ nome: "Faca", mecanica: faca, atributo: "agilidade" }, ficha, ctx, 1)!.acerto[0]).toEqual({ rotulo: "Agilidade", valor: 2 });
+  });
+
+  it("1 natural no ataque é falha crítica, e Tentar até Conseguir não é crítico", () => {
+    const montado = montarTeste({ teste: { tipo: "ataque", atributo: null, corpoACorpo: true, armaDeFogo: false }, base: [{ rotulo: "Acerto", valor: 30 }], efeitos: [], exaustao: 0, ctx });
+    const r = resolverTeste(montado, { tipo: "ataque", dt: 10, modelo: "dados_extras", ctx, aleatorio: fila([1]) });
+    expect(r.critico).toBe("falha");
+    expect(ctx.regras.critico.falha_critica.erra_sempre).toBe(true);
+    const habilidade = montarTeste({ teste: { tipo: "habilidade", atributo: "astucia" }, base: [], efeitos: [], exaustao: 0, ctx });
+    expect(resolverTeste(habilidade, { tipo: "habilidade", dt: 15, modelo: "dados_extras", ctx, aleatorio: fila([]), opcao: "tentar_ate_conseguir" })).toMatchObject({ natural: 20, critico: null });
+  });
+
+  it("habilidades contra ataque: o momento e o corpo a corpo decidem", () => {
+    const hs = [
+      { id: "rito", mecanica: { reage_a: [{ ataque: "contra_si", momento: "apos_acerto" }] } },
+      { id: "contra", mecanica: { reage_a: [{ ataque: "contra_si", so_corpo_a_corpo: true, momento: "apos_erro" }] } },
+      { id: "teste", mecanica: { reage_a: [{ teste: "resistencia", momento: "apos_falha" }] } },
+    ];
+    expect(habilidadesContraAtaque(hs, { corpoACorpo: false }, "apos_acerto").map((h) => h.id)).toEqual(["rito"]);
+    expect(habilidadesContraAtaque(hs, { corpoACorpo: false }, "apos_erro")).toEqual([]);
+    expect(habilidadesContraAtaque(hs, { corpoACorpo: true }, "apos_erro").map((h) => h.id)).toEqual(["contra"]);
+  });
+
+  it("Bem Nutrido dá 1 Dado de Vida a mais, que não conta como gasto", () => {
+    expect(dadosDeVidaExtras([{ mecanica: { proximo_descanso_curto: { dados_de_vida_extra: 1 } } }, { mecanica: null }])).toBe(1);
+    const r0 = criarContexto(recortarConteudoFicha(conteudoExemplo()), opcoesPadrao());
+    if (!r0.ok) throw new Error();
+    const calc = calcularFicha({ ...fichaVazia(), nome: "Zé", classeId: "classe.rufiao", atributos: { brutalidade: 0, agilidade: 3, fibra: 2, intelecto: 0, astucia: 1, presenca: -1 }, xp: 400 }, r0.contexto);
+    const r = descansoCurto(eu, estadoVivoNovo(), calc, [], ctx, [4, 5], 1);
+    expect(r.mudancas).toContainEqual({ op: "somar", alvo: eu, campo: "dadosDeVidaGastos", delta: 1 });
+  });
+
+  it("Exaustão 4 e 5: sem PV temporários", () => {
+    const vivo = (exaustao: number): EstadoVivo => ({ ...estadoVivoNovo(), exaustao });
+    expect(semPvTemporarios(vivo(3), ctx)).toBeNull();
+    expect(semPvTemporarios(vivo(4), ctx)).toMatch(/Exaustão 4/);
+  });
+});
+
+describe("alcance e Ataque Desarmado (decisões de 07/11/2026)", () => {
+  const base = contextoCombateExemplo();
+  const ctx = {
+    ...base,
+    regras: {
+      ...base.regras,
+      alcance: { alcance_maximo: "dobro_do_efetivo", alem_do_efetivo: { desvantagem: true, dano: "metade" }, alem_do_maximo: "fora_de_alcance" },
+      desarmado: { custo: { pa: 1 }, alcance_m: 1, acerto: { atributo: "brutalidade", proficiencia: "sempre" }, dano: { formula: "1", soma: "brutalidade", minimo: 1, tipo: "contundente" } },
+    },
+  } as typeof base;
+  const ficha = (brutalidade: number) => ({ atributos: { brutalidade: { valor: brutalidade }, agilidade: { valor: 2 }, fibra: { valor: 0 }, intelecto: { valor: 0 }, astucia: { valor: 0 }, presenca: { valor: 0 } }, proficiencia: 2, categorias: new Set<string>() });
+
+  it("pistola de 10 m: normal até 10, desvantagem e metade de 11 a 20, acima disso não dá", () => {
+    const a = ataqueComArma({ nome: "Pistola", mecanica: { ataque: { tipo: "distancia", alcance_m: 10, atributo: "agilidade", dano: { formula: "2d6", tipo: "perfurante" } } } }, ficha(0), ctx, 1)!;
+    expect(efeitoDaDistancia(a.alcance, 10).faixa).toBe("efetivo");
+    expect(efeitoDaDistancia(a.alcance, 11)).toMatchObject({ faixa: "ate_o_maximo", desvantagem: true, danoMetade: true });
+    expect(efeitoDaDistancia(a.alcance, 20).faixa).toBe("ate_o_maximo");
+    expect(efeitoDaDistancia(a.alcance, 21).faixa).toBe("fora_de_alcance");
+  });
+
+  it("corpo a corpo: além do alcance não dá", () => {
+    const a = ataqueComArma({ nome: "Faca", mecanica: { ataque: { tipo: "corpo_a_corpo", alcance_m: 1, atributo: "brutalidade", dano: { formula: "1d4", tipo: "cortante" } } } }, ficha(0), ctx, 1)!;
+    expect(efeitoDaDistancia(a.alcance, 2).faixa).toBe("fora_de_alcance");
+  });
+
+  it("Ataque Desarmado: Brutalidade + proficiência, 1 + Brutalidade contundente, mínimo 1, e a Soqueira soma", () => {
+    const soqueira = bonusDesarmado([{ nome: "Soqueira", equipado: true, mecanica: { ataque: { bonus_desarmado: 2 } } }, { nome: "Guardada", equipado: false, mecanica: { ataque: { bonus_desarmado: 2 } } }]);
+    expect(soqueira).toEqual([{ rotulo: "Soqueira", valor: 2 }]);
+    const a = ataqueDesarmado(ficha(3), ctx, soqueira)!;
+    expect(a.acerto).toEqual([{ rotulo: "Brutalidade", valor: 3 }, { rotulo: "Proficiência", valor: 2 }]);
+    expect(rolarDanoDoAtaque(a.dano, false, () => 1).total).toBe(1 + 3 + 2);
+    expect(rolarDanoDoAtaque(ataqueDesarmado(ficha(-2), ctx)!.dano, false, () => 1).total).toBe(1);
+    expect(a.dano.tipo).toBe("contundente");
   });
 });

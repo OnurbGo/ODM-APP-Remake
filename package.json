@@ -21,6 +21,8 @@
     "conteudo:validar": "npm exec --workspace @odm/servidor -- tsx ../../pacotes/conteudo/src/validar.ts",
     "ficha:aceite": "npm exec --workspace @odm/servidor -- tsx ../../scripts/aceite-ficha.ts",
     "combate:aceite": "npm exec --workspace @odm/servidor -- tsx ../../scripts/aceite-combate.ts",
+    "mestre:aceite": "npm exec --workspace @odm/servidor -- tsx ../../scripts/aceite-mestre.ts",
+    "campanha:importar": "npm exec --workspace @odm/servidor -- tsx ../../scripts/importar-campanha.ts",
     "prototipos": "npm run dev --workspace prototipos",
     "prototipos:rede": "npm run dev --workspace prototipos -- --host"
   },

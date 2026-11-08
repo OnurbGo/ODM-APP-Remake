@@ -47,6 +47,10 @@
   opacity: 0;
 }
 
+.simbolo {
+  opacity: 0;
+}
+
 .numeroVisivel {
   opacity: 1;
 }

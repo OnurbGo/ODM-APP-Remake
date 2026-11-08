@@ -59,7 +59,7 @@ export function App() {
       {!naMesa ? (
         <Entrada />
       ) : papel === "mestre" ? (
-        <Suspense fallback={<Carregando rotulo="Abrindo a mesa" />}>
+        <Suspense fallback={<Carregando modo="tela" rotulo="Abrindo a mesa" />}>
           <PainelMestre />
         </Suspense>
       ) : (

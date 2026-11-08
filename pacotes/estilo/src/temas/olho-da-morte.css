@@ -16,6 +16,8 @@
   --dado-corpo: #7a1610;
   --dado-numero: #f0d9a0;
   --dado-aresta: #c9973f;
+  /* Íris do olho com X (20 natural). */
+  --dado-simbolo-fundo: var(--p-tinta);
 
   /* Abertura: sempre sobre o pergaminho, qualquer que seja a superfície escolhida. */
   --abertura-fundo: var(--p-pergaminho);

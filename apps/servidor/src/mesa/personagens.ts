@@ -43,6 +43,10 @@ type Hospedeiro = {
   avisarRemocao: (personagemId: string, donoId: string | null) => void;
   avisarOpcoes: (opcoes: OpcoesCampanha) => void;
   avisarMestre: () => void;
+  /* Compra e venda: o estoque e o caixa mudam junto com a ficha (e voltam juntos no desfazer). */
+  ajustarLoja?: (loja: { lojaId: string; caixa: number; estoque: { linhaId: string; delta: number }[] }) => void;
+  /* Personagem num combate aberto não pode ser arquivado. */
+  emCombate?: (personagemId: string) => boolean;
 };
 
 export type Recusa = { recusado: string };
@@ -50,7 +54,7 @@ const recusa = (motivo: string): Recusa => ({ recusado: motivo });
 
 type MensagemDeFicha = Extract<
   MensagemClienteLida,
-  { t: "personagem_criar" | "personagem_salvar" | "personagem_concluir" | "personagem_apagar" | "ficha_operar" | "ficha_desfazer" | "ligar_personagem" }
+  { t: "personagem_criar" | "personagem_salvar" | "personagem_concluir" | "personagem_apagar" | "personagem_arquivar" | "ficha_operar" | "ficha_desfazer" | "ligar_personagem" }
 >;
 
 const IDS_DE_CAMPO_DA_FICHA = new Set(Object.keys(FichaRascunho.shape));
@@ -72,6 +76,8 @@ export function juntarConteudo(pacotes: readonly PacoteConteudo[], ativos: reado
     regras: juntar("regras"),
     itens: juntar("itens"),
     efeitos: juntar("efeitos"),
+    modificadores: juntar("modificadores"),
+    municoes: juntar("municoes"),
   };
 }
 
@@ -86,6 +92,22 @@ export class Personagens {
   conteudo(): ConteudoFicha | null {
     const campanha = this.host.campanha();
     return campanha ? juntarConteudo(this.pacotes, this.repo.pacotesDa(campanha)) : null;
+  }
+
+  /* Arte do pacote ativo (corpo ou rosto em WebP), já decodificada; o primeiro pacote que tiver o id vale. */
+  private imagens = new Map<string, Buffer>();
+  imagem(id: string, tipo: "corpo" | "rosto"): Buffer | null {
+    const campanha = this.host.campanha();
+    if (!campanha) return null;
+    const ativos = this.repo.pacotesDa(campanha);
+    const chave = `${ativos.join(",")}|${id}|${tipo}`;
+    const pronta = this.imagens.get(chave);
+    if (pronta) return pronta;
+    const url = this.pacotes.filter((p) => ativos.includes(p.manifesto.id)).map((p) => p.imagens[id]?.[tipo]).find(Boolean);
+    if (!url) return null;
+    const dados = Buffer.from(url.slice(url.indexOf(",") + 1), "base64");
+    this.imagens.set(chave, dados);
+    return dados;
   }
 
   /* Tudo dos pacotes ativos, para o combate e para o mestre: criaturas e efeitos ficam aqui no servidor. */
@@ -112,7 +134,7 @@ export class Personagens {
     const campanha = this.host.campanha();
     if (!campanha) return [];
     const todos = this.repo.personagensDa(campanha.id);
-    return quem.papel === "mestre" ? todos : todos.filter((p) => p.participanteId === quem.id);
+    return quem.papel === "mestre" ? todos : todos.filter((p) => p.participanteId === quem.id && p.situacao !== "arquivado");
   }
 
   private doMestreOuDono(id: string, quem: Espectador): Personagem | Recusa {
@@ -133,6 +155,8 @@ export class Personagens {
         return this.concluir(mensagem.personagemId, quem);
       case "personagem_apagar":
         return this.apagar(mensagem.personagemId, quem);
+      case "personagem_arquivar":
+        return this.arquivar(mensagem.personagemId, mensagem.arquivado, quem);
       case "ficha_operar":
         return this.operar(mensagem.personagemId, mensagem.operacao, quem);
       case "ficha_desfazer":
@@ -188,6 +212,18 @@ export class Personagens {
     this.host.avisarRemocao(id, p.participanteId);
   }
 
+  /* Só o mestre arquiva e restaura; o personagem some da mesa e da tela do jogador, mas fica guardado. */
+  private arquivar(id: string, arquivado: boolean, quem: Espectador): Recusa | void {
+    if (quem.papel !== "mestre") return recusa("Só o mestre arquiva personagem.");
+    const p = this.doMestreOuDono(id, quem);
+    if ("recusado" in p) return p;
+    if (p.situacao !== (arquivado ? "ativo" : "arquivado")) return recusa(arquivado ? "Só personagem pronto pode ser arquivado; rascunho se apaga." : "Este personagem não está arquivado.");
+    if (arquivado && this.host.emCombate?.(id)) return recusa("Tire o personagem do combate antes de arquivar.");
+    const situacao = arquivado ? "arquivado" : "ativo";
+    this.repo.salvarPersonagem(id, { situacao }, new Date().toISOString());
+    this.host.enviarPersonagem({ ...p, situacao }, null);
+  }
+
   private validar(op: Operacao, ficha: FichaDados, ctx: ContextoFicha): string | null {
     switch (op.op) {
       case "comprar": {
@@ -202,6 +238,14 @@ export class Personagens {
       }
       case "talento_de_nivel":
         return op.escolha ? motivoDoTalentoDeNivel(ficha, op.escolha, ctx) : null;
+      case "transacao": {
+        if (ficha.dinheiro + op.dinheiro < 0) return `Dinheiro insuficiente: falta R$ ${(-(ficha.dinheiro + op.dinheiro)).toLocaleString("pt-BR")}.`;
+        for (const s of op.sai) {
+          const atual = ficha.inventario.find((i) => i.id === s.id);
+          if (!atual || atual.quantidade < s.quantidade) return `${s.nome}: não há essa quantidade no inventário.`;
+        }
+        return null;
+      }
       default:
         return null;
     }
@@ -224,6 +268,7 @@ export class Personagens {
     /* O id de compra e de item é do servidor: o desfazer depende dele. */
     const segura = comIdDoServidor(op);
     const { ficha, inversa } = aplicarOperacao(p.ficha, segura);
+    if (segura.op === "transacao" && segura.loja) this.host.ajustarLoja?.(segura.loja);
     const antes = nivelDoXp(p.ficha.xp, ctx.regras);
     const depois = nivelDoXp(ficha.xp, ctx.regras);
     this.repo.salvarPersonagem(id, { ficha }, new Date().toISOString());
@@ -251,6 +296,8 @@ export class Personagens {
     if (alvo?.tipo !== "ficha_alterada") return recusa("Não há o que desfazer aqui.");
     if (eventos.some((e) => e.tipo === "ficha_desfeita" && e.dados.eventoId === eventoId)) return recusa("Isso já foi desfeito.");
     if (quem.papel !== "mestre" && alvo.autorId !== quem.id) return recusa("Só o mestre desfaz ações de outra pessoa.");
+    /* Compra e venda em loja: só o mestre desfaz (C3, 07/11/2026). */
+    if (quem.papel !== "mestre" && alvo.dados.inversa.op === "transacao") return recusa("Só o mestre desfaz uma compra ou venda.");
     const p = this.doMestreOuDono(alvo.dados.personagemId, quem);
     if ("recusado" in p) return p;
     const ctx = this.contexto();
@@ -260,6 +307,7 @@ export class Personagens {
       if (motivo) return recusa(motivo);
     }
     const { ficha } = aplicarOperacao(p.ficha, inversa);
+    if (inversa.op === "transacao" && inversa.loja) this.host.ajustarLoja?.(inversa.loja);
     this.repo.salvarPersonagem(p.id, { ficha }, new Date().toISOString());
     this.host.registrar(
       this.host.novoEvento(quem, {

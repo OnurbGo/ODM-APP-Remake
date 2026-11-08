@@ -133,7 +133,7 @@ function ProcurandoMesa() {
   }
   return (
     <div className={css.espera}>
-      <Carregando rotulo="Procurando a mesa" />
+      <Carregando modo="linha" rotulo="Procurando a mesa" />
       <p className={css.texto}>{reconectando ? "Sem resposta do mestre. Tentando de novo…" : "Procurando a mesa…"}</p>
     </div>
   );
@@ -200,7 +200,7 @@ export function Entrada() {
       );
     case "campanhas":
       return (
-        <Suspense fallback={<Carregando rotulo="Abrindo as campanhas" />}>
+        <Suspense fallback={<Carregando modo="tela" rotulo="Abrindo as campanhas" />}>
           <Campanhas />
         </Suspense>
       );

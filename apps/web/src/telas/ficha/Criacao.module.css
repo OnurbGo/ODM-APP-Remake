@@ -48,6 +48,9 @@
 .passos {
   display: flex;
   gap: var(--esp-1);
+  position: relative; /* referência do offsetLeft dos passos, para rolar até o atual */
+  margin: 0;
+  list-style: none;
   overflow-x: auto;
   padding: var(--esp-2) var(--esp-3);
   scrollbar-width: thin;

@@ -22,6 +22,7 @@ import {
   habilidadesDaFicha,
   habilidadesQueServem,
   modificadoresDeCrise,
+  parcelasDoMundo,
   montarTeste,
   resolverTeste,
   rolarD20ComVantagem,
@@ -302,6 +303,8 @@ export class Testes {
       desvantagensExtras,
     });
     montado.modificadores.push(...modificadoresDeCrise(vivo, ctx, tipoDaRegra));
+    /* Chuva e Neblina (modificadores de mundo), com o nome da carta na conta. */
+    montado.modificadores.push(...parcelasDoMundo(ctx, esp.teste.alvo === "pericia" ? esp.teste.periciaId : null, esp.tipo === "passivo"));
     const massa = esp.tipo === "resistencia" && combatente ? this.host.ameacaDeMassa(combatente.id) : null;
     if (massa) montado.modificadores.push({ rotulo: "Ameaça de Massa", valor: massa.valor });
 

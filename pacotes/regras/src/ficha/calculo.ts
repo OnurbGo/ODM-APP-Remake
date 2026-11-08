@@ -289,6 +289,8 @@ export type SituacaoDaFicha = {
   deslocamentoFixo?: { valor: number; motivo: string } | null;
   deslocamentoMetade?: string | null;
   deslocamentoMinimo?: number;
+  /* Vendaval em campo aberto: tira metros de quem tem mais que "acimaDe", sem passar dele. Vem por último. */
+  deslocamentoMenos?: { valor: number; acimaDe: number; motivo: string } | null;
 };
 
 function cortarEmZero(valor: ValorContado, rotulo: string): ValorContado {
@@ -390,6 +392,11 @@ export function calcularFicha(ficha: FichaDados, ctx: ContextoFicha, situacao: S
   const somaDesloc = parcelasDesloc.reduce((s, p) => s + p.valor, 0);
   if (situacao.deslocamentoFixo) parcelasDesloc.push({ rotulo: situacao.deslocamentoFixo.motivo, valor: situacao.deslocamentoFixo.valor - somaDesloc });
   else if (situacao.deslocamentoMetade) parcelasDesloc.push({ rotulo: situacao.deslocamentoMetade, valor: Math.max(1, Math.floor(somaDesloc / 2)) - somaDesloc });
+  if (situacao.deslocamentoMenos) {
+    const { valor, acimaDe, motivo } = situacao.deslocamentoMenos;
+    const agora = parcelasDesloc.reduce((s, p) => s + p.valor, 0);
+    if (agora > acimaDe) parcelasDesloc.push({ rotulo: motivo, valor: -Math.min(valor, agora - acimaDe) });
+  }
   const deslocamento = contar("deslocamento", parcelasDesloc, ficha);
 
   const percepcao = pericias.find((p) => p.id === "pericia.percepcao");

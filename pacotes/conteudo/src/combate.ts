@@ -59,6 +59,7 @@ export const REGRAS_COMBATE = {
   indefensavel: "regra.dano-indefensavel",
   ordemDoDano: "regra.ordem-do-dano",
   recarga: "regra.recarga",
+  desarmado: "regra.ataque-desarmado",
 } as const;
 
 /* Sem estas o combate não começa, e a tela diz qual falta revisar. As outras desligam só a parte delas. */
@@ -110,8 +111,20 @@ export const MecanicaCombate = {
   ataquesMultiplos: z.looseObject({ penalidade_por_ataque_anterior: Inteiro }),
   /* "Fazer um ataque com uma arma [...] custam 1 PA" (Seu Turno, Ação Padrão). */
   acaoPadrao: z.looseObject({ acao_padrao: z.looseObject({ ataque_com_arma: z.looseObject({ pa: Positivo }) }) }),
-  critico: z.looseObject({ natural: Positivo, acerta_sempre: z.boolean(), falha_critica: z.looseObject({ natural: Positivo }) }),
-  alcance: z.looseObject({ alem_do_efetivo: z.looseObject({ desvantagem: z.boolean() }) }),
+  critico: z.looseObject({ natural: Positivo, acerta_sempre: z.boolean(), falha_critica: z.looseObject({ natural: Positivo, erra_sempre: z.boolean().optional() }) }),
+  /* Alcance (decisão de 07/11/2026): até o efetivo, normal; até o máximo, desvantagem e metade do dano; além, fora. */
+  alcance: z.looseObject({
+    alcance_maximo: z.literal("dobro_do_efetivo").optional(),
+    alem_do_efetivo: z.looseObject({ desvantagem: z.boolean(), dano: z.literal("metade").optional() }),
+    alem_do_maximo: z.literal("fora_de_alcance").optional(),
+  }),
+  /* Ataque Desarmado (Jogador, Ações; decisão de 07/11/2026: Brutalidade + proficiência, contundente). */
+  desarmado: z.looseObject({
+    custo: z.looseObject({ pa: Positivo }),
+    alcance_m: Positivo,
+    acerto: z.looseObject({ atributo: Atributo, proficiencia: z.literal("sempre") }),
+    dano: z.looseObject({ formula: Formula, soma: Atributo, minimo: Positivo, tipo: z.string() }),
+  }),
   inicioCombo: z.looseObject({ combo: z.looseObject({ sem_penalidade_de_ataques_multiplos: z.boolean() }) }),
   oportunidade: Reacao,
   esquiva: Reacao,
@@ -217,21 +230,44 @@ export const MecanicaAtaqueDeCriatura = z.looseObject({
 });
 export type MecanicaAtaqueDeCriatura = z.infer<typeof MecanicaAtaqueDeCriatura>;
 
+/* Alcance e dano de um modo de disparo (ou da arma inteira, quando ela tem um só). Escopetas (decisão de
+   07/11/2026): o alcance efetivo é em cone; até o máximo, o que "ate_o_maximo" disser; além dele, fora de alcance. */
+const CamposDeDisparo = {
+  tipo: z.enum(["corpo_a_corpo", "distancia"]).nullable().optional(),
+  alcance_m: Positivo.nullable().optional(),
+  alcance_maximo_m: Positivo.optional(),
+  cone: z.boolean().optional(),
+  ate_o_maximo: z.looseObject({ desvantagem: z.boolean().optional(), dano: z.literal("metade").optional(), alvos: Positivo.optional() }).optional(),
+  fora_do_maximo: z.literal("fora_de_alcance").optional(),
+  atributo: z.union([Atributo, z.array(Atributo).min(1)]).optional(),
+  dano: Dano.optional(),
+  impacto_pesado: z.boolean().optional(),
+};
+
+export const ModoDeArma = z.looseObject({ nome: z.string().min(1), capacidade: Positivo.optional(), ...CamposDeDisparo });
+export type ModoDeArma = z.infer<typeof ModoDeArma>;
+
 export const MecanicaArma = z.looseObject({
   ataque: z
     .looseObject({
       categoria: z.string().nullable().optional(),
-      tipo: z.enum(["corpo_a_corpo", "distancia"]).nullable().optional(),
-      alcance_m: Positivo.nullable().optional(),
       arma_de_fogo: z.boolean().optional(),
-      atributo: z.union([Atributo, z.array(Atributo).min(1)]).optional(),
-      dano: Dano.optional(),
       versatil: z.looseObject({ duas_maos: Formula }).optional(),
       bonus_desarmado: Inteiro.optional(),
+      modos: z.array(ModoDeArma).min(2).optional(),
+      trocar_modo: z.looseObject({ pa: Positivo }).optional(),
+      ...CamposDeDisparo,
     })
     .optional(),
 });
 export type MecanicaArma = z.infer<typeof MecanicaArma>;
+
+/* Impacto Pesado (Mestre, Catálogo de Armas): a até 1 m, teste de resistência de Brutalidade DT 15 de quem foi atingido. */
+export const MecanicaImpactoPesado = z.looseObject({
+  ate_m: Positivo,
+  teste: z.looseObject({ atributo: Atributo, dt: Positivo }),
+  falha: z.looseObject({ empurra_m: Positivo.optional() }).optional(),
+});
 
 /* Horda do Zumbi: regras soltas em ações da ficha (ataques-mecanica.yml). */
 export const MecanicaHordaPv = z.looseObject({ dano_por_integrante: Positivo, desfaz_com_integrantes: Positivo });

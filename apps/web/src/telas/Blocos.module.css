@@ -10,6 +10,13 @@
   min-height: 0;
 }
 
+.acoesRegistro {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--esp-1);
+}
+
 .lista {
   display: flex;
   flex-direction: column;

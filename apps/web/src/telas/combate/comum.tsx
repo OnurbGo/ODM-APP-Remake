@@ -1,6 +1,8 @@
 import { CartaBaralho, CartaMini, PopUp } from "@odm/estilo";
 import type { Carta, Combatente, EstadoCombate } from "@odm/protocolo";
+import type { ReactNode } from "react";
 import type { Parcela, ValorContado } from "@odm/regras";
+import { useImagem } from "../../conexao/imagens";
 import css from "./Comum.module.css";
 
 /* O estilo escreve "Coringa"; o protocolo, "coringa". */
@@ -50,12 +52,25 @@ export function Sinal({ tipo }: { tipo: Combatente["tipo"] }) {
 
 export const daVez = (combate: EstadoCombate | null) => (combate && combate.fase === "em_curso" ? (combate.combatentes.find((c) => c.id === combate.ordem[combate.vez]) ?? null) : null);
 
-export function proximoDaVez(combate: EstadoCombate) {
+/* Quem vem depois. Na iniciativa oculta, a posição seguinte pode ser um "?" (id que o jogador não recebe). */
+export function proximoDaVez(combate: EstadoCombate): Combatente | "oculto" | null {
   for (let i = combate.vez + 1; i < combate.ordem.length; i++) {
     const c = combate.combatentes.find((x) => x.id === combate.ordem[i]);
-    if (c && !c.derrotado) return c;
+    if (!c) return "oculto";
+    if (!c.derrotado) return c;
   }
-  return combate.combatentes.find((x) => x.id === combate.ordem[0]) ?? null;
+  const primeiro = combate.ordem[0];
+  return primeiro === undefined ? null : (combate.combatentes.find((x) => x.id === primeiro) ?? "oculto");
+}
+
+/* As posições da ordem como o jogador as vê: as que ainda não apareceram vêm sem combatente ("?"). */
+export const posicoes = (combate: EstadoCombate): { id: string; c: Combatente | null }[] =>
+  combate.ordem.length ? combate.ordem.map((id) => ({ id, c: combate.combatentes.find((x) => x.id === id) ?? null })) : combate.combatentes.map((c) => ({ id: c.id, c }));
+
+/* Rosto da criatura ou NPC (arte do pacote), quando o servidor libera; sem ele, o sinal de sempre. */
+export function RostoOuSinal({ c, className, alternativa }: { c: Combatente; className?: string; alternativa?: ReactNode }) {
+  const url = useImagem(c.tipo !== "personagem" ? c.ref : null, "rosto");
+  return url ? <img src={url} alt="" className={`${css.rosto} ${className ?? ""}`} /> : (alternativa ?? <Sinal tipo={c.tipo} />);
 }
 
 export const ordenados = (combate: EstadoCombate) =>

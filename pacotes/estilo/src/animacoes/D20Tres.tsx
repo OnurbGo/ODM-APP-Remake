@@ -16,6 +16,7 @@ import {
   WebGLRenderer,
 } from "three";
 import css from "./RolagemD20.module.css";
+import { desenharSimbolo, simboloDoNatural } from "./simbolosD20";
 
 type Props = {
   valores: number[];
@@ -36,7 +37,13 @@ const CELULA_A = 222;
 function tokens(el: HTMLElement) {
   const estilo = getComputedStyle(el);
   const ler = (nome: string) => estilo.getPropertyValue(nome).trim();
-  return { corpo: ler("--dado-corpo"), numero: ler("--dado-numero"), aresta: ler("--dado-aresta"), fonte: ler("--fonte-numero") };
+  return {
+    corpo: ler("--dado-corpo"),
+    numero: ler("--dado-numero"),
+    aresta: ler("--dado-aresta"),
+    fonte: ler("--fonte-numero"),
+    simboloFundo: ler("--dado-simbolo-fundo") || "#0f0c09",
+  };
 }
 
 /* Um triângulo por face numa textura só: uma imagem e um material, sem 20 desenhos. */
@@ -60,10 +67,16 @@ function desenharFaces(cores: ReturnType<typeof tokens>) {
     c.lineWidth = 7;
     c.strokeStyle = cores.aresta;
     c.stroke();
-    c.fillStyle = cores.numero;
-    c.font = `92px ${cores.fonte}`;
     const cx = x + CELULA_L / 2;
     const cy = y + CELULA_A * 0.66;
+    /* 20 e 1 naturais: o olho com X e a lápide, no lugar do número. */
+    const simbolo = simboloDoNatural(n);
+    if (simbolo) {
+      desenharSimbolo(c, simbolo, cx, cy, 104, { figura: cores.numero, entalhe: cores.corpo, fundo: cores.simboloFundo });
+      continue;
+    }
+    c.fillStyle = cores.numero;
+    c.font = `92px ${cores.fonte}`;
     c.fillText(String(n), cx, cy);
     /* 6 e 9 ganham um traço, como nos dados de verdade. */
     if (n === 6 || n === 9) c.fillRect(cx - 18, cy + 44, 36, 6);

@@ -2,6 +2,7 @@ import type { CompraPrestigio, Operacao } from "@odm/protocolo";
 import type { ContextoFicha } from "./contexto";
 
 const comSinal = (n: number) => (n > 0 ? `+${n}` : String(n));
+const NOMES_ATRIBUTO: Record<string, string> = { brutalidade: "Brutalidade", agilidade: "Agilidade", fibra: "Fibra", intelecto: "Intelecto", astucia: "Astúcia", presenca: "Presença" };
 
 function rotuloDaCompra(compra: CompraPrestigio, ctx: ContextoFicha) {
   switch (compra.tipo) {
@@ -45,6 +46,8 @@ export function rotuloDaOperacao(op: Operacao, ctx: ContextoFicha): string {
       return `Perdeu ${op.item.nome}`;
     case "equipar":
       return op.equipado ? "Equipou um item" : "Guardou um item";
+    case "item_ajustar":
+      return op.campo === "modo" ? `Trocou a arma para o modo ${op.valor ?? "padrão"}` : `Arma com ${op.valor ? (NOMES_ATRIBUTO[op.valor] ?? op.valor) : "o atributo padrão"}`;
     case "dar_habilidade":
       return `Recebeu ${ctx.habilidades.get(op.id)?.nome ?? op.id}`;
     case "tirar_habilidade":
@@ -55,5 +58,9 @@ export function rotuloDaOperacao(op: Operacao, ctx: ContextoFicha): string {
       return `Redenção: passo ${op.indice + 1} ${op.feito ? "marcado" : "desmarcado"}`;
     case "notas":
       return "Notas";
+    case "transacao":
+      return op.rotulo;
+    case "retrato":
+      return op.retrato ? "Trocou o retrato" : "Tirou o retrato";
   }
 }

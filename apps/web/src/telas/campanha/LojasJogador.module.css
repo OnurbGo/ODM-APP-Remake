@@ -1,0 +1,70 @@
+.janela {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-3);
+  min-width: min(560px, 100%);
+}
+
+.aba {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-2);
+}
+
+.aba input[type="search"] {
+  min-height: var(--alvo-toque);
+}
+
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-1);
+}
+
+.linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-2);
+  padding-block: var(--esp-1);
+  border-top: 1px solid var(--cor-borda);
+}
+
+.nome {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-2);
+}
+
+.nota {
+  font-size: var(--texto-s);
+  color: var(--cor-texto-suave);
+}
+
+.dinheiro {
+  font-size: var(--texto-m);
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-1);
+}
+
+.campo select {
+  min-height: var(--alvo-toque);
+}
+
+.efeito {
+  display: block;
+  color: var(--cor-destaque);
+  font-size: var(--texto-s);
+}

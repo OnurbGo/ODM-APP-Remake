@@ -4,6 +4,8 @@ import { EventoVisto } from "./eventos";
 import { Alvo, EstadoCombate, FonteDeAtaque, OpcoesDeAtaque, Reacao } from "./combate";
 import { FichaRascunho, Kit, OpcoesCampanha, opcoesPadrao, Operacao, Personagem } from "./ficha";
 import { AlvoDoTeste, ModoRolagem, OpcaoDeTeste, PedidoTeste, RespostaTeste } from "./testes";
+import { Cadastro, CadastroNovo, Mostra } from "./cadastros";
+import { Jogo21 } from "./jogo21";
 
 const Nome = z.string().trim().min(1).max(TAMANHO_MAXIMO_NOME);
 const CodigoMesa = z.string().trim().toUpperCase().length(TAMANHO_CODIGO_MESA);
@@ -50,11 +52,27 @@ export const MensagemCliente = z.discriminatedUnion("t", [
   z.object({ t: z.literal("personagem_salvar"), personagemId: Id, ficha: FichaRascunho }),
   z.object({ t: z.literal("personagem_concluir"), personagemId: Id }),
   z.object({ t: z.literal("personagem_apagar"), personagemId: Id }),
+  z.object({ t: z.literal("personagem_arquivar"), personagemId: Id, arquivado: z.boolean() }),
   z.object({ t: z.literal("ficha_operar"), personagemId: Id, operacao: Operacao }),
   z.object({ t: z.literal("ficha_desfazer"), eventoId: Id }),
   z.object({ t: z.literal("opcoes_campanha"), opcoes: OpcoesCampanha }),
   z.object({ t: z.literal("kit_salvar"), kit: Kit }),
   z.object({ t: z.literal("kit_apagar"), kitId: Id }),
+  /* Cadastros do mestre (fase 6): encontros, lendárias e, depois, missões, NPCs, lojas, notas e diário. */
+  z.object({ t: z.literal("cadastro_salvar"), cadastro: CadastroNovo }),
+  z.object({ t: z.literal("cadastro_apagar"), id: Id }),
+  /* Jogo do 21: o mestre abre e fecha; o dono do personagem compra e para. */
+  z.object({ t: z.literal("jogo21_abrir"), personagemId: Id, local: z.string().max(120).default("") }),
+  z.object({ t: z.literal("jogo21_comprar"), jogoId: Id }),
+  z.object({ t: z.literal("jogo21_parar"), jogoId: Id, asesComo11: z.number().int().min(0).max(4) }),
+  z.object({ t: z.literal("jogo21_fechar"), jogoId: Id }),
+  /* Mostrar para os jogadores (só o mestre): abre por cima da tela deles; fechar vale para todos. */
+  z.object({ t: z.literal("mostrar"), mostra: Mostra }),
+  z.object({ t: z.literal("mostrar_fechar") }),
+  /* Loja (etapa 10): o dono do personagem ou o mestre; sai na hora, e só o mestre desfaz (C3). */
+  z.object({ t: z.literal("loja_comprar"), lojaId: Id, linhaId: Id, quantidade: z.number().int().min(1).max(999), personagemId: Id }),
+  z.object({ t: z.literal("loja_vender"), lojaId: Id, itemFichaId: Id, quantidade: z.number().int().min(1).max(9999), personagemId: Id }),
+  z.object({ t: z.literal("loja_servico"), lojaId: Id, servicoId: Id, personagemId: Id }),
   z.object({ t: z.literal("kit_entregar"), personagemId: Id, kitId: Id }),
   /* Combate (fase 5). O servidor valida tudo; o cliente só pede. */
   z.object({
@@ -73,7 +91,7 @@ export const MensagemCliente = z.discriminatedUnion("t", [
   z.object({ t: z.literal("pa_gastar"), combatenteId: Id, quantos: z.number().int().min(1).max(6), tipo: z.enum(["acao", "deslocamento", "reacao"]) }),
   z.object({ t: z.literal("combate_encerrar") }),
   /* Ataques e dano (especificação 7.1). Criatura: só o mestre; arma do personagem: o dono ou o mestre. */
-  z.object({ t: z.literal("atacar"), atacanteId: Id, fonte: FonteDeAtaque, alvos: z.array(Id).min(1).max(20), opcoes: OpcoesDeAtaque.default({ alemDoAlcance: false, bonus: 0, modo: "normal" }) }),
+  z.object({ t: z.literal("atacar"), atacanteId: Id, fonte: FonteDeAtaque, alvos: z.array(Id).min(1).max(20), opcoes: OpcoesDeAtaque.default({ alemDoAlcance: false, bonus: 0, modo: "normal", distancia: null }) }),
   z.object({ t: z.literal("reagir"), combatenteId: Id, reacao: Reacao }),
   /* Mestre: segue sem esperar quem ainda não escolheu, ou desiste do ataque. */
   z.object({ t: z.literal("ataque_seguir") }),
@@ -89,7 +107,10 @@ export const MensagemCliente = z.discriminatedUnion("t", [
   z.object({ t: z.literal("atitude_imprudente"), combatenteId: Id, opcao: z.enum(["precisao", "potencia", "violencia", "impeto"]) }),
   z.object({ t: z.literal("estresse_ajustar"), personagemId: Id, delta: z.number().int().min(-50).max(50) }),
   z.object({ t: z.literal("ficha_classe_ajustar"), personagemId: Id, recursoId: Id, delta: z.number().int().min(-50).max(50) }),
-  z.object({ t: z.literal("habilidade_usar"), personagemId: Id, habilidadeId: Id }),
+  /* "reacao": usada como reação, paga 1 PA guardado (Rito da Lua Sangrenta depois do acerto, por exemplo). */
+  z.object({ t: z.literal("habilidade_usar"), personagemId: Id, habilidadeId: Id, reacao: z.boolean().default(false) }),
+  /* "Agora não" na oferta de reação depois de um ataque. */
+  z.object({ t: z.literal("oferta_dispensar"), combatenteId: Id }),
   z.object({
     t: z.literal("descanso"),
     tipo: z.enum(["curto", "longo"]),
@@ -226,6 +247,11 @@ export const MensagemServidor = z.discriminatedUnion("t", [
     rede: RedeMestre,
     kits: z.array(Kit),
   }),
+  /* Os cadastros que esta pessoa pode ver: o mestre, todos; o jogador, só o que o servidor libera. */
+  z.object({ t: z.literal("cadastros"), lista: z.array(Cadastro) }),
+  z.object({ t: z.literal("jogos21"), lista: z.array(Jogo21) }),
+  /* O que está sendo mostrado a este aparelho (nulo = nada). "para" só vai ao mestre. */
+  z.object({ t: z.literal("mostrando"), mostra: Mostra.extend({ id: Id }).nullable() }),
   z.object({ t: z.literal("entrada_aguardando"), pedidoId: z.string(), segredo: z.string() }),
   z.object({ t: z.literal("entrada_aprovada"), token: z.string() }),
   z.object({ t: z.literal("entrada_recusada") }),

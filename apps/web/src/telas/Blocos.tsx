@@ -72,6 +72,17 @@ function LinhaEvento({ evento, desfeito, podeDesfazer }: { evento: EventoVisto; 
         <span className={`${css.total} odm-numero`}>{total}</span>
       </>
     );
+  } else if (evento.tipo === "jogo21") {
+    const { personagemNome, local, cartas, total, rotulo } = evento.dados;
+    conteudo = (
+      <>
+        <span className={css.linhaTexto}>
+          <strong className={css.autor}>{personagemNome}</strong> no Jogo do 21{local ? ` (${local})` : ""}: {rotulo}
+          <span className={css.conta}>{cartas.map((c) => c.valor).join(", ")}</span>
+        </span>
+        <span className={`${css.total} odm-numero`}>{total}</span>
+      </>
+    );
   } else if (evento.tipo === "teste_pedido" || evento.tipo === "teste_pedido_visto") {
     const { pedido } = evento.dados;
     const rotulo = evento.tipo === "teste_pedido" ? evento.dados.rotulo : evento.dados.pedido.rotulo;
@@ -125,17 +136,25 @@ function LinhaEvento({ evento, desfeito, podeDesfazer }: { evento: EventoVisto; 
   );
 }
 
+/* O que "Limpar rolagens" tira da tela: d20 livre, rolagem do mestre, resultado de teste e ataque. */
+const ehRolagem = (e: EventoVisto) =>
+  e.tipo === "rolagem" || e.tipo === "rolagem_livre" || e.tipo === "teste_resultado" || e.tipo === "teste_pedido" || ((e.tipo === "combate" || e.tipo === "combate_visto") && e.dados.rolagem !== null);
+
 export function Registro({ className }: { className?: string }) {
   const eventos = useLoja((e) => e.eventos);
   const limpasAte = useLoja((e) => e.rolagensLimpasAte);
   const eu = useLoja((e) => e.eu);
-  const recentes = eventos.filter((e) => e.tipo !== "rolagem" || e.n > limpasAte).reverse();
+  /* As rolagens limpas saem só da tela: o histórico e o desfazer continuam, e "Mostrar ocultas" as traz de volta. */
+  const [mostrarOcultas, definirMostrarOcultas] = useState(false);
+  const ocultas = eventos.filter((e) => ehRolagem(e) && e.n <= limpasAte).length;
+  const recentes = eventos.filter((e) => mostrarOcultas || !ehRolagem(e) || e.n > limpasAte).reverse();
   const combate = useLoja((e) => e.combate);
   const desfeitos = new Set(eventos.flatMap((e) => (e.tipo === "ficha_desfeita" || e.tipo === "combate_desfeito" ? [e.dados.eventoId] : [])));
-  const temRolagem = recentes.some((e) => e.tipo === "rolagem");
+  const temRolagem = eventos.some((e) => ehRolagem(e) && e.n > limpasAte);
   /* O mestre desfaz tudo; o jogador, o que ele mesmo fez, até o fim do turno dele (especificação 5.2). */
   const pode = (e: EventoVisto) => {
-    if (e.tipo === "ficha_alterada") return eu?.papel === "mestre" || e.autorId === eu?.id;
+    /* Compra e venda em loja: só o mestre desfaz (C3). */
+    if (e.tipo === "ficha_alterada") return eu?.papel === "mestre" || (e.autorId === eu?.id && e.dados.inversa.op !== "transacao");
     if (e.tipo === "combate") return true;
     if (e.tipo === "combate_visto") return e.autorId === eu?.id && aindaPodeDesfazer(e.dados.desfazivelAte, combate);
     return false;
@@ -145,10 +164,25 @@ export function Registro({ className }: { className?: string }) {
       titulo="Registro"
       className={`${css.registro} ${className ?? ""}`}
       extra={
-        temRolagem && (
-          <Botao variante="fantasma" onClick={acoes.limparRolagens}>
-            Limpar rolagens
-          </Botao>
+        (temRolagem || ocultas > 0) && (
+          <span className={css.acoesRegistro}>
+            {ocultas > 0 && (
+              <Botao variante="fantasma" aria-pressed={mostrarOcultas} onClick={() => definirMostrarOcultas((v) => !v)}>
+                {mostrarOcultas ? "Esconder limpas" : `Mostrar ocultas (${ocultas})`}
+              </Botao>
+            )}
+            {temRolagem && (
+              <Botao
+                variante="fantasma"
+                onClick={() => {
+                  acoes.limparRolagens();
+                  definirMostrarOcultas(false);
+                }}
+              >
+                Limpar rolagens
+              </Botao>
+            )}
+          </span>
         )
       }
     >

@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { faixaDeRecarga, ID_EXAUSTAO, type Acao, type Ameaca, type Conteudo, type Criatura } from "@odm/conteudo";
+import { faixaDeRecarga, ID_EXAUSTAO, MecanicaImpactoPesado, type Acao, type Ameaca, type Conteudo, type Criatura } from "@odm/conteudo";
 import type {
   Alvo,
   AtaquePendente,
@@ -26,6 +26,8 @@ import {
   posicaoDaCarta,
   pvDaHorda,
   ataqueComArma,
+  ataqueDesarmado,
+  bonusDesarmado,
   ataqueDeCriatura,
   aplicarEfeito,
   bloqueiosDePa,
@@ -33,6 +35,10 @@ import {
   defesasDosEfeitos,
   descontarDuracao,
   disparosDoTurno,
+  alcanceComMundo,
+  efeitoDaDistancia,
+  habilidadesContraAtaque,
+  habilidadesDaFicha,
   fontesDosEfeitos,
   gastarPa,
   modificadoresDeCrise,
@@ -41,6 +47,7 @@ import {
   penalidadeDeAtaquesMultiplos,
   proficienciasDaFicha,
   removerAcumulo,
+  semPvTemporarios,
   resolverDano,
   resolverTeste,
   rolarDados,
@@ -194,6 +201,28 @@ export class Acoes {
     return null;
   }
 
+  /* Impacto Pesado (propriedade do catálogo): só com a mecânica aprovada no pacote. */
+  private impactoPesado() {
+    const p = this.host.conteudo()?.propriedades?.find((x) => x.id === "propriedade.impacto-pesado");
+    const lido = MecanicaImpactoPesado.safeParse(p?.mecanica);
+    return lido.success ? lido.data : null;
+  }
+
+  /* Habilidades do alvo para depois do ataque (reage_a apos_acerto, apos_erro, apos_critico). Precisa de PA guardado,
+     ou da Rainha, e de estar consciente; o custo da habilidade é conferido quando o jogador usa. */
+  private ofertaDepoisDoAtaque(alvo: Combatente, montado: AtaqueMontado, r: { acertou: boolean; dano: number | null }, critico: boolean, ctx: ContextoCombate) {
+    const ctxFicha = this.host.contextoFicha();
+    const p = alvo.personagemId ? this.host.personagem(alvo.personagemId) : undefined;
+    if (!ctxFicha || !p || alvo.derrotado) return null;
+    if (alvo.pa.guardados <= 0 && !alvo.marcas.reacaoSemCusto) return null;
+    if (bloqueiosDePa(this.host.combates.fontesDe(alvo, ctx)).reacoes) return null;
+    const momentos = (r.acertou ? (critico ? ["apos_critico", "apos_acerto"] : ["apos_acerto"]) : ["apos_erro"]) as ("apos_critico" | "apos_acerto" | "apos_erro")[];
+    const habilidades = habilidadesDaFicha(p.ficha, ctxFicha);
+    const ids = [...new Set(momentos.flatMap((m) => habilidadesContraAtaque(habilidades, { corpoACorpo: montado.corpoACorpo }, m).map((h) => h.id)))];
+    if (!ids.length) return null;
+    return { habilidades: ids.slice(0, 10), momento: momentos[0]!, ataque: montado.nome.slice(0, 160), dano: r.dano };
+  }
+
   private vitima(c: Combatente, mundo: Mundo, personagens: Map<string, PersonagemBanco>, ctx: ContextoCombate): Vitima | null {
     if (c.personagemId) {
       const p = personagens.get(c.personagemId);
@@ -324,6 +353,7 @@ export class Acoes {
       efeitos: [],
       recargasGastas: [],
       derrotado: false,
+      revelado: false,
       pa: { disponiveis: 0, guardados: 0, bloqueados: 0 },
       ataquesNoTurno: 0,
       deslocamentosNaRodada: 0,
@@ -383,6 +413,7 @@ export class Acoes {
       efeitos: [],
       recargasGastas: [],
       derrotado: false,
+      revelado: false,
       horda: r.horda,
     };
     /* Em combate, a Horda entra na ordem pela carta dela; quem já passou na rodada só age na próxima. */
@@ -473,6 +504,13 @@ export class Acoes {
     const p = c.personagemId ? personagens.get(c.personagemId) : undefined;
     const ctxFicha = this.host.contextoFicha();
     if (!p || !ctxFicha) return recusa("Só personagem ataca com arma.");
+    if (fonte.tipo === "desarmado") {
+      const calc = this.host.combates.calculo(p, mundo.vivos[p.id] ?? p.vivo, ctx);
+      if (!calc) return recusa("Falta a ficha do personagem.");
+      const itens = p.ficha.inventario.map((i) => ({ nome: i.nome, equipado: i.equipado, mecanica: i.itemId ? ctxFicha.itens.get(i.itemId)?.mecanica : undefined }));
+      const montado = ataqueDesarmado({ atributos: calc.atributos, proficiencia: calc.proficiencia, categorias: new Set() }, ctx, bonusDesarmado(itens));
+      return montado ?? recusa("O Ataque Desarmado ainda não foi revisado no pacote.");
+    }
     const item = p.ficha.inventario.find((i) => i.id === fonte.itemFichaId);
     if (!item?.equipado) return recusa("Equipe a arma antes de atacar.");
     const doPacote = item.itemId ? ctxFicha.itens.get(item.itemId) : undefined;
@@ -482,7 +520,7 @@ export class Acoes {
     const custo = ctx.regras.acaoPadrao?.acao_padrao.ataque_com_arma.pa;
     if (custo === undefined) return recusa("O custo do ataque com arma (Seu Turno) ainda não foi revisado no pacote.");
     const montado = ataqueComArma(
-      { nome: item.nome, mecanica: doPacote.mecanica },
+      { nome: item.nome, mecanica: doPacote.mecanica, atributo: item.atributo, modo: item.modo },
       { atributos: calc.atributos, proficiencia: calc.proficiencia, categorias: proficienciasDaFicha(p.ficha, ctxFicha).categorias },
       ctx,
       custo,
@@ -515,9 +553,13 @@ export class Acoes {
     const fonteDePa = naVez ? c.pa.disponiveis : c.pa.guardados;
     if (montado.custoPa > fonteDePa) return recusa(`Faltam PA: ${montado.nome} custa ${montado.custoPa}, sobram ${fonteDePa}.`);
     const doAtaque = m.fonte.tipo === "acao" ? this.hordaDe(c)?.ataqueDeHorda : null;
+    /* Distância informada (escopetas): fora de alcance não ataca; até o máximo, o limite de alvos do livro.
+       No alcance efetivo, a arma em cone atinge a área. */
+    const distancia = efeitoDaDistancia(alcanceComMundo(montado, ctx).alcance, m.opcoes.distancia, this.impactoPesado() ?? undefined);
+    if (distancia.faixa === "fora_de_alcance") return recusa(`${montado.nome}: ${distancia.texto}.`);
     const maximo =
       m.fonte.tipo !== "acao"
-        ? 1
+        ? (distancia.maximoDeAlvos ?? (montado.alcance?.cone ? undefined : 1))
         : c.horda && doAtaque?.acaoId === m.fonte.acaoId
           ? alvosDoAtaqueDeHorda(bonusDeHorda(c.horda.integrantes.length, this.hordaDe(c)!.regras.bonusMaximo))
           : (objeto(this.acaoDe(c, m.fonte.acaoId)?.mecanica).alvos as number | undefined);
@@ -564,7 +606,7 @@ export class Acoes {
       const { mundo } = this.host.combates.mundo(ctx);
       const calc = this.host.combates.calculo(personagem, mundo.vivos[personagem.id] ?? personagem.vivo, ctx);
       /* Ameaça de Massa: −1 em todas as reações de quem o mestre marcou na área da Horda, inclusive o Bloqueio. */
-      const massa = this.ameacaDeMassaEm(c.id);
+      const massa = ctx.opcoes.habilidadesDeCriatura !== false ? this.ameacaDeMassaEm(c.id) : null;
       const valor = (calc?.atributos[regra.defesa.soma].valor ?? 0) + (massa?.valor ?? 0);
       const nome = reacao === "esquiva" ? "Esquiva" : "Bloqueio";
       /* "marcas" de novo: o gasto pode ter mexido nelas (Rainha). */
@@ -624,7 +666,13 @@ export class Acoes {
     /* Atitude Imprudente declarada antes: Precisão dá vantagem, Potência +1 dado, Violência rola o dano duas vezes. */
     const imprudente = c.marcas.imprudente;
     if (imprudente === "precisao") vantagens.push("Atitude Imprudente");
-    const desvantagens = p.opcoes.alemDoAlcance && ctx.regras.alcance?.alem_do_efetivo.desvantagem ? ["Além do alcance efetivo"] : [];
+    const distancia = efeitoDaDistancia(alcanceComMundo(montado, ctx).alcance, p.opcoes.distancia, this.impactoPesado() ?? undefined);
+    /* Sem distância, quem ataca pode marcar "entre o efetivo e o máximo" (regra do alcance, 07/11/2026). */
+    const regraAlcance = ctx.regras.alcance;
+    const marcouAlem = p.opcoes.alemDoAlcance && p.opcoes.distancia === null && !!regraAlcance;
+    const alemSemMaximo = distancia.faixa === "alem_do_efetivo" && !!regraAlcance?.alem_do_efetivo.desvantagem;
+    const desvantagens = distancia.desvantagem || marcouAlem || alemSemMaximo ? ["Entre o alcance efetivo e o máximo"] : [];
+    const danoMetade = distancia.danoMetade || ((marcouAlem || alemSemMaximo) && regraAlcance?.alem_do_efetivo.dano === "metade");
 
     const alvos = p.alvos.map((id) => combate.combatentes.find((x) => x.id === id)).filter((x): x is Combatente => !!x && !x.derrotado);
     if (!alvos.length) return recusa("Os alvos já saíram do combate.");
@@ -649,6 +697,8 @@ export class Acoes {
     const rolado = resolverTeste(testeMontado, { tipo: "ataque", dt: null, modelo: ctx.opcoes.modeloVantagem, ctx, aleatorio: this.aleatorio });
     const critico = rolado.critico === "acerto";
     const falhaCritica = rolado.critico === "falha";
+    /* 1 natural no ataque erra sempre e aparece como "Falha crítica" (Jogador, Combate, 22a4cf8); o resto é do mestre. */
+    const erraNaFalha = falhaCritica && !!ctx.regras.critico.falha_critica.erra_sempre;
     /* Estresse do acontecimento, por personagem (regra opcional da campanha). */
     const estresse = new Map<string, number>();
     const somarEstresse = (id: string | null | undefined, delta: number) => {
@@ -656,21 +706,33 @@ export class Acoes {
     };
     if (c.personagemId) somarEstresse(c.personagemId, critico ? -alivioDe(ctx, "acerto_critico") : falhaCritica ? estresseDe(ctx, "falha_critica") : 0);
 
-    const linhas: string[] = [];
-    const linhasMestre: string[] = [];
+    const linhas: string[] = distancia.texto ? [distancia.texto] : [];
+    const linhasMestre: string[] = distancia.texto ? [distancia.texto] : [];
     let acertouAlgum = false;
+    /* As marcas de cada alvo mudam mais de uma vez (reação gasta, oferta de reação): cada mudança parte da anterior. */
+    const marcasDe = new Map<string, Combatente["marcas"]>();
+    const mudarMarcas = (a: Combatente, depois: (m: Combatente["marcas"]) => Combatente["marcas"]) => {
+      const antes = marcasDe.get(a.id) ?? a.marcas;
+      const novas = depois(antes);
+      marcasDe.set(a.id, novas);
+      mudancas.push({ op: "marcas", alvo: { tipo: "combatente", id: a.id }, antes, depois: novas });
+    };
+    const resultadoPorAlvo = new Map<string, { acertou: boolean; dano: number | null }>();
+    const impacto = this.impactoPesado();
     alvos.forEach((a, i) => {
       const v = vitimas[i]!;
       const reacao = a.marcas.defesaDeReacao;
       const defesa = (v.defesa ?? 0) + (reacao?.valor ?? 0);
-      if (reacao) mudancas.push({ op: "marcas", alvo: { tipo: "combatente", id: a.id }, antes: a.marcas, depois: { ...a.marcas, defesaDeReacao: null } });
-      const acertou = !rolado.falhaAutomatica && rolado.total !== null && (rolado.total >= defesa || (critico && ctx.regras.critico.acerta_sempre));
+      if (reacao) mudarMarcas(a, (m) => ({ ...m, defesaDeReacao: null }));
+      const acertou = !erraNaFalha && !rolado.falhaAutomatica && rolado.total !== null && (rolado.total >= defesa || (critico && ctx.regras.critico.acerta_sempre));
       const contraMestre = `${rolado.total ?? "falha automática"} contra Defesa ${v.defesa ?? "?"}${reacao ? ` ${sinal(reacao.valor)} (${reacao.rotulo})` : ""}`;
       const contraJogador = v.personagem ? contraMestre : `${rolado.total ?? "falha automática"}`;
       if (v.personagem && !c.personagemId && falhaCritica) somarEstresse(v.personagem.id, -alivioDe(ctx, "inimigo_falha_critica_contra_si"));
       if (!acertou) {
-        linhas.push(`${a.nome}: ${contraJogador}, errou`);
-        linhasMestre.push(`${a.nome}: ${contraMestre}, errou`);
+        resultadoPorAlvo.set(a.id, { acertou: false, dano: null });
+        const errou = erraNaFalha ? "falha crítica, errou" : "errou";
+        linhas.push(`${a.nome}: ${contraJogador}, ${errou}`);
+        linhasMestre.push(`${a.nome}: ${contraMestre}, ${errou}`);
         return;
       }
       acertouAlgum = true;
@@ -679,14 +741,29 @@ export class Acoes {
         const outra = rolarDanoDoAtaque(montado.dano, critico, this.aleatorio);
         if (outra.total > dano.total) dano = outra;
       }
-      const d = this.danoEm(v, { valor: dano.total, tipo: montado.dano.tipo }, ctx);
+      /* Até o alcance máximo da escopeta: metade do dano, para baixo, mínimo 1 (como a ordem do dano, 06/11/2026). */
+      const metade = danoMetade ? Math.max(1, Math.floor(dano.total / 2)) : null;
+      const valor = metade ?? dano.total;
+      const d = this.danoEm(v, { valor, tipo: montado.dano.tipo }, ctx);
       mudancas.push(...d.mudancas);
+      resultadoPorAlvo.set(a.id, { acertou: true, dano: d.resolvido.final });
       if (v.personagem) somarEstresse(v.personagem.id, d.estresse + (critico && !c.personagemId ? estresseDe(ctx, "sofrer_acerto_critico_de_inimigo") : 0));
       const tipo = montado.dano.tipo ? ` ${montado.dano.tipo}` : "";
-      const final = d.resolvido.final !== dano.total ? ` (${d.resolvido.final} depois das defesas)` : "";
-      linhas.push(`${a.nome}: ${contraJogador}, ${critico ? "acerto crítico" : "acertou"}. ${dano.total} de dano${tipo}${v.personagem ? final : ""}${d.nota && v.personagem ? `. ${d.nota}` : ""}`);
-      linhasMestre.push(`${a.nome}: ${contraMestre}, ${critico ? "acerto crítico" : "acertou"}. ${dano.total} de dano${tipo} (${d.conta}). PV ${d.restante}${d.nota ? `. ${d.nota}` : ""}`);
+      const final = d.resolvido.final !== valor ? ` (${d.resolvido.final} depois das defesas)` : "";
+      const danoTexto = metade !== null ? `${dano.total} de dano${tipo}, metade: ${valor}` : `${valor} de dano${tipo}`;
+      /* Impacto Pesado a até 1 m: o app avisa o teste; o mestre pede e aplica. */
+      const impactoTexto = distancia.impactoPesado && impacto ? `. Impacto Pesado: teste de resistência de ${NOME_ATRIBUTO[impacto.teste.atributo]} DT ${impacto.teste.dt}${impacto.falha?.empurra_m ? `; se falhar, ${impacto.falha.empurra_m} m para trás e Caído` : ""}` : "";
+      linhas.push(`${a.nome}: ${contraJogador}, ${critico ? "acerto crítico" : "acertou"}. ${danoTexto}${v.personagem ? final : ""}${d.nota && v.personagem ? `. ${d.nota}` : ""}${impactoTexto}`);
+      linhasMestre.push(`${a.nome}: ${contraMestre}, ${critico ? "acerto crítico" : "acertou"}. ${danoTexto} (${d.conta}). PV ${d.restante}${d.nota ? `. ${d.nota}` : ""}${impactoTexto}`);
     });
+
+    /* Depois do ataque, as habilidades marcadas para o momento (Rito da Lua Sangrenta depois do acerto,
+       decisão de 07/11/2026) viram uma oferta para o jogador do alvo, que usa com PA guardado. */
+    for (const a of alvos) {
+      const r = resultadoPorAlvo.get(a.id);
+      const oferta = r && a.personagemId && a.personagemId !== c.personagemId ? this.ofertaDepoisDoAtaque(a, montado, r, critico, ctx) : null;
+      if (oferta) mudarMarcas(a, (m) => ({ ...m, ofertaDeReacao: oferta }));
+    }
 
     mudancas.push({ op: "somar", alvo: { tipo: "combatente", id: c.id }, campo: "ataquesNoTurno", delta: 1 });
     /* Habilidade com Recarga X–Y: fica gasta até a rolagem do início do turno trazer de volta. */
@@ -708,7 +785,11 @@ export class Acoes {
       }
     }
 
-    const resultado = alvos.length === 1 ? { texto: critico && acertouAlgum ? "Acerto crítico" : acertouAlgum ? "Acertou" : "Errou", bom: acertouAlgum } : null;
+    const resultado = erraNaFalha
+      ? { texto: "Falha crítica", bom: false }
+      : alvos.length === 1
+        ? { texto: critico && acertouAlgum ? "Acerto crítico" : acertouAlgum ? "Acertou" : "Errou", bom: acertouAlgum }
+        : null;
     const rolagem: RolagemDeCombate = {
       titulo: `${c.nome}: ${montado.nome}`,
       subtitulo: `Contra ${alvos.map((a) => a.nome).join(", ")}`,
@@ -722,6 +803,7 @@ export class Acoes {
       natural: rolado.natural,
       notaFinal: linhasMestre.join(" · "),
       para: [],
+      morte: null,
     };
     /* O jogador que ataca vê o d20 dele; contra criatura, sem a Defesa e sem o dano depois das defesas. */
     const dono = c.personagemId ? this.host.donoDe(c.personagemId) : null;
@@ -771,6 +853,11 @@ export class Acoes {
     const alvo = this.normalizar(alvoBruto, combate);
     const c = combate?.combatentes.find((x) => (alvo.tipo === "combatente" ? x.id === alvo.id : x.personagemId === alvo.id));
     const nome = c?.nome ?? this.host.personagem(alvo.id)?.ficha.nome ?? "Personagem";
+    if (temporarios && delta > 0 && alvo.tipo === "personagem") {
+      const vivo = this.host.combates.mundo(ctx).mundo.vivos[alvo.id] ?? this.host.personagem(alvo.id)?.vivo;
+      const motivo = vivo ? semPvTemporarios(vivo, ctx) : null;
+      if (motivo) return recusa(`${nome}: ${motivo}.`);
+    }
     const mudancas: Mudanca[] = [{ op: "somar", alvo, campo: temporarios ? "pvTemporarios" : "pv", delta }];
     if (!temporarios && delta > 0 && alvo.tipo === "personagem") {
       const { mundo } = this.host.combates.mundo(ctx);
@@ -921,7 +1008,10 @@ export class Acoes {
     const notasMestre: string[] = [];
 
     /* Recarga X–Y (Mestre, "Como criar uma criatura?"): no início do turno da criatura, 1d6 por habilidade gasta. */
-    if (momento === "inicio_do_turno" && ctx.regras.recarga) {
+    /* Opção do mestre: com as habilidades automáticas de criaturas desligadas, Recarga, Pressão de Massa e
+       Ameaça de Massa ficam com ele, à mão. */
+    const automaticas = ctx.opcoes.habilidadesDeCriatura !== false;
+    if (momento === "inicio_do_turno" && ctx.regras.recarga && automaticas) {
       for (const { acaoId, rolagem } of recargas) {
         const acao = this.acaoDe(c, acaoId);
         const faixa = faixaDeRecarga(acao?.recargaCriatura);
@@ -944,7 +1034,7 @@ export class Acoes {
       notas.push(`${c.nome} faz o Teste de Morte`);
     }
     for (const h of combate?.combatentes ?? []) {
-      if (!h.horda || h.derrotado || h.id === c.id || !h.horda.naArea.includes(c.id) || h.horda.pressaoNaRodada.includes(c.id) || !v) continue;
+      if (!automaticas || !h.horda || h.derrotado || h.id === c.id || !h.horda.naArea.includes(c.id) || h.horda.pressaoNaRodada.includes(c.id) || !v) continue;
       const regras = this.hordaDe(h);
       if (!regras?.pressao) continue;
       const bonus = bonusDeHorda(h.horda.integrantes.length, regras.regras.bonusMaximo);

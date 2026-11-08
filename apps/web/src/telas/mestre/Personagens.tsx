@@ -4,40 +4,15 @@ import { calcularFicha, kitsDoPacote, nivelDoXp, pontosDePrestigio, type Context
 import { useState } from "react";
 import { useContextoFicha, type EstadoDoContexto } from "../../conexao/conteudo";
 import { acoes, useLoja } from "../../conexao/loja";
+import { BuscaCatalogo } from "./BuscaCatalogo";
 import { CamposOpcoes } from "./CamposOpcoes";
 import css from "./Personagens.module.css";
-
-function BuscaCatalogo({ ctx, rotulo, aoEscolher }: { ctx: ContextoFicha; rotulo: string; aoEscolher: (id: string, nome: string) => void }) {
-  const [busca, definirBusca] = useState("");
-  const termo = busca.trim().toLocaleLowerCase("pt-BR");
-  const achados = termo ? [...ctx.itens.values()].filter((i) => i.nome.toLocaleLowerCase("pt-BR").includes(termo)).slice(0, 8) : [];
-  return (
-    <div>
-      <CampoTexto rotulo={rotulo} value={busca} onChange={(e) => definirBusca(e.target.value)} />
-      <ul className={css.achados}>
-        {achados.map((i) => (
-          <li key={i.id}>
-            <Botao
-              largo
-              variante="fantasma"
-              onClick={() => {
-                aoEscolher(i.id, i.nome);
-                definirBusca("");
-              }}
-            >
-              {i.nome}
-            </Botao>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
+import { paraBusca } from "../busca";
 
 function BuscaHabilidade({ ctx, aoEscolher }: { ctx: ContextoFicha; aoEscolher: (id: string) => void }) {
   const [busca, definirBusca] = useState("");
-  const termo = busca.trim().toLocaleLowerCase("pt-BR");
-  const achados = termo ? [...ctx.habilidades.values()].filter((h) => h.nome.toLocaleLowerCase("pt-BR").includes(termo)).slice(0, 8) : [];
+  const termo = paraBusca(busca);
+  const achados = termo ? [...ctx.habilidades.values()].filter((h) => paraBusca(h.nome).includes(termo)).slice(0, 8) : [];
   return (
     <div>
       <CampoTexto rotulo="Dar habilidade" value={busca} onChange={(e) => definirBusca(e.target.value)} />
@@ -64,6 +39,8 @@ function BuscaHabilidade({ ctx, aoEscolher }: { ctx: ContextoFicha; aoEscolher: 
 function Gerenciar({ personagem, ctx, aoFechar, aoAbrir }: { personagem: Personagem; ctx: ContextoFicha; aoFechar: () => void; aoAbrir: () => void }) {
   const mestre = useLoja((e) => e.mestre);
   const [xp, definirXp] = useState(0);
+  const [arquivando, definirArquivando] = useState(false);
+  const emCombate = useLoja((e) => !!e.combate?.combatentes.some((c) => c.personagemId === personagem.id));
   const { id, ficha } = personagem;
   const operar = acoes.operar.bind(null, id);
   const { saldo, ganhos } = pontosDePrestigio(ficha, ctx);
@@ -131,6 +108,31 @@ function Gerenciar({ personagem, ctx, aoFechar, aoAbrir }: { personagem: Persona
         <Botao variante="primario" largo onClick={aoAbrir}>
           Abrir ficha
         </Botao>
+
+        {personagem.situacao === "ativo" &&
+          (arquivando ? (
+            <div className={css.coluna}>
+              <p className={css.nota}>Sai da mesa e da tela do jogador. Fica em "Arquivados", de onde você restaura quando quiser.</p>
+              <div className={css.linha}>
+                <Botao
+                  variante="perigo"
+                  onClick={() => {
+                    acoes.arquivarPersonagem(id, true);
+                    aoFechar();
+                  }}
+                >
+                  Confirmar: arquivar
+                </Botao>
+                <Botao variante="fantasma" onClick={() => definirArquivando(false)}>
+                  Cancelar
+                </Botao>
+              </div>
+            </div>
+          ) : (
+            <Botao variante="fantasma" largo disabled={emCombate} onClick={() => definirArquivando(true)}>
+              {emCombate ? "Em combate: não dá para arquivar" : "Arquivar personagem"}
+            </Botao>
+          ))}
       </div>
     </PopUp>
   );
@@ -191,7 +193,9 @@ function OpcoesDaCampanha({ opcoes, aoFechar }: { opcoes: OpcoesCampanha; aoFech
 
 function Lista({ contexto, aoAbrir }: { contexto: Extract<EstadoDoContexto, { situacao: "pronto" }>; aoAbrir: (id: string) => void }) {
   const { ctx } = contexto;
-  const personagens = useLoja((e) => e.personagens);
+  const todos = useLoja((e) => e.personagens);
+  const personagens = todos.filter((p) => p.situacao !== "arquivado");
+  const arquivados = todos.filter((p) => p.situacao === "arquivado");
   const jogadores = useLoja((e) => e.mestre?.jogadores ?? []);
   const [gerenciando, gerenciar] = useState<string | null>(null);
   const atual = personagens.find((p) => p.id === gerenciando);
@@ -213,6 +217,23 @@ function Lista({ contexto, aoAbrir }: { contexto: Extract<EstadoDoContexto, { si
           );
         })}
       </ul>
+      {arquivados.length > 0 && (
+        <details className={css.arquivados}>
+          <summary className="odm-rotulo">Arquivados ({arquivados.length})</summary>
+          <ul className={css.coluna}>
+            {arquivados.map((p) => (
+              <li key={p.id} className={css.linha}>
+                <span className={css.nome}>
+                  {p.ficha.nome || "Sem nome"} <span className={css.nota}>{nomeDe(p.participanteId)}</span>
+                </span>
+                <Botao variante="fantasma" onClick={() => acoes.arquivarPersonagem(p.id, false)}>
+                  Restaurar
+                </Botao>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
       {atual && (
         <Gerenciar
           personagem={atual}

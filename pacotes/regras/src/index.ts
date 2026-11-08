@@ -8,3 +8,7 @@ export * from "./ficha/operacoes";
 export * from "./ficha/progressao";
 export * from "./ficha/rotulos";
 export * from "./combate";
+export * from "./encontros";
+export * from "./mundo";
+export * from "./comercio";
+export * from "./espolios";

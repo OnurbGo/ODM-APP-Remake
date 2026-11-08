@@ -183,3 +183,92 @@
     transform: translate(-50%, -50%) rotate(-5deg) scale(2.4);
   }
 }
+
+/* Olho com X (20 natural) e lápide (1 natural) ao lado do texto: a figura na cor do texto,
+   a íris no sangue do dado e o entalhe no fundo da camada. */
+.simboloNatural {
+  --simbolo-figura: currentColor;
+  --simbolo-fundo: var(--dado-corpo);
+  --simbolo-entalhe: var(--cor-superficie);
+  width: 1.3em;
+  height: 1.3em;
+  margin-right: 0.25em;
+  vertical-align: -0.25em;
+}
+
+/* Teste de Morte: o fundo escurece nas bordas e pulsa como uma batida de coração. */
+.morte::before {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  content: "";
+  background: radial-gradient(ellipse at center, transparent 35%, color-mix(in srgb, var(--dado-corpo) 55%, transparent) 100%);
+  animation: batida calc(1100ms * var(--fator-animacao)) ease-in-out infinite;
+}
+
+.morte > * {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes batida {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  12% {
+    opacity: 0.85;
+  }
+  24% {
+    opacity: 0.45;
+  }
+  36% {
+    opacity: 0.75;
+  }
+}
+
+.morteMarcas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-1);
+  align-items: center;
+}
+
+.linhaMorte {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+}
+
+.marcasMorte {
+  display: inline-flex;
+  gap: var(--esp-1);
+}
+
+.marcaMorte {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--cor-borda-forte);
+  border-radius: 50%;
+}
+
+.marcaSucesso {
+  background: var(--cor-sucesso);
+  border-color: var(--cor-sucesso);
+}
+
+.marcaFalha {
+  background: var(--dado-corpo);
+  border-color: var(--cor-perigo);
+}
+
+.marcaNova {
+  animation: entrarMod calc(420ms * var(--fator-animacao)) var(--curva-carimbo) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .morte::before {
+    animation: none;
+  }
+}

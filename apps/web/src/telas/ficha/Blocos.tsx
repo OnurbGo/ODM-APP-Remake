@@ -1,7 +1,8 @@
-import { Botao, CampoNumero, Cartao, Etiqueta, PopUp } from "@odm/estilo";
+import { Botao, CampoNumero, CampoTexto, Cartao, Etiqueta, PopUp, TextoDoLivro } from "@odm/estilo";
 import { ATRIBUTOS, type Atributo, type Recuperacao } from "@odm/conteudo";
 import type { FichaDados, Operacao, Personagem } from "@odm/protocolo";
 import {
+  atributosDaArma,
   habilidadesDaFicha,
   NOME_ATRIBUTO,
   pendenciasDeNivel,
@@ -271,7 +272,7 @@ function Habilidade({ h }: { h: Pick<HabilidadeDaFicha, "nome" | "texto" | "fora
         <span>{h.nome}</span>
         {h.foraDoLivro && <Etiqueta tom="perigo">Não está mais no livro</Etiqueta>}
       </summary>
-      <p className={css.habilidadeTexto}>{h.texto}</p>
+      <p className={css.habilidadeTexto}><TextoDoLivro texto={h.texto} /></p>
     </details>
   );
 }
@@ -287,7 +288,7 @@ export function BlocoHabilidades({ ficha }: { ficha: FichaVista }) {
     <div className={css.grupos}>
       {origem && (
         <Cartao titulo={`Origem: ${origem.nome}`}>
-          <p className={css.habilidadeTexto}>{origem.texto}</p>
+          <p className={css.habilidadeTexto}><TextoDoLivro texto={origem.texto} /></p>
         </Cartao>
       )}
       {grupos
@@ -360,7 +361,7 @@ export function BlocoDinheiro({ ficha }: { ficha: FichaVista }) {
   return (
     <Cartao titulo="Dinheiro">
       <p className={`${css.dinheiro} odm-numero`}>R$ {ficha.dados.dinheiro.toLocaleString("pt-BR")}</p>
-      <CampoNumero rotulo="Quantia" semSinal valor={valor} minimo={0} maximo={100000} aoMudar={definirValor} />
+      <CampoTexto rotulo="Quantia (R$)" type="text" inputMode="numeric" pattern="[0-9]*" placeholder="0" value={valor || ""} onChange={(e) => definirValor(Math.min(1_000_000, Number(e.target.value.replace(/\D/g, "")) || 0))} />
       <div className={css.opcoesLado}>
         <Botao
           disabled={!valor}
@@ -385,6 +386,25 @@ export function BlocoDinheiro({ ficha }: { ficha: FichaVista }) {
   );
 }
 
+/* Finesse: o jogador escolhe o atributo da arma (decisão de 07/11/2026). Sem escolha, vale o maior. */
+function EscolhaDeAtributo({ item, ficha }: { item: FichaDados["inventario"][number]; ficha: FichaVista }) {
+  const opcoes = item.itemId ? atributosDaArma({ nome: item.nome, mecanica: ficha.ctx.itens.get(item.itemId)?.mecanica }) : [];
+  if (opcoes.length < 2) return null;
+  return (
+    <label className={css.itemAtributo}>
+      <span className="odm-oculto">Atributo de {item.nome}</span>
+      <select value={item.atributo ?? ""} onChange={(e) => ficha.operar({ op: "item_ajustar", itemFichaId: item.id, campo: "atributo", valor: e.target.value || null })}>
+        <option value="">O maior</option>
+        {opcoes.map((a) => (
+          <option key={a} value={a}>
+            {NOME_ATRIBUTO[a]}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
 export function BlocoItens({ ficha }: { ficha: FichaVista }) {
   const { inventario } = ficha.dados;
   return (
@@ -398,6 +418,7 @@ export function BlocoItens({ ficha }: { ficha: FichaVista }) {
               {i.quantidade > 1 && <span className={css.detalhe}> ×{i.quantidade}</span>}
             </span>
             {i.equipado && <Etiqueta tom="destaque">Equipado</Etiqueta>}
+            <EscolhaDeAtributo item={i} ficha={ficha} />
             <button type="button" className={css.itemUsar} onClick={() => ficha.operar({ op: "equipar", itemFichaId: i.id, equipado: !i.equipado })}>
               {i.equipado ? "Guardar" : "Equipar"}
             </button>

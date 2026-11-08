@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { Mudanca, RolagemDeCombate } from "./combate";
 import { Operacao } from "./ficha";
+import { DadosJogo21 } from "./jogo21";
 import { DadosResultadoTeste, PedidoTeste, PedidoTesteVisto } from "./testes";
 
 export const ModificadorVisto = z.object({ rotulo: z.string(), valor: z.number().int() });
@@ -102,6 +103,7 @@ export const EventoCompleto = z.discriminatedUnion("tipo", [
   z.object({ ...Comum, tipo: z.literal("combate"), dados: DadosCombate }),
   z.object({ ...Comum, tipo: z.literal("combate_desfeito"), dados: DadosCombateDesfeito }),
   z.object({ ...Comum, tipo: z.literal("rolagem_livre"), dados: DadosRolagemLivre }),
+  z.object({ ...Comum, tipo: z.literal("jogo21"), dados: DadosJogo21 }),
 ]);
 export type EventoCompleto = z.infer<typeof EventoCompleto>;
 
@@ -128,6 +130,7 @@ export const EventoVisto = z.discriminatedUnion("tipo", [
   z.object({ ...Visto, tipo: z.literal("combate_visto"), dados: DadosCombateVisto }),
   z.object({ ...Visto, tipo: z.literal("combate_desfeito"), dados: DadosCombateDesfeito }),
   z.object({ ...Visto, tipo: z.literal("rolagem_livre"), dados: DadosRolagemLivre }),
+  z.object({ ...Visto, tipo: z.literal("jogo21"), dados: DadosJogo21 }),
 ]);
 export type EventoVisto = z.infer<typeof EventoVisto>;
 

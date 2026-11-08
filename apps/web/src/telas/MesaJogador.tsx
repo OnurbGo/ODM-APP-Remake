@@ -10,13 +10,20 @@ const AreaFicha = lazy(() => import("./ficha/AreaFicha"));
 const JogoDoPersonagem = lazy(() => import("./combate/JogoDoPersonagem"));
 /* O pop-up de teste baixa no primeiro pedido que chegar a este aparelho. */
 const CamadaTestes = lazy(() => import("./testes/CamadaTestes"));
+/* O Jogo do 21 baixa quando o mestre abre um jogo para um personagem deste aparelho. */
+const Jogo21Jogador = lazy(() => import("./campanha/Jogo21").then((m) => ({ default: m.Jogo21Jogador })));
+/* O que o mestre mostra: baixa quando chega a primeira vez. */
+const Mostrado = lazy(() => import("./campanha/Mostrado").then((m) => ({ default: m.Mostrado })));
 
 function Testes() {
   const pediram = useLoja((e) => e.eventos.some((x) => x.tipo === "teste_pedido_visto"));
-  if (!pediram) return null;
+  const jogo21 = useLoja((e) => e.jogos21.length > 0);
+  const mostra = useLoja((e) => !!e.mostrando);
   return (
     <Suspense fallback={null}>
-      <CamadaTestes />
+      {pediram && <CamadaTestes />}
+      {jogo21 && <Jogo21Jogador />}
+      {mostra && <Mostrado />}
     </Suspense>
   );
 }
@@ -156,7 +163,7 @@ export function MesaJogador() {
             </Botao>
           </p>
         )}
-        <Suspense fallback={<Carregando rotulo="Abrindo o personagem" />}>
+        <Suspense fallback={<Carregando modo="tela" rotulo="Abrindo o personagem" />}>
           <JogoDoPersonagem personagemId={doJogo.id} aoAbrirMesa={() => verMesa(true)} />
         </Suspense>
         <Testes />
@@ -167,7 +174,7 @@ export function MesaJogador() {
   if (aberto && existe) {
     return (
       <>
-        <Suspense fallback={<Carregando rotulo="Abrindo a ficha" />}>
+        <Suspense fallback={<Carregando modo="tela" rotulo="Abrindo a ficha" />}>
           <AreaFicha personagemId={aberto} aoVoltar={() => abrirFicha(null)} />
         </Suspense>
         <Testes />
